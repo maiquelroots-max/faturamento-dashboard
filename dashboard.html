@@ -1,0 +1,4248 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard de Faturamento — V2</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Surfaces */
+    --bg:        #fafafa;
+    --surface:   #ffffff;
+    --surface-2: #f5f5f7;
+    --surface-3: #f9fafb;
+    /* Borders */
+    --border:    #e5e7eb;
+    --border-soft:#f0f1f3;
+    /* Text */
+    --text:      #111827;
+    --text-2:    #374151;
+    --muted:     #6b7280;
+    --muted-2:   #9ca3af;
+    /* Accent */
+    --accent:    #4f46e5;
+    --accent-h:  #4338ca;
+    --accent-soft:#eef2ff;
+    /* Semantic */
+    --good:      #059669;
+    --good-soft: #ecfdf5;
+    --good-bd:   #a7f3d0;
+    --bad:       #dc2626;
+    --bad-soft:  #fef2f2;
+    --bad-bd:    #fecaca;
+    --warn:      #b45309;
+    --warn-soft: #fffbeb;
+    --warn-bd:   #fde68a;
+    /* Effects */
+    --shadow-sm: 0 1px 2px rgba(16,24,40,.04);
+    --shadow:    0 1px 3px rgba(16,24,40,.04), 0 1px 2px rgba(16,24,40,.03);
+    --radius:    10px;
+    --radius-sm: 6px;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg); color: var(--text);
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px; -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--accent-h); }
+
+  /* Top bar */
+  header.topbar {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 24px; background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 50;
+  }
+  header.topbar h1 {
+    font-size: 15px; font-weight: 600; letter-spacing: -0.01em;
+    margin: 0; color: var(--text);
+  }
+  header.topbar .spacer { flex: 1; }
+  .file-info {
+    font-size: 12px; color: var(--muted);
+    background: var(--surface-3); padding: 4px 10px;
+    border-radius: 999px; border: 1px solid var(--border-soft);
+  }
+
+  /* Buttons */
+  .btn {
+    background: var(--accent); color: #fff; border: 0;
+    padding: 7px 14px; border-radius: var(--radius-sm);
+    cursor: pointer; font-weight: 500; font-size: 13px;
+    transition: background .15s ease;
+  }
+  .btn:hover { background: var(--accent-h); }
+  .btn.secondary {
+    background: var(--surface); color: var(--text-2);
+    border: 1px solid var(--border);
+  }
+  .btn.secondary:hover { background: var(--surface-2); }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* Layout */
+  main { display: grid; grid-template-columns: 260px 1fr; min-height: calc(100vh - 53px); }
+
+  /* Sidebar */
+  aside.filters {
+    background: var(--surface); border-right: 1px solid var(--border);
+    padding: 20px 18px; overflow-y: auto;
+    max-height: calc(100vh - 53px); position: sticky; top: 53px;
+  }
+  aside.filters h3 {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--muted-2);
+    margin: 18px 0 8px;
+  }
+  aside.filters h3:first-child { margin-top: 0; }
+  aside.filters .group { margin-bottom: 4px; }
+  aside.filters select,
+  aside.filters input[type=date] {
+    width: 100%; background: var(--surface); color: var(--text);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 7px 9px; font-size: 13px; font-family: inherit;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  aside.filters select:focus,
+  aside.filters input[type=date]:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(79,70,229,.1);
+  }
+  aside.filters select[multiple] { height: 96px; padding: 4px; }
+  aside.filters select[multiple] option { padding: 3px 6px; border-radius: 3px; }
+  aside.filters .row { display: flex; gap: 6px; align-items: center; }
+  aside.filters .row .small { color: var(--muted-2); }
+  aside.filters .checks label {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; padding: 5px 0; color: var(--text-2);
+    cursor: pointer;
+  }
+  aside.filters .checks input[type=checkbox] { accent-color: var(--accent); }
+  aside.filters .preset { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px; }
+  aside.filters .preset button {
+    background: var(--surface); color: var(--text-2);
+    border: 1px solid var(--border);
+    border-radius: 999px; padding: 4px 10px;
+    font-size: 11px; font-family: inherit; cursor: pointer;
+    transition: all .15s;
+  }
+  aside.filters .preset button:hover {
+    background: var(--accent-soft); color: var(--accent);
+    border-color: var(--accent-soft);
+  }
+
+  /* Content */
+  section.content { padding: 24px 28px; overflow-x: hidden; }
+
+  /* Empty state */
+  .empty {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; color: var(--muted); padding: 64px 24px;
+    border: 1px solid var(--border); border-radius: 12px;
+    background: var(--surface); margin: 24px 0;
+  }
+  .empty h2 {
+    color: var(--text); margin: 0 0 8px;
+    font-size: 18px; font-weight: 600; letter-spacing: -0.01em;
+  }
+  .empty p { max-width: 480px; line-height: 1.6; font-size: 13px; color: var(--muted); }
+  .empty .drop {
+    width: 100%; max-width: 480px; padding: 28px;
+    border: 1.5px dashed var(--border); border-radius: 10px;
+    margin-top: 20px; cursor: pointer;
+    background: var(--surface-3); transition: all .15s;
+  }
+  .empty .drop:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .empty .drop.dragover { border-color: var(--accent); background: var(--accent-soft); }
+  .empty .drop p { margin: 0; color: var(--text-2); }
+
+  /* KPI cards */
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px; margin-bottom: 20px;
+  }
+  .kpi {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 16px;
+    transition: border-color .15s;
+  }
+  .kpi:hover { border-color: var(--muted-2); }
+  .kpi .label {
+    font-size: 11px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: .06em; color: var(--muted);
+  }
+  .kpi .value {
+    font-size: 22px; font-weight: 600; letter-spacing: -0.02em;
+    margin-top: 6px; color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  .kpi .sub { font-size: 11px; color: var(--muted-2); margin-top: 4px; }
+
+  /* Grids & cards */
+  .grid { display: grid; gap: 16px; }
+  .grid.two   { grid-template-columns: 1fr 1fr; }
+  .grid.three { grid-template-columns: 1fr 1fr 1fr; }
+  @media (max-width: 1100px) { .grid.two, .grid.three { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px;
+    margin-bottom: 16px;
+  }
+  .card h3 {
+    margin: 0 0 12px; font-size: 14px; font-weight: 600;
+    letter-spacing: -0.005em; color: var(--text);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card h4 {
+    font-size: 13px; font-weight: 600; color: var(--text);
+    margin: 0 0 8px;
+  }
+  .card .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .card .controls label.small { color: var(--muted); }
+  .card .controls select,
+  .card .controls input {
+    background: var(--surface); color: var(--text);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 5px 9px; font-size: 12px; font-family: inherit;
+  }
+  .card .controls select:focus,
+  .card .controls input:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(79,70,229,.1);
+  }
+  .card .chart-wrap { position: relative; height: 300px; }
+  .card.tall  .chart-wrap { height: 400px; }
+  .card.short .chart-wrap { height: 220px; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table th, table td {
+    text-align: left; padding: 9px 12px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  table th {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .04em; color: var(--muted);
+    background: var(--surface-3); position: sticky; top: 0;
+    border-bottom: 1px solid var(--border);
+  }
+  table tbody tr { transition: background .1s; }
+  table tbody tr:hover td { background: var(--surface-3); }
+  table tbody tr:last-child td { border-bottom: 0; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  /* Pills & badges */
+  .pill {
+    display: inline-block; padding: 2px 9px; border-radius: 999px;
+    font-size: 11px; font-weight: 500;
+    background: var(--surface-2); border: 1px solid var(--border);
+    color: var(--text-2);
+  }
+  .pill.good { background: var(--good-soft); border-color: var(--good-bd); color: var(--good); }
+  .pill.bad  { background: var(--bad-soft);  border-color: var(--bad-bd);  color: var(--bad);  }
+  .pill.warn { background: var(--warn-soft); border-color: var(--warn-bd); color: var(--warn); }
+  .badge {
+    display: inline-block; padding: 1px 6px; border-radius: 4px;
+    font-size: 10px; font-weight: 500; font-family: ui-monospace, SF Mono, Menlo, monospace;
+    background: var(--surface-2); border: 1px solid var(--border);
+    color: var(--muted);
+  }
+
+  /* Tabs (text style with bottom border) */
+  .tabs { display: inline-flex; border-bottom: 1px solid var(--border); gap: 0; }
+  .tabs button {
+    background: transparent; color: var(--muted);
+    border: 0; border-bottom: 2px solid transparent;
+    padding: 7px 14px; font-size: 12px; font-weight: 500;
+    font-family: inherit; cursor: pointer;
+    margin-bottom: -1px; transition: all .15s;
+  }
+  .tabs button:hover { color: var(--text); }
+  .tabs button.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* Details */
+  details summary {
+    cursor: pointer; user-select: none; padding: 6px 0;
+    color: var(--muted); font-size: 12px; font-weight: 500;
+    list-style: none;
+  }
+  details summary::-webkit-details-marker { display: none; }
+  details summary::before {
+    content: '▸'; display: inline-block; margin-right: 6px;
+    transition: transform .15s; font-size: 9px; color: var(--muted-2);
+  }
+  details[open] summary::before { transform: rotate(90deg); }
+  details[open] summary { color: var(--text); }
+
+  /* Lookup table */
+  .lookup-table-wrap {
+    max-height: 480px; overflow: auto;
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+  }
+  .lookup-table-wrap table { font-size: 12px; }
+  .lookup-table-wrap th { background: var(--surface-3); }
+
+  /* Misc */
+  .pos { color: var(--good); }
+  .neg { color: var(--bad); }
+  .danger-text { color: var(--bad); }
+  .good-text   { color: var(--good); }
+  .warn-text   { color: var(--warn); }
+  .toolbar-flex { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+  .scroll-x { overflow-x: auto; }
+  .small { font-size: 11px; color: var(--muted); }
+  .nowrap { white-space: nowrap; }
+  .footer-note {
+    font-size: 11px; color: var(--muted); margin-top: 20px;
+    text-align: right; padding: 12px 0; border-top: 1px solid var(--border-soft);
+  }
+  input[type=text].search {
+    width: 100%; max-width: 480px;
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); border-radius: var(--radius-sm);
+    padding: 9px 12px; font-size: 13px; font-family: inherit;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  input[type=text].search:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(79,70,229,.1);
+  }
+
+  /* Suggestion KPI variant */
+  .kpi.suggestion {
+    background: linear-gradient(180deg, var(--accent-soft) 0%, var(--surface) 100%);
+    border-color: var(--accent-soft);
+  }
+
+  /* Top-level view tabs (Visão Geral / Análise por Vendedor) */
+  .view-tabs {
+    display: flex; border-bottom: 1px solid var(--border);
+    margin-bottom: 24px; gap: 0;
+  }
+  .view-tabs button {
+    background: transparent; border: 0;
+    border-bottom: 2px solid transparent;
+    padding: 12px 18px; color: var(--muted);
+    font-size: 14px; font-weight: 500; cursor: pointer;
+    margin-bottom: -1px; font-family: inherit;
+    transition: all .15s;
+  }
+  .view-tabs button:hover { color: var(--text); }
+  .view-tabs button.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* Highlighted row for the focal seller in ranking tables */
+  table tr.row-focal td {
+    background: var(--accent-soft);
+    font-weight: 600; color: var(--accent-h);
+  }
+  table tr.row-focal:hover td { background: var(--accent-soft); }
+
+  /* Empty hint inside seller view */
+  .seller-empty {
+    background: var(--surface); border: 1px dashed var(--border);
+    border-radius: var(--radius); padding: 40px 24px; text-align: center;
+    color: var(--muted); font-size: 13px;
+  }
+
+  /* "Modas" panel inside Análise por Cliente */
+  .modes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+  }
+  .mode-block {
+    background: var(--surface-3); border: 1px solid var(--border-soft);
+    border-radius: var(--radius-sm); padding: 10px 12px;
+  }
+  .mode-label {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .mode-item {
+    display: flex; align-items: baseline; gap: 8px;
+    padding: 4px 0; border-bottom: 1px solid var(--border-soft);
+    font-size: 12.5px;
+  }
+  .mode-item:last-child { border-bottom: 0; }
+  .mode-rank {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--accent-soft); color: var(--accent);
+    font-size: 10px; font-weight: 600; flex: 0 0 auto;
+  }
+  .mode-name {
+    flex: 1; min-width: 0; color: var(--text);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .mode-count { font-size: 10.5px; color: var(--muted); flex: 0 0 auto; }
+
+  /* Click-to-pick links inside client tables */
+  table a[data-pick-client] {
+    color: var(--text); border-bottom: 1px dashed transparent;
+    transition: color .15s, border-color .15s;
+  }
+  table a[data-pick-client]:hover {
+    color: var(--accent); border-bottom-color: var(--accent);
+  }
+
+  /* Sortable table headers */
+  table th.sortable {
+    cursor: pointer; user-select: none;
+    transition: background .15s, color .15s;
+  }
+  table th.sortable:hover { background: var(--accent-soft); color: var(--accent); }
+
+  /* Multi-row table headers (used in annual ranking) */
+  table thead tr:not(:last-child) th { border-bottom: 1px solid var(--border-soft); }
+  table thead th[colspan] { text-align: center; }
+
+  /* Inline button group for table toolbars */
+  .actions-group {
+    display: inline-flex; gap: 6px; align-items: center;
+  }
+
+  /* Compact filter row inside cards */
+  .compact-filters {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    padding: 4px 0; margin-bottom: 10px;
+  }
+  .compact-filters .small { white-space: nowrap; color: var(--muted); }
+  .compact-filters select,
+  .compact-filters input {
+    background: var(--surface); color: var(--text);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 5px 9px; font-size: 12px; font-family: inherit;
+  }
+  .compact-filters select:focus, .compact-filters input:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(79,70,229,.1);
+  }
+
+  /* Custom scrollbar (subtle) */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 999px; border: 2px solid var(--bg); }
+  ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+  /* Config modal */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(17,24,39,.55);
+    display: none; align-items: center; justify-content: center;
+    padding: 20px; backdrop-filter: blur(2px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border-radius: var(--radius);
+    border: 1px solid var(--border);
+    padding: 24px 26px; max-width: 580px; width: 100%;
+    max-height: 90vh; overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,.18);
+  }
+  .modal h3 {
+    margin: 0 0 6px; font-size: 16px; font-weight: 600; letter-spacing: -0.01em;
+  }
+  .modal > p.lead {
+    margin: 0 0 16px; font-size: 13px; color: var(--muted); line-height: 1.5;
+  }
+  .modal label {
+    display: block; font-size: 12px; font-weight: 500;
+    margin: 14px 0 5px; color: var(--text-2);
+  }
+  .modal input[type=url], .modal input[type=text] {
+    width: 100%; padding: 9px 11px; font-size: 13px; font-family: inherit;
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--surface); color: var(--text);
+  }
+  .modal input[type=url]:focus, .modal input[type=text]:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(79,70,229,.1);
+  }
+  .modal label.row {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 400; cursor: pointer;
+    margin: 14px 0 4px;
+  }
+  .modal label.row input[type=checkbox] { accent-color: var(--accent); }
+  .modal .actions {
+    display: flex; gap: 8px; justify-content: flex-end; margin-top: 22px;
+  }
+  .modal details {
+    background: var(--surface-3); border: 1px solid var(--border-soft);
+    border-radius: var(--radius-sm); padding: 4px 12px; margin-top: 14px;
+  }
+  .modal details summary { padding: 8px 0; font-size: 13px; font-weight: 500; color: var(--text-2); }
+  .modal details p { font-size: 12.5px; line-height: 1.55; color: var(--muted); margin: 6px 0; }
+  .modal details code {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 11px; background: var(--surface-2); padding: 1px 6px;
+    border-radius: 3px; border: 1px solid var(--border);
+  }
+  .modal .share-link {
+    display: flex; gap: 6px; align-items: center; margin-top: 10px;
+    padding: 8px 10px; background: var(--surface-3);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    font-family: ui-monospace, monospace; font-size: 11px;
+    word-break: break-all;
+  }
+  .modal .share-link button {
+    flex-shrink: 0; padding: 4px 10px; font-size: 11px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 4px; cursor: pointer; font-family: inherit;
+  }
+  .modal .share-link button:hover { background: var(--surface-2); }
+  .modal hr {
+    margin: 18px 0 8px; border: 0; border-top: 1px solid var(--border-soft);
+  }
+
+  /* Source-status pill in topbar */
+  .source-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--accent-soft); border: 1px solid var(--accent);
+    color: var(--accent-h);
+    padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 500;
+  }
+  .source-pill .dot { width: 6px; height: 6px; border-radius: 999px; background: var(--accent); }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <h1>Dashboard de Faturamento</h1>
+  <span class="badge">V2</span>
+  <span id="fileInfo" class="file-info">Nenhum arquivo carregado</span>
+  <span id="sourcePill" class="source-pill" style="display:none"><span class="dot"></span><span id="sourcePillText">Fonte remota</span></span>
+  <div class="spacer"></div>
+  <input type="file" id="fileInput" accept=".xlsx,.xls,.xlsm,.xlsb" style="display:none">
+  <button class="btn secondary" id="configBtn" title="Configurar fonte de dados (OneDrive / URL)">⚙ Fonte</button>
+  <button class="btn secondary" id="reloadBtn" disabled>Recarregar</button>
+  <button class="btn" id="loadBtn">Carregar Excel</button>
+</header>
+
+<!-- Configuration modal -->
+<div id="configModal" class="modal-overlay" role="dialog" aria-modal="true">
+  <div class="modal">
+    <h3>Configurar fonte de dados</h3>
+    <p class="lead">Configure uma URL pública do arquivo Excel para o dashboard carregar automaticamente. Você atualiza só a planilha; quem abrir o dashboard vê sempre a versão mais recente.</p>
+
+    <label for="cfgUrl">URL do arquivo Excel (.xlsx)</label>
+    <input type="url" id="cfgUrl" placeholder="https://onedrive.live.com/embed?...  ou  https://...sharepoint.com/...?download=1  ou  https://seusite.github.io/.../arquivo.xlsx">
+
+    <label class="row">
+      <input type="checkbox" id="cfgAutoLoad" checked>
+      Carregar automaticamente ao abrir o dashboard
+    </label>
+
+    <details open>
+      <summary>Como obter um link funcional</summary>
+
+      <p><b>OneDrive Personal — método recomendado (URL Embed)</b>:<br>
+        ⚠️ Microsoft restringiu o acesso ao link normal de compartilhamento (retorna HTTP 401). Use o link <b>Embed</b>:
+      </p>
+      <ol style="font-size:12.5px; color: var(--muted); padding-left: 22px; line-height: 1.55">
+        <li>Abra o arquivo no OneDrive web</li>
+        <li>Menu <b>⋯ Mais opções</b> → <b>Inserir</b> (ou <i>Embed</i>)</li>
+        <li>Clique em <b>Gerar</b></li>
+        <li>Copie só a URL dentro de <code>src="..."</code> (começa com <code>https://onedrive.live.com/embed?...</code>)</li>
+        <li>Cole aqui — o dashboard converte automaticamente <code>embed?</code> para <code>download?</code></li>
+      </ol>
+
+      <p><b>OneDrive Business / SharePoint</b>:
+        copie o link de compartilhamento e adicione <code>?download=1</code> no final.
+        Quem abrir o dashboard precisa estar logado na conta Microsoft da empresa.
+      </p>
+
+      <p><b>GitHub Pages / Cloudflare Pages / Netlify</b> ⭐ (mais confiável):
+        suba <code>dashboard.html</code> e o Excel no mesmo repositório. Use a URL pública do arquivo. Sem CORS, sem login, sem risco de Microsoft mudar política. Ideal para distribuição.
+      </p>
+
+      <p><b>Não funciona</b>: link <code>https://1drv.ms/...</code> direto (401), pasta de rede (<code>file://</code>), URL do "Compartilhar" do OneDrive Personal.</p>
+    </details>
+
+    <hr>
+
+    <label>Link compartilhável do dashboard <span class="small">(com a fonte já embutida)</span></label>
+    <div class="share-link">
+      <span id="shareLinkText">Salve a configuração para gerar o link</span>
+      <button id="cfgCopyShare">Copiar</button>
+    </div>
+
+    <div class="actions">
+      <button class="btn secondary" id="cfgClear">Limpar fonte</button>
+      <button class="btn secondary" id="cfgCancel">Cancelar</button>
+      <button class="btn" id="cfgSave">Salvar e carregar</button>
+    </div>
+  </div>
+</div>
+
+<main>
+  <aside class="filters">
+    <h3>Período (Faturamento)</h3>
+    <div class="group">
+      <div class="row">
+        <input type="date" id="dateFrom" />
+        <span class="small">—</span>
+        <input type="date" id="dateTo" />
+      </div>
+      <div class="preset">
+        <button data-preset="today">Hoje</button>
+        <button data-preset="thisMonth">Mês atual</button>
+        <button data-preset="lastMonth">Mês anterior</button>
+        <button data-preset="thisQuarter">Trim. atual</button>
+        <button data-preset="thisSemester">Sem. atual</button>
+        <button data-preset="thisYear">Ano atual</button>
+        <button data-preset="last12">Últimos 12m</button>
+        <button data-preset="all">Tudo</button>
+      </div>
+    </div>
+
+    <h3>Ano</h3>
+    <div class="group"><select multiple id="filtAno" size="5"></select></div>
+
+    <h3>Negócio</h3>
+    <div class="group"><select multiple id="filtNegocio"></select></div>
+
+    <h3>Tipo de Faturamento</h3>
+    <div class="group checks">
+      <label><input type="checkbox" id="tipoPecas" checked> Peças</label>
+      <label><input type="checkbox" id="tipoServicos" checked> Serviços</label>
+      <label><input type="checkbox" id="tipoTerceiros" checked> Terceiros</label>
+    </div>
+
+    <h3>Vendedor</h3>
+    <div class="group"><select multiple id="filtVendedor"></select></div>
+
+    <h3>Operação</h3>
+    <div class="group"><select multiple id="filtOperacao"></select></div>
+
+    <h3>Cidade</h3>
+    <div class="group"><select multiple id="filtCidade"></select></div>
+
+    <h3>Empresa</h3>
+    <div class="group"><select multiple id="filtEmpresa"></select></div>
+
+    <div class="group" style="margin-top:14px">
+      <button class="btn secondary" id="clearFiltersBtn" style="width:100%">Limpar filtros</button>
+    </div>
+    <p class="small" style="margin-top:18px">
+      Multi-seleção: segure <span class="badge">Ctrl</span> ou <span class="badge">Shift</span> para escolher vários itens.
+      Sem itens selecionados = todos.
+    </p>
+  </aside>
+
+  <section class="content" id="content">
+    <div id="emptyState" class="empty">
+      <h2>Carregue o arquivo Faturamento_Geral_V2.xlsx</h2>
+      <p>Clique em <b>“Carregar Excel”</b> no topo ou arraste o arquivo para a área abaixo.
+         Todo o processamento acontece localmente no seu navegador — nenhum dado é enviado para a internet.</p>
+      <div class="drop" id="dropZone">
+        <p>Arraste e solte o arquivo .xlsx aqui</p>
+      </div>
+    </div>
+
+    <div id="dashboard" style="display:none">
+
+      <nav class="view-tabs">
+        <button class="active" data-view="overview">Visão Geral</button>
+        <button data-view="sellers">Análise por Vendedor</button>
+        <button data-view="clients">Análise por Cliente</button>
+      </nav>
+
+      <div id="view-overview" class="view">
+
+      <!-- KPIs -->
+      <div class="kpis" id="kpiRow"></div>
+
+      <!-- Comparativos -->
+      <div class="card">
+        <div class="toolbar-flex">
+          <h3>Comparativo de Períodos</h3>
+          <div class="controls">
+            <label class="small">Granularidade</label>
+            <select id="cmpGranularity">
+              <option value="month">Mês</option>
+              <option value="quarter" selected>Trimestre</option>
+              <option value="semester">Semestre</option>
+              <option value="year">Ano</option>
+            </select>
+            <label class="small">Referência</label>
+            <input type="text" id="cmpAnchor" placeholder="2026-Q1, 2026-03, 2026" style="width:140px">
+            <button class="btn secondary" id="cmpApply">Aplicar</button>
+          </div>
+        </div>
+        <p class="small" style="margin:0 0 12px">Compara <b>período de referência</b> × <b>mesmo período do ano anterior</b> × <b>período imediatamente antecedente</b>.</p>
+        <div class="chart-wrap"><canvas id="cmpChart"></canvas></div>
+        <div id="cmpTable" style="margin-top:14px"></div>
+      </div>
+
+      <!-- Faturamento ao longo do tempo -->
+      <div class="grid two">
+        <div class="card">
+          <h3>Faturamento Diário</h3>
+          <div class="chart-wrap"><canvas id="dailyChart"></canvas></div>
+        </div>
+        <div class="card">
+          <h3>Faturamento Mensal</h3>
+          <div class="chart-wrap"><canvas id="monthlyChart"></canvas></div>
+        </div>
+      </div>
+
+      <div class="grid two">
+        <div class="card">
+          <div class="toolbar-flex">
+            <h3>Faturamento por Período</h3>
+            <div class="controls">
+              <select id="periodGran">
+                <option value="quarter" selected>Trimestre</option>
+                <option value="semester">Semestre</option>
+                <option value="year">Ano</option>
+              </select>
+            </div>
+          </div>
+          <div class="chart-wrap"><canvas id="periodChart"></canvas></div>
+        </div>
+        <div class="card">
+          <h3>OS Abertas vs Faturadas</h3>
+          <div class="chart-wrap"><canvas id="osChart"></canvas></div>
+          <p class="small">Usa as datas de Abertura e Faturamento de cada OS no filtro.</p>
+        </div>
+      </div>
+
+      <div class="grid two">
+        <div class="card">
+          <h3>Vendas por Cidade <span class="badge">top 15</span></h3>
+          <div class="chart-wrap" style="height:380px"><canvas id="cityChart"></canvas></div>
+        </div>
+        <div class="card">
+          <h3>Vendas por Vendedor</h3>
+          <div class="chart-wrap" style="height:380px"><canvas id="sellerChart"></canvas></div>
+        </div>
+      </div>
+
+      <div class="grid two">
+        <div class="card">
+          <h3>Descontos por Vendedor</h3>
+          <div class="chart-wrap" style="height:340px"><canvas id="sellerDiscChart"></canvas></div>
+          <p class="small">Desconto médio % ponderado pelo faturamento (mín. 3 OSs por vendedor). Tooltip mostra o R$ total de desconto e o número de OSs.</p>
+        </div>
+        <div class="card">
+          <div class="toolbar-flex">
+            <h3>Ranking de Descontos por Cliente</h3>
+            <div class="controls">
+              <div class="tabs" id="discountTypeTabs">
+                <button class="active" data-tipo="total">Total</button>
+                <button data-tipo="pecas">Peças</button>
+                <button data-tipo="servicos">Serviço</button>
+                <button data-tipo="terceiros">Terceiro</button>
+              </div>
+            </div>
+          </div>
+          <div class="grid two" style="margin-top:14px">
+            <div>
+              <h4>Maiores descontos</h4>
+              <div id="topDiscountsTable" class="scroll-x"></div>
+            </div>
+            <div>
+              <h4>Menores descontos</h4>
+              <div id="bottomDiscountsTable" class="scroll-x"></div>
+            </div>
+          </div>
+          <p class="small">Apenas clientes com mínimo de 3 OSs no período.</p>
+        </div>
+      </div>
+
+      <!-- Sugestões -->
+      <div class="card">
+        <h3>Sugestões e Metas</h3>
+        <div class="grid three">
+          <div class="kpi suggestion">
+            <div class="label">Meta — próximo mês</div>
+            <div class="value" id="metaMensalValue">—</div>
+            <div class="sub" id="metaMensalSub"></div>
+          </div>
+          <div class="kpi suggestion">
+            <div class="label">Meta diária estimada</div>
+            <div class="value" id="metaDiariaValue">—</div>
+            <div class="sub" id="metaDiariaSub"></div>
+          </div>
+          <div class="kpi suggestion">
+            <div class="label">Clientes a verificar</div>
+            <div class="value" id="risckClientsCount">—</div>
+            <div class="sub">Compras em queda significativa</div>
+          </div>
+        </div>
+        <details style="margin-top:14px">
+          <summary>Ver lista completa de clientes a verificar</summary>
+          <div id="riskClientsTable" class="scroll-x" style="margin-top:10px"></div>
+        </details>
+        <p class="small">Metas calculadas com o histórico completo (ignora filtro de período, mantém Empresa/Operação/Negócio/Tipo).</p>
+      </div>
+
+      <!-- Consulta de OS -->
+      <div class="card">
+        <h3>Consulta de OS</h3>
+        <div class="toolbar-flex">
+          <input type="text" id="osSearch" class="search" placeholder="Buscar por OS, cliente, vendedor, cidade, marca…" />
+          <span class="small" id="osSearchCount"></span>
+        </div>
+        <div class="lookup-table-wrap" id="osLookupResults" style="margin-top:12px"></div>
+        <p class="small">A consulta usa o conjunto filtrado. Limpe os filtros para buscar em toda a base.</p>
+      </div>
+
+      <p class="footer-note">Total de registros carregados: <span id="totalRows">0</span> · Período da base: <span id="dataRange">—</span></p>
+
+      </div><!-- /view-overview -->
+
+      <div id="view-sellers" class="view" style="display:none">
+
+        <div class="card">
+          <div class="toolbar-flex">
+            <h3>Análise por Vendedor</h3>
+            <div class="controls">
+              <label class="small">Vendedor focal</label>
+              <select id="focalSeller" style="min-width:260px"></select>
+            </div>
+          </div>
+          <p class="small" style="margin:0">Filtros gerais (Período, Empresa, Operação, Negócio, Cidade, Tipo) seguem aplicados. O filtro <b>Vendedor</b> da barra lateral é ignorado nesta aba — usamos o seletor focal acima.</p>
+        </div>
+
+        <div class="card">
+          <div class="toolbar-flex">
+            <h3>Comparativo anual entre vendedores <span class="badge">top 20</span></h3>
+            <div class="actions-group">
+              <button class="btn secondary" id="printSellersAnnual">Imprimir</button>
+              <button class="btn secondary" id="csvSellersAnnual">Exportar CSV</button>
+            </div>
+          </div>
+          <p class="small" style="margin:0 0 10px">Top 20 vendedores pelo faturamento do <b>ano mais recente</b>, com valores e participação dos últimos 4 anos. Aplica filtros de Empresa, Operação, Negócio e Cidade (ignora período e filtro de Vendedor).</p>
+          <div id="sellersAnnualRanking" class="scroll-x"></div>
+        </div>
+
+        <div id="sellerEmptyState" class="seller-empty">
+          Selecione um vendedor acima para ver a análise detalhada.
+        </div>
+
+        <div id="sellerContent" style="display:none">
+
+          <div class="kpis" id="sellerKpis"></div>
+
+          <div class="grid two">
+            <div class="card">
+              <h3>Evolução mensal</h3>
+              <div class="chart-wrap"><canvas id="sellerMonthChart"></canvas></div>
+            </div>
+            <div class="card">
+              <h3>Faturamento por tipo</h3>
+              <div class="chart-wrap"><canvas id="sellerTypeChart"></canvas></div>
+              <p class="small">Distribuição entre Peças, Serviços e Terceiros (respeita filtros do tipo).</p>
+            </div>
+          </div>
+
+          <div class="grid two">
+            <div class="card">
+              <h3>Vendas por cidade <span class="badge">top 12</span></h3>
+              <div class="chart-wrap" style="height:380px"><canvas id="sellerCityChart"></canvas></div>
+            </div>
+            <div class="card">
+              <h3>Top 10 clientes</h3>
+              <div id="sellerTopClients" class="scroll-x"></div>
+            </div>
+          </div>
+
+          <div class="grid two">
+            <div class="card">
+              <h3>Marcas atendidas <span class="badge">top 8</span></h3>
+              <div class="chart-wrap"><canvas id="sellerBrandChart"></canvas></div>
+            </div>
+            <div class="card">
+              <h3>Comparativo de período</h3>
+              <div id="sellerCmpTable"></div>
+              <p class="small">Período do filtro × mesma janela do ano anterior × período imediatamente antecedente.</p>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Ranking entre vendedores</h3>
+            <p class="small" style="margin:0 0 10px">Linha em destaque = vendedor focal. Aplica os filtros globais (exceto o filtro de Vendedor da barra lateral).</p>
+            <div id="sellerRanking" class="scroll-x"></div>
+          </div>
+
+        </div><!-- /sellerContent -->
+
+      </div><!-- /view-sellers -->
+
+      <div id="view-clients" class="view" style="display:none">
+
+        <div class="card">
+          <div class="toolbar-flex">
+            <h3>Análise por Cliente</h3>
+            <div class="controls">
+              <label class="small">Cliente focal</label>
+              <input type="text" id="focalClient" list="clientList" placeholder="Digite ou escolha um cliente…" style="min-width:300px; background:var(--surface); border:1px solid var(--border); color:var(--text); border-radius:var(--radius-sm); padding:6px 10px; font-size:13px; font-family:inherit">
+              <datalist id="clientList"></datalist>
+              <button class="btn secondary" id="clearFocalClient">Limpar</button>
+            </div>
+          </div>
+          <p class="small" style="margin:0">Filtros gerais (Período, Empresa, Operação, Negócio, Cidade, Vendedor, Tipo) seguem aplicados. A seção superior mostra a análise da carteira inteira; selecione um cliente para abrir o histórico detalhado.</p>
+        </div>
+
+        <!-- Visão consolidada da carteira -->
+        <div class="kpis" id="clientOverallKpis"></div>
+
+        <div class="grid two">
+          <div class="card">
+            <h3>Curva 80/20 (Pareto)</h3>
+            <div class="chart-wrap" style="height:380px"><canvas id="paretoChart"></canvas></div>
+            <p class="small" id="paretoNote">Barras = faturamento por cliente (ordem decrescente). Linha = % acumulado.</p>
+          </div>
+          <div class="card">
+            <h3>Distribuição por nº de passagens</h3>
+            <div class="chart-wrap" style="height:380px"><canvas id="freqDistChart"></canvas></div>
+            <p class="small">Quantidade de clientes em cada faixa de OSs no período filtrado.</p>
+          </div>
+        </div>
+
+        <div class="grid two">
+          <div class="card">
+            <h3>Top 20 — Faturamento</h3>
+            <div id="topClientsByRevenue" class="scroll-x"></div>
+          </div>
+          <div class="card">
+            <h3>Top 20 — Passagens (nº de OSs)</h3>
+            <div id="topClientsByFreq" class="scroll-x"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Relação Cliente × Vendedor</h3>
+          <p class="small" style="margin:0 0 10px">Top 50 clientes por faturamento, com o vendedor principal e a quantidade de outros vendedores que também os atenderam (concentração de relacionamento).</p>
+          <div id="clientSellerMatrix" class="scroll-x"></div>
+        </div>
+
+        <div class="card">
+          <div class="toolbar-flex">
+            <h3>Comparativo anual entre clientes <span class="badge">top 20</span></h3>
+            <div class="actions-group">
+              <button class="btn secondary" id="printClientsAnnual">Imprimir</button>
+              <button class="btn secondary" id="csvClientsAnnual">Exportar CSV</button>
+            </div>
+          </div>
+          <p class="small" style="margin:0 0 10px">Top 20 clientes pelo faturamento do <b>ano mais recente</b>, com valores absolutos e participação por ano (últimos 4 anos). Aplica filtros de Empresa/Operação/Negócio/Cidade/Vendedor (ignora período).</p>
+          <div id="clientsAnnualRanking" class="scroll-x"></div>
+        </div>
+
+        <div class="card">
+          <div class="toolbar-flex">
+            <h3>Clientes inativos</h3>
+            <div class="actions-group">
+              <button class="btn" id="printInactive">Imprimir por vendedor</button>
+              <button class="btn secondary" id="csvInactive">Exportar CSV</button>
+            </div>
+          </div>
+          <div class="compact-filters">
+            <span class="small">Vendedor</span>
+            <select id="inactiveSellerFilter" style="min-width:200px"></select>
+            <span class="small">Sem comprar há mais de</span>
+            <input type="number" id="inactiveDays" value="90" min="30" max="730" step="30" style="width:80px">
+            <span class="small">dias</span>
+          </div>
+          <p class="small" id="inactiveCount" style="margin:0 0 8px"></p>
+          <div id="inactiveList" class="scroll-x"></div>
+          <p class="small">Cálculo: a "última passagem" é comparada à data máxima da base. O botão <b>Imprimir por vendedor</b> gera um relatório com uma página por vendedor — ideal para entregar a cada um.</p>
+        </div>
+
+        <div class="card">
+          <div class="toolbar-flex">
+            <h3>Relação completa de clientes</h3>
+            <div class="actions-group">
+              <button class="btn secondary" id="printComplete">Imprimir</button>
+              <button class="btn secondary" id="csvComplete">Exportar CSV</button>
+            </div>
+          </div>
+          <div class="compact-filters">
+            <input type="text" id="completeSearch" placeholder="Buscar cliente, cidade, vendedor ou marca…" style="flex:1; min-width:260px; max-width:480px">
+            <span class="small" id="completeCount"></span>
+          </div>
+          <div id="completeList" class="scroll-x"></div>
+          <p class="small">Tabela ordenável (clique nos cabeçalhos). Mostra até 500 linhas; use a busca para refinar ou exporte CSV para a lista completa. Status: <span class="pill good">Ativo</span> (≤60d) · <span class="pill warn">Atenção</span> (61–180d) · <span class="pill bad">Inativo</span> (&gt;180d).</p>
+        </div>
+
+        <!-- Análise focal -->
+        <div id="clientFocalEmpty" class="seller-empty">
+          Selecione um cliente acima para ver KPIs, modas, comparativo de período e histórico completo.
+        </div>
+
+        <div id="clientFocalContent" style="display:none">
+
+          <div class="kpis" id="clientFocalKpis"></div>
+
+          <div class="grid two">
+            <div class="card">
+              <h3>Evolução mensal</h3>
+              <div class="chart-wrap"><canvas id="clientMonthChart"></canvas></div>
+            </div>
+            <div class="card">
+              <h3>Faturamento por tipo</h3>
+              <div class="chart-wrap"><canvas id="clientTypeChart"></canvas></div>
+              <p class="small">Distribuição entre Peças, Serviços e Terceiros (respeita filtros de tipo).</p>
+            </div>
+          </div>
+
+          <div class="grid two">
+            <div class="card">
+              <h3>Modas — perfil do cliente</h3>
+              <div id="clientModes"></div>
+              <p class="small">Top 3 ocorrências de cada categoria nas OSs deste cliente.</p>
+            </div>
+            <div class="card">
+              <h3>Comparativo de período</h3>
+              <div id="clientCmpTable"></div>
+              <p class="small">Período do filtro × mesma janela do ano anterior × período imediatamente antecedente.</p>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Histórico completo de OSs</h3>
+            <p class="small" id="clientHistoryCount" style="margin:0 0 10px"></p>
+            <div class="lookup-table-wrap" id="clientHistoryTable"></div>
+          </div>
+
+        </div><!-- /clientFocalContent -->
+
+      </div><!-- /view-clients -->
+
+    </div>
+  </section>
+</main>
+
+<script>
+/* ==========================================================================
+   DASHBOARD DE FATURAMENTO V2
+   - Lê Faturamento_Geral_V2.xlsx no navegador (SheetJS).
+   - Tudo offline, nada é enviado para servidores.
+   ========================================================================== */
+
+// ---------- helpers ----------
+const FORMATTERS = {
+  brl:  new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL', maximumFractionDigits: 0 }),
+  brlF: new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL', maximumFractionDigits: 2 }),
+  int:  new Intl.NumberFormat('pt-BR'),
+  pct:  new Intl.NumberFormat('pt-BR', { style:'percent', maximumFractionDigits: 1 }),
+  pct2: new Intl.NumberFormat('pt-BR', { style:'percent', maximumFractionDigits: 2 }),
+  date: new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+  dateShort: new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }),
+};
+const MONTH_NAMES_PT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+const FULL_MONTH_PT  = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+function normHeader(s) {
+  if (s == null) return '';
+  return String(s).normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase().replace(/\s+/g,' ').trim();
+}
+function num(v) {
+  if (v == null || v === '') return 0;
+  if (typeof v === 'number') return v;
+  const s = String(v).replace(/\./g,'').replace(',','.').replace(/[^0-9.\-]/g,'');
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}
+function nz(v) { return v == null ? '' : String(v); }
+function excelSerialToDate(n) {
+  if (typeof n !== 'number' || !isFinite(n)) return null;
+  // Excel date system (Windows). Account for the 1900 leap year bug (serials < 60).
+  const ms = (n - 25569) * 86400000;
+  return new Date(ms);
+}
+function toDate(v) {
+  if (v == null || v === '') return null;
+  if (v instanceof Date && !isNaN(v)) return v;
+  if (typeof v === 'number') return excelSerialToDate(v);
+  // try parsing strings
+  const s = String(v).trim();
+  if (/^\d+$/.test(s) && +s > 30000 && +s < 80000) return excelSerialToDate(+s);
+  const d = new Date(s);
+  return isNaN(d) ? null : d;
+}
+function ymd(d) {
+  if (!d) return '';
+  const yr = d.getUTCFullYear(), mo = String(d.getUTCMonth()+1).padStart(2,'0'), dy = String(d.getUTCDate()).padStart(2,'0');
+  return `${yr}-${mo}-${dy}`;
+}
+function ym(d) {
+  if (!d) return '';
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`;
+}
+function ymLabel(d) {
+  if (!d) return '';
+  return `${MONTH_NAMES_PT[d.getUTCMonth()]}/${d.getUTCFullYear()}`;
+}
+// "Start" helpers return the very first instant (00:00:00.000 UTC).
+// "End" helpers return the very last instant of the period (23:59:59.999 UTC),
+// which is critical so that rows with data_faturamento shifted by timezone or
+// fractional Excel serials still fall inside the upper bound.
+function startOfDay(d){ return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())); }
+function startOfMonth(d){ return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1)); }
+function endOfMonth(d){ return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth()+1, 0, 23, 59, 59, 999)); }
+function startOfQuarter(d){ const q = Math.floor(d.getUTCMonth()/3)*3; return new Date(Date.UTC(d.getUTCFullYear(), q, 1)); }
+function endOfQuarter(d){ const q = Math.floor(d.getUTCMonth()/3)*3; return new Date(Date.UTC(d.getUTCFullYear(), q+3, 0, 23, 59, 59, 999)); }
+function startOfSemester(d){ const s = d.getUTCMonth() < 6 ? 0 : 6; return new Date(Date.UTC(d.getUTCFullYear(), s, 1)); }
+function endOfSemester(d){ const s = d.getUTCMonth() < 6 ? 0 : 6; return new Date(Date.UTC(d.getUTCFullYear(), s+6, 0, 23, 59, 59, 999)); }
+function startOfYear(d){ return new Date(Date.UTC(d.getUTCFullYear(), 0, 1)); }
+function endOfYear(d){ return new Date(Date.UTC(d.getUTCFullYear(), 11, 31, 23, 59, 59, 999)); }
+function addMonths(d, n){ return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth()+n, d.getUTCDate())); }
+
+// ---------- column mapping ----------
+const COLUMN_MAP = {
+  empresa:           ['empresa'],
+  operacao:          ['operacao', 'operação'],
+  os:                ['os'],
+  cliente:           ['cliente'],
+  vendedor:          ['vendedor'],
+  nf_pecas:          ['nota fiscal pecas','nota fiscal peças','nf pecas','nf peças'],
+  qty_pecas:         ['quantidade pecas','quantidade peças','qtd pecas','qtd peças'],
+  custo_pecas:       ['custo pecas','custo peças'],
+  desc_pct_pecas:    ['% desconto pecas','% desconto peças','desconto pecas','desconto peças'],
+  venda_pecas:       ['preco venda pecas','preço venda peças','preco venda peças','venda pecas','venda peças'],
+  lucro_pecas:       ['lucro bruto pecas','lucro bruto peças'],
+  pct_lucro_pecas:   ['% lucro pecas','% lucro peças'],
+  nf_servicos:       ['nota fiscal servicos','nota fiscal serviços'],
+  qty_servicos:      ['quantidade servicos','quantidade serviços'],
+  preco_tabela:      ['preco tabela','preço tabela'],
+  desc_pct_servicos: ['% desconto servicos','% desconto serviços'],
+  venda_servicos:    ['preco venda servicos','preço venda serviços'],
+  custo_terceiro:    ['custo terceiro','custo terceiros'],
+  desc_pct_terceiro: ['% desconto terceiro','% desconto terceiros'],
+  venda_terceiro:    ['preco venda terceiro','preço venda terceiro','preco venda terceiros'],
+  lucro_terceiro:    ['lucro terceiro'],
+  pct_lucro_terceiro:['% lucro terceiro'],
+  total_os:          ['total os'],
+  desc_pct_total:    ['% desconto total os','% desconto total'],
+  marca:             ['marca'],
+  modelo:            ['modelo'],
+  data_abertura:     ['data abertura'],
+  data_faturamento:  ['data faturamento'],
+  cidade:            ['cidade'],
+  negocio:           ['negocio','negócio'],
+  abertura_mes:      ['abertura os mes','abertura os mês'],
+  abertura_ano:      ['abertura os ano'],
+  faturamento_mes:   ['faturamento os mes','faturamento os mês'],
+  faturamento_ano:   ['faturamento os ano'],
+};
+
+function detectColumns(headerRow) {
+  // headerRow: array of header strings in order
+  const norm = headerRow.map(normHeader);
+  const idx = {};
+  for (const key of Object.keys(COLUMN_MAP)) {
+    const candidates = COLUMN_MAP[key];
+    for (let i=0;i<norm.length;i++) {
+      if (candidates.includes(norm[i])) { idx[key] = i; break; }
+    }
+  }
+  return idx;
+}
+
+// ---------- state ----------
+const state = {
+  fileName: null,
+  rows: [],          // normalized record objects
+  filtered: [],      // current filtered subset
+  filterDate: { from: null, to: null },
+  charts: {},        // chartName -> Chart instance
+  discountTipo: 'total',
+  clientSet: null,
+  completeListSort:   { by: 'revenue', dir: 'desc' },
+  completeListSearch: '',
+};
+
+// =====================================================================
+//  REMOTE DATA SOURCE (OneDrive / URL público / GitHub Pages)
+// =====================================================================
+//
+// Architecture:
+//   The user (manager) hosts the .xlsx in OneDrive or any web location.
+//   The dashboard.html (also hosted) fetches it on load. To update, the
+//   user only re-uploads the .xlsx — the dashboard always reads the
+//   latest version. Stakeholders just open the dashboard URL.
+//
+// Setup options:
+//   1. OneDrive personal share link (handled automatically by
+//      converting to the Graph API anonymous shares endpoint, which
+//      returns proper CORS headers for read access).
+//   2. SharePoint / OneDrive Business URL (we append ?download=1).
+//      Requires the viewer to be authenticated with the tenant.
+//   3. Static hosting (GitHub Pages, Cloudflare Pages, Netlify) —
+//      same-origin, zero CORS concerns. Most reliable.
+//
+// The configured URL is persisted in localStorage. Additionally, a
+// `?xlsxUrl=<encoded>` query parameter on the dashboard URL takes
+// precedence — useful for shareable links where the source is baked in.
+
+const CONFIG_KEY = 'fat-v2-source-config';
+function loadSourceConfig() {
+  try { return JSON.parse(localStorage.getItem(CONFIG_KEY)) || {}; }
+  catch { return {}; }
+}
+function saveSourceConfig(cfg) {
+  localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg));
+}
+
+// Convert various sharing URLs to a fetch-friendly direct download URL.
+//
+// Microsoft has been progressively restricting anonymous access to the
+// `api.onedrive.com/v1.0/shares/...` endpoint (returns 401 even when the
+// share is set to "Anyone with the link"). The most reliable workaround
+// for OneDrive Personal is to use the URL that comes from the file's
+// **Embed** menu — it lives on `onedrive.live.com/embed?...` and the
+// equivalent `/download?...` path is one of the few endpoints that still
+// returns proper CORS headers without authentication.
+function convertSourceUrl(input) {
+  const url = (input || '').trim();
+  if (!url) return '';
+  // Already a working direct-download URL on OneDrive consumer
+  if (/onedrive\.live\.com\/download\?/i.test(url)) return url;
+  // Already a Graph API shares endpoint (legacy)
+  if (/api\.onedrive\.com|graph\.microsoft\.com/i.test(url)) return url;
+  // Embed URL → swap to download (most reliable path for OneDrive Personal)
+  if (/onedrive\.live\.com\/embed\?/i.test(url)) {
+    return url.replace(/\/embed\?/i, '/download?');
+  }
+  // 1drv.ms or onedrive.live.com share link → try Graph API anonymous endpoint
+  // (often returns 401 in 2024+; user should fall back to the Embed URL flow)
+  if (/^https?:\/\/(1drv\.ms|onedrive\.live\.com)/i.test(url)) {
+    try {
+      const utf8 = new TextEncoder().encode(url);
+      let bin = '';
+      utf8.forEach(b => bin += String.fromCharCode(b));
+      const b64  = btoa(bin);
+      const safe = b64.replace(/=+$/g, '').replace(/\//g, '_').replace(/\+/g, '-');
+      return `https://api.onedrive.com/v1.0/shares/u!${safe}/root/content`;
+    } catch { return url; }
+  }
+  // SharePoint / OneDrive for Business — ensure ?download=1
+  if (/sharepoint\.com|my\.sharepoint/i.test(url) && !/[?&]download=1/.test(url)) {
+    return url + (url.includes('?') ? '&' : '?') + 'download=1';
+  }
+  return url;
+}
+
+async function fetchAndLoadFromUrl(url, opts = {}) {
+  if (!url) return false;
+  document.getElementById('fileInfo').textContent = 'Baixando arquivo remoto…';
+  const fetchUrl = convertSourceUrl(url);
+  try {
+    const resp = await fetch(fetchUrl, { mode: 'cors', cache: 'no-cache', credentials: 'omit' });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status} ${resp.statusText}`);
+    const buf = await resp.arrayBuffer();
+    if (buf.byteLength < 100) throw new Error('Resposta vazia ou inválida');
+    const label = opts.label || (() => {
+      try {
+        const u = new URL(url);
+        const last = u.pathname.split('/').filter(Boolean).pop() || u.hostname;
+        return decodeURIComponent(last).slice(0, 40);
+      } catch { return 'Fonte remota'; }
+    })();
+    await loadWorkbookFromBuffer(buf, label, { source: 'remote', label });
+    return true;
+  } catch (err) {
+    console.error('[fetchAndLoadFromUrl]', err);
+    let friendly = err.message;
+    if (/HTTP 401/.test(err.message)) {
+      friendly = 'OneDrive recusou acesso anônimo (HTTP 401). A Microsoft tem fechado esse fluxo. '
+              + 'Use a URL do menu "Embed" do arquivo (clique ⚙ Fonte → "Como obter um link funcional") '
+              + 'ou hospede em GitHub Pages.';
+    } else if (/HTTP 403/.test(err.message)) {
+      friendly = 'Acesso negado (HTTP 403). Verifique se o link foi compartilhado como "Qualquer pessoa com o link".';
+    } else if (/HTTP 404/.test(err.message)) {
+      friendly = 'Arquivo não encontrado (HTTP 404). O link pode ter sido revogado ou estar incorreto.';
+    } else if (err.message.includes('Failed to fetch')) {
+      friendly = 'Falha de rede ou CORS — o servidor não permite leitura cross-origin desse link. '
+              + 'Em OneDrive Personal, prefira a URL gerada pelo menu "Embed" (não o link de compartilhamento).';
+    }
+    document.getElementById('fileInfo').textContent =
+      `Erro ao auto-carregar: ${friendly}`;
+    return false;
+  }
+}
+
+// ---------- file loading ----------
+const fileInput = document.getElementById('fileInput');
+const loadBtn   = document.getElementById('loadBtn');
+const reloadBtn = document.getElementById('reloadBtn');
+const dropZone  = document.getElementById('dropZone');
+
+loadBtn.addEventListener('click', ()=> fileInput.click());
+reloadBtn.addEventListener('click', () => {
+  // If a remote source is configured, refetch it. Otherwise, prompt for file.
+  const cfg = loadSourceConfig();
+  const params = new URLSearchParams(location.search);
+  const queryUrl = params.get('xlsxUrl');
+  const remoteUrl = queryUrl || (cfg.url || '');
+  if (remoteUrl) {
+    fetchAndLoadFromUrl(remoteUrl);
+  } else {
+    fileInput.click();
+  }
+});
+
+// ----- Config modal wiring -----
+const configModal = document.getElementById('configModal');
+const cfgUrlInput      = document.getElementById('cfgUrl');
+const cfgAutoLoadInput = document.getElementById('cfgAutoLoad');
+const shareLinkText    = document.getElementById('shareLinkText');
+
+function buildShareLink(url) {
+  if (!url) return '';
+  // Use current location, replace any existing xlsxUrl with the new one.
+  try {
+    const u = new URL(location.href);
+    u.search = '?xlsxUrl=' + encodeURIComponent(url);
+    return u.toString();
+  } catch { return ''; }
+}
+function refreshShareLink() {
+  const url = cfgUrlInput.value.trim();
+  if (!url) {
+    shareLinkText.textContent = 'Salve a configuração para gerar o link';
+    return;
+  }
+  shareLinkText.textContent = buildShareLink(url);
+}
+
+document.getElementById('configBtn').addEventListener('click', () => {
+  const cfg = loadSourceConfig();
+  cfgUrlInput.value = cfg.url || '';
+  cfgAutoLoadInput.checked = cfg.autoLoad !== false; // default true
+  refreshShareLink();
+  configModal.classList.add('open');
+  cfgUrlInput.focus();
+});
+cfgUrlInput.addEventListener('input', refreshShareLink);
+
+document.getElementById('cfgCancel').addEventListener('click', () => {
+  configModal.classList.remove('open');
+});
+configModal.addEventListener('click', (e) => {
+  // Close when clicking the backdrop only
+  if (e.target === configModal) configModal.classList.remove('open');
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && configModal.classList.contains('open')) {
+    configModal.classList.remove('open');
+  }
+});
+
+document.getElementById('cfgSave').addEventListener('click', async () => {
+  const url = cfgUrlInput.value.trim();
+  const autoLoad = cfgAutoLoadInput.checked;
+  saveSourceConfig({ url, autoLoad });
+  configModal.classList.remove('open');
+  if (url) await fetchAndLoadFromUrl(url);
+});
+
+document.getElementById('cfgClear').addEventListener('click', () => {
+  saveSourceConfig({});
+  cfgUrlInput.value = '';
+  cfgAutoLoadInput.checked = true;
+  refreshShareLink();
+});
+
+document.getElementById('cfgCopyShare').addEventListener('click', async () => {
+  const text = shareLinkText.textContent;
+  if (!text || text.startsWith('Salve')) return;
+  try {
+    await navigator.clipboard.writeText(text);
+    const btn = document.getElementById('cfgCopyShare');
+    const old = btn.textContent;
+    btn.textContent = '✓ Copiado';
+    setTimeout(() => { btn.textContent = old; }, 1500);
+  } catch (err) {
+    alert('Não foi possível copiar automaticamente. Selecione e copie manualmente.');
+  }
+});
+
+// ----- Auto-load on startup -----
+// Priority: ?xlsxUrl= query param > saved config (if autoLoad enabled)
+async function tryAutoLoadOnStartup() {
+  const params = new URLSearchParams(location.search);
+  const queryUrl = params.get('xlsxUrl');
+  const cfg = loadSourceConfig();
+  const url = queryUrl || (cfg.autoLoad !== false ? cfg.url : null);
+  if (!url) return;
+  // Pre-fill the modal in case user wants to edit
+  cfgUrlInput.value = url;
+  await fetchAndLoadFromUrl(url);
+}
+tryAutoLoadOnStartup();
+fileInput.addEventListener('change', e => {
+  const f = e.target.files[0]; if (f) loadWorkbookFromFile(f);
+});
+['dragenter','dragover'].forEach(ev =>
+  dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.add('dragover'); }));
+['dragleave','drop'].forEach(ev =>
+  dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.remove('dragover'); }));
+dropZone.addEventListener('drop', e => {
+  const f = e.dataTransfer.files[0]; if (f) loadWorkbookFromFile(f);
+});
+dropZone.addEventListener('click', ()=> fileInput.click());
+
+async function loadWorkbookFromFile(file) {
+  document.getElementById('fileInfo').textContent = `Lendo ${file.name}…`;
+  const buf = await file.arrayBuffer();
+  await loadWorkbookFromBuffer(buf, file.name, { source: 'file' });
+}
+
+async function loadWorkbookFromBuffer(buf, sourceName, opts = {}) {
+  state.fileName = sourceName;
+  try {
+    const wb = XLSX.read(buf, { type: 'array', cellDates: true });
+    const sheetName = wb.SheetNames[0];
+    const ws = wb.Sheets[sheetName];
+
+    // Header row in row 2 of original — header:1 returns rows as arrays
+    const matrix = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, raw: true });
+
+    // Detect header row: search first row that contains 'cliente' and 'vendedor'
+    let headerIdx = -1;
+    for (let i=0;i<Math.min(5, matrix.length); i++) {
+      const lower = matrix[i].map(normHeader);
+      if (lower.includes('cliente') && lower.includes('vendedor')) { headerIdx = i; break; }
+    }
+    if (headerIdx < 0) headerIdx = 0;
+
+    const header = matrix[headerIdx];
+    const colIdx = detectColumns(header);
+    if (colIdx.cliente == null) throw new Error('Não foi possível encontrar colunas obrigatórias (Cliente / Vendedor). Verifique o cabeçalho.');
+
+    const rows = [];
+    for (let r = headerIdx + 1; r < matrix.length; r++) {
+      const row = matrix[r]; if (!row || row.length === 0) continue;
+      const get = key => colIdx[key] == null ? null : row[colIdx[key]];
+      // Skip totally empty rows
+      const cliente = nz(get('cliente'));
+      const total   = num(get('total_os'));
+      if (!cliente && total === 0 && !nz(get('os'))) continue;
+
+      const dataAbertura     = toDate(get('data_abertura'));
+      const dataFaturamento  = toDate(get('data_faturamento'));
+      const venda_pecas      = num(get('venda_pecas'));
+      const venda_servicos   = num(get('venda_servicos'));
+      const venda_terceiros  = num(get('venda_terceiro'));
+      const desc_pct_pecas   = num(get('desc_pct_pecas'));
+      const desc_pct_servicos= num(get('desc_pct_servicos'));
+      const desc_pct_terceiros=num(get('desc_pct_terceiro'));
+      const desc_pct_total   = num(get('desc_pct_total'));
+      const total_os         = num(get('total_os'));
+
+      rows.push({
+        empresa:     nz(get('empresa')).trim(),
+        operacao:    nz(get('operacao')).trim(),
+        os:          nz(get('os')).trim(),
+        cliente:     cliente.trim(),
+        vendedor:    nz(get('vendedor')).trim(),
+        cidade:      nz(get('cidade')).trim(),
+        negocio:     nz(get('negocio')).trim(),
+        marca:       nz(get('marca')).trim(),
+        modelo:      nz(get('modelo')).trim(),
+        nf_pecas:    nz(get('nf_pecas')),
+        nf_servicos: nz(get('nf_servicos')),
+        qty_pecas:   num(get('qty_pecas')),
+        qty_servicos:num(get('qty_servicos')),
+        custo_pecas: num(get('custo_pecas')),
+        custo_terceiro: num(get('custo_terceiro')),
+        preco_tabela:num(get('preco_tabela')),
+        venda_pecas, venda_servicos, venda_terceiros,
+        desc_pct_pecas, desc_pct_servicos, desc_pct_terceiros, desc_pct_total,
+        lucro_pecas: num(get('lucro_pecas')),
+        lucro_terceiro: num(get('lucro_terceiro')),
+        pct_lucro_pecas: num(get('pct_lucro_pecas')),
+        pct_lucro_terceiro: num(get('pct_lucro_terceiro')),
+        total_os,
+        data_abertura: dataAbertura,
+        data_faturamento: dataFaturamento,
+      });
+    }
+    state.rows = rows;
+    document.getElementById('fileInfo').textContent = `${sourceName} — ${FORMATTERS.int.format(rows.length)} OSs`;
+    document.getElementById('reloadBtn').disabled = false;
+    document.getElementById('emptyState').style.display = 'none';
+    document.getElementById('dashboard').style.display  = 'block';
+
+    // Show "remote source" pill if the workbook came from a URL
+    const pill = document.getElementById('sourcePill');
+    if (opts.source === 'remote') {
+      pill.style.display = 'inline-flex';
+      document.getElementById('sourcePillText').textContent =
+        opts.label || 'Fonte remota';
+    } else {
+      pill.style.display = 'none';
+    }
+
+    initFilters();
+    applyFilters();
+  } catch (err) {
+    console.error(err);
+    document.getElementById('fileInfo').textContent = `Erro: ${err.message}`;
+    alert('Erro ao carregar a planilha:\n' + err.message);
+  }
+}
+
+// ---------- filters ----------
+const filterEls = {
+  dateFrom:  document.getElementById('dateFrom'),
+  dateTo:    document.getElementById('dateTo'),
+  ano:       document.getElementById('filtAno'),
+  empresa:   document.getElementById('filtEmpresa'),
+  operacao:  document.getElementById('filtOperacao'),
+  negocio:   document.getElementById('filtNegocio'),
+  cidade:    document.getElementById('filtCidade'),
+  vendedor:  document.getElementById('filtVendedor'),
+  pecas:     document.getElementById('tipoPecas'),
+  servicos:  document.getElementById('tipoServicos'),
+  terceiros: document.getElementById('tipoTerceiros'),
+};
+
+function fillSelect(sel, values) {
+  sel.innerHTML = '';
+  values.forEach(v => {
+    const o = document.createElement('option');
+    o.value = v; o.textContent = v;
+    sel.appendChild(o);
+  });
+}
+function uniqueSorted(rows, key) {
+  const set = new Set();
+  for (const r of rows) { const v = (r[key] || '').trim(); if (v) set.add(v); }
+  return [...set].sort((a,b)=> a.localeCompare(b,'pt-BR'));
+}
+
+function initFilters() {
+  // Year multi-select — listed descending (most recent on top)
+  const years = availableYears().slice().reverse();
+  fillSelect(filterEls.ano, years.map(String));
+
+  fillSelect(filterEls.empresa,  uniqueSorted(state.rows, 'empresa'));
+  fillSelect(filterEls.operacao, uniqueSorted(state.rows, 'operacao'));
+  fillSelect(filterEls.negocio,  uniqueSorted(state.rows, 'negocio'));
+  fillSelect(filterEls.cidade,   uniqueSorted(state.rows, 'cidade'));
+  fillSelect(filterEls.vendedor, uniqueSorted(state.rows, 'vendedor'));
+
+  // Focal seller selector for "Análise por Vendedor"
+  const focalSel = document.getElementById('focalSeller');
+  const sellers = uniqueSorted(state.rows, 'vendedor');
+  focalSel.innerHTML = '<option value="">— Selecione um vendedor —</option>' +
+    sellers.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+
+  // Focal client selector (datalist autocomplete) for "Análise por Cliente"
+  const clients = uniqueSorted(state.rows, 'cliente');
+  state.clientSet = new Set(clients);
+  document.getElementById('clientList').innerHTML =
+    clients.map(c => `<option value="${escapeHtml(c)}"></option>`).join('');
+
+  // Inactive section seller dropdown
+  const inactSel = document.getElementById('inactiveSellerFilter');
+  inactSel.innerHTML = '<option value="">Todos os vendedores</option>' +
+    sellers.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+
+  // Date range from data
+  const dates = state.rows.map(r => r.data_faturamento).filter(Boolean).sort((a,b)=> a-b);
+  if (dates.length) {
+    const lo = dates[0], hi = dates[dates.length-1];
+    filterEls.dateFrom.min = ymd(lo); filterEls.dateFrom.max = ymd(hi);
+    filterEls.dateTo.min   = ymd(lo); filterEls.dateTo.max   = ymd(hi);
+    document.getElementById('dataRange').textContent = `${FORMATTERS.date.format(lo)} → ${FORMATTERS.date.format(hi)}`;
+    // default last 12 months
+    applyPreset('last12');
+  }
+  document.getElementById('totalRows').textContent = FORMATTERS.int.format(state.rows.length);
+}
+
+// View switching dispatcher
+const VIEW_RENDERERS = {
+  overview: null,            // already rendered by renderAll()
+  sellers:  () => renderSellersView(),
+  clients:  () => renderClientsView(),
+};
+let currentView = 'overview';
+document.querySelectorAll('.view-tabs button').forEach(b => {
+  b.addEventListener('click', () => switchView(b.dataset.view));
+});
+function switchView(name) {
+  currentView = name;
+  document.querySelectorAll('.view-tabs button').forEach(b =>
+    b.classList.toggle('active', b.dataset.view === name));
+  document.querySelectorAll('#dashboard > .view').forEach(v => v.style.display = 'none');
+  document.getElementById(`view-${name}`).style.display = 'block';
+  const fn = VIEW_RENDERERS[name];
+  if (fn) fn();
+}
+document.getElementById('focalSeller').addEventListener('change', renderSellersView);
+document.getElementById('focalClient').addEventListener('change', renderClientsView);
+document.getElementById('clearFocalClient').addEventListener('click', () => {
+  document.getElementById('focalClient').value = '';
+  renderClientsView();
+});
+
+// Annual ranking print/CSV buttons
+document.getElementById('printSellersAnnual').addEventListener('click', () => printAnnualRanking('sellers'));
+document.getElementById('csvSellersAnnual').addEventListener('click', () => csvAnnualRanking('sellers'));
+document.getElementById('printClientsAnnual').addEventListener('click', () => printAnnualRanking('clients'));
+document.getElementById('csvClientsAnnual').addEventListener('click', () => csvAnnualRanking('clients'));
+
+// Inactive clients controls
+document.getElementById('inactiveDays').addEventListener('change', renderInactiveClients);
+document.getElementById('inactiveSellerFilter').addEventListener('change', renderInactiveClients);
+document.getElementById('printInactive').addEventListener('click', printInactiveClients);
+document.getElementById('csvInactive').addEventListener('click', csvInactiveClients);
+
+// Complete client list controls
+document.getElementById('completeSearch').addEventListener('input', debounce(() => {
+  state.completeListSearch = document.getElementById('completeSearch').value || '';
+  renderCompleteClientList();
+}, 200));
+document.getElementById('printComplete').addEventListener('click', printCompleteClientList);
+document.getElementById('csvComplete').addEventListener('click', csvCompleteClientList);
+
+function applyPreset(preset) {
+  const dates = state.rows.map(r => r.data_faturamento).filter(Boolean);
+  if (!dates.length) return;
+  const max = new Date(Math.max(...dates));
+  let from, to = max;
+  switch(preset) {
+    case 'today': from = max; break;
+    case 'thisMonth': from = startOfMonth(max); to = endOfMonth(max); break;
+    case 'lastMonth': { const ref = addMonths(max,-1); from = startOfMonth(ref); to = endOfMonth(ref); break; }
+    case 'thisQuarter': from = startOfQuarter(max); to = endOfQuarter(max); break;
+    case 'thisSemester': from = startOfSemester(max); to = endOfSemester(max); break;
+    case 'thisYear': from = startOfYear(max); to = endOfYear(max); break;
+    case 'last12': from = addMonths(max, -11); from = startOfMonth(from); to = endOfMonth(max); break;
+    case 'all': from = new Date(Math.min(...dates)); to = max; break;
+  }
+  filterEls.dateFrom.value = ymd(from);
+  filterEls.dateTo.value   = ymd(to);
+  applyFilters();
+}
+
+document.querySelectorAll('aside.filters .preset button').forEach(b => {
+  b.addEventListener('click', ()=> applyPreset(b.dataset.preset));
+});
+['dateFrom','dateTo'].forEach(id => document.getElementById(id).addEventListener('change', applyFilters));
+['filtAno','filtEmpresa','filtOperacao','filtNegocio','filtCidade','filtVendedor'].forEach(id =>
+  document.getElementById(id).addEventListener('change', applyFilters));
+['tipoPecas','tipoServicos','tipoTerceiros'].forEach(id =>
+  document.getElementById(id).addEventListener('change', applyFilters));
+
+document.getElementById('clearFiltersBtn').addEventListener('click', ()=>{
+  for (const id of ['filtAno','filtEmpresa','filtOperacao','filtNegocio','filtCidade','filtVendedor']) {
+    [...document.getElementById(id).options].forEach(o => o.selected = false);
+  }
+  filterEls.pecas.checked = filterEls.servicos.checked = filterEls.terceiros.checked = true;
+  applyPreset('all');
+});
+
+function selectedValues(sel) { return [...sel.selectedOptions].map(o => o.value); }
+
+function applyFilters() {
+  if (!state.rows.length) return;
+  const fEmp = new Set(selectedValues(filterEls.empresa));
+  const fOp  = new Set(selectedValues(filterEls.operacao));
+  const fNeg = new Set(selectedValues(filterEls.negocio));
+  const fCid = new Set(selectedValues(filterEls.cidade));
+  const fVen = new Set(selectedValues(filterEls.vendedor));
+  const fAno = new Set(selectedValues(filterEls.ano).map(Number));
+  const dFrom = filterEls.dateFrom.value ? new Date(filterEls.dateFrom.value + 'T00:00:00Z') : null;
+  const dTo   = filterEls.dateTo.value   ? new Date(filterEls.dateTo.value   + 'T23:59:59Z') : null;
+  state.filterDate = { from: dFrom, to: dTo };
+
+  state.filtered = state.rows.filter(r => {
+    if (fEmp.size && !fEmp.has(r.empresa)) return false;
+    if (fOp.size  && !fOp.has(r.operacao)) return false;
+    if (fNeg.size && !fNeg.has(r.negocio)) return false;
+    if (fCid.size && !fCid.has(r.cidade))  return false;
+    if (fVen.size && !fVen.has(r.vendedor))return false;
+    if (fAno.size) {
+      if (!r.data_faturamento) return false;
+      if (!fAno.has(r.data_faturamento.getUTCFullYear())) return false;
+    }
+    if (dFrom && (!r.data_faturamento || r.data_faturamento < dFrom)) return false;
+    if (dTo   && (!r.data_faturamento || r.data_faturamento > dTo))   return false;
+    return true;
+  });
+
+  renderAll();
+}
+
+// Returns the configured "billing types" set for the current filter checkboxes
+function billingTypes() {
+  return {
+    pecas:    filterEls.pecas.checked,
+    servicos: filterEls.servicos.checked,
+    terceiros:filterEls.terceiros.checked,
+  };
+}
+
+// ---------- metrics ----------
+// Uses column W (Total OS) — same source the pivot tables sum — when all three
+// billing types are selected. Falls back to component sums (J/Q/T) when the
+// user excludes one or more types.
+function rowRevenue(r, tt = billingTypes()) {
+  if (tt.pecas && tt.servicos && tt.terceiros) {
+    // Prefer the canonical Total OS column. Fall back to component sum only if
+    // Total OS is missing (defensive — shouldn't happen with this dataset).
+    if (r.total_os) return r.total_os;
+    return (r.venda_pecas||0) + (r.venda_servicos||0) + (r.venda_terceiros||0);
+  }
+  let v = 0;
+  if (tt.pecas)    v += r.venda_pecas    || 0;
+  if (tt.servicos) v += r.venda_servicos || 0;
+  if (tt.terceiros)v += r.venda_terceiros|| 0;
+  return v;
+}
+function rowDiscountValue(r, tipo) {
+  // Heuristic: nominal price = venda / (1 - desc%/100)  if desc<99
+  const recover = (venda, descPct) => {
+    if (!venda) return 0;
+    if (!descPct) return 0;
+    const f = 1 - (descPct/100);
+    if (f <= 0.01) return 0;
+    const tabela = venda / f;
+    return tabela - venda;
+  };
+  if (tipo === 'pecas')    return recover(r.venda_pecas,    r.desc_pct_pecas);
+  if (tipo === 'servicos') return recover(r.venda_servicos, r.desc_pct_servicos);
+  if (tipo === 'terceiros')return recover(r.venda_terceiros,r.desc_pct_terceiros);
+  return recover(r.venda_pecas,r.desc_pct_pecas)
+       + recover(r.venda_servicos,r.desc_pct_servicos)
+       + recover(r.venda_terceiros,r.desc_pct_terceiros);
+}
+function rowDiscountPct(r, tipo) {
+  if (tipo === 'pecas')    return r.desc_pct_pecas    || 0;
+  if (tipo === 'servicos') return r.desc_pct_servicos || 0;
+  if (tipo === 'terceiros')return r.desc_pct_terceiros|| 0;
+  return r.desc_pct_total || 0;
+}
+function osCounts(rows) {
+  // Count distinct OSs (key = empresa|operacao|os) - one row may already be one OS but be safe.
+  const set = new Set();
+  for (const r of rows) set.add(`${r.empresa}|${r.operacao}|${r.os}`);
+  return set.size;
+}
+
+// ---------- KPIs ----------
+function renderKpis() {
+  const rows = state.filtered;
+  const tt = billingTypes();
+  let totalRev = 0, totalLeadDays = 0, leadCount = 0, totalDiscPct = 0, discCount = 0;
+  let totalDiscValue = 0;
+  for (const r of rows) {
+    totalRev += rowRevenue(r, tt);
+    if (r.data_abertura && r.data_faturamento) {
+      const days = (r.data_faturamento - r.data_abertura) / 86400000;
+      if (days >= 0 && days < 365) { totalLeadDays += days; leadCount++; }
+    }
+    if (r.desc_pct_total) { totalDiscPct += r.desc_pct_total; discCount++; }
+    totalDiscValue += rowDiscountValue(r, 'total');
+  }
+  const osCount = rows.length;
+  const ticket = osCount ? totalRev / osCount : 0;
+  const leadAvg = leadCount ? totalLeadDays / leadCount : 0;
+  const discAvg = discCount ? totalDiscPct / discCount : 0;
+
+  // Diagnostic total: full base, all types (column W). Lets the user
+  // confirm the parsed numbers match their pivot table totals.
+  const baseTotal = state.rows.reduce((s, r) => s + (r.total_os || 0), 0);
+
+  const kpis = [
+    { label:'Faturamento (filtro)', value: FORMATTERS.brl.format(totalRev), sub: tipoLabel(tt) },
+    { label:'Total de OSs',          value: FORMATTERS.int.format(osCount),  sub: '&nbsp;' },
+    { label:'Ticket Médio',          value: FORMATTERS.brl.format(ticket),   sub: 'Faturamento / OS' },
+    { label:'Lead time médio',       value: leadAvg.toFixed(1) + ' dias',    sub: 'Abertura → Faturamento' },
+    { label:'Desconto médio',        value: discAvg.toFixed(2) + '%',        sub: '% médio sobre Total OS' },
+    { label:'Desconto concedido',    value: FORMATTERS.brl.format(totalDiscValue), sub: 'Estimado a partir do %' },
+    { label:'Base bruta (sem filtro)',value:FORMATTERS.brl.format(baseTotal),sub:`${FORMATTERS.int.format(state.rows.length)} OSs · coluna Total OS` },
+  ];
+  document.getElementById('kpiRow').innerHTML = kpis.map(k => `
+    <div class="kpi">
+      <div class="label">${k.label}</div>
+      <div class="value">${k.value}</div>
+      <div class="sub">${k.sub}</div>
+    </div>`).join('');
+}
+function tipoLabel(tt) {
+  const parts = [];
+  if (tt.pecas) parts.push('Peças');
+  if (tt.servicos) parts.push('Serviços');
+  if (tt.terceiros) parts.push('Terceiros');
+  return parts.join(' + ') || 'Nenhum tipo';
+}
+
+// ---------- chart helpers ----------
+function destroy(name) { if (state.charts[name]) { state.charts[name].destroy(); delete state.charts[name]; } }
+const COLORS = {
+  primary:         'rgba(79,70,229,0.85)',   // indigo-600
+  primaryBorder:   'rgb(79,70,229)',
+  secondary:       'rgba(14,165,233,0.78)',  // sky-500
+  secondaryBorder: 'rgb(14,165,233)',
+  accent3:         'rgba(168,85,247,0.78)',  // purple-500
+  accent4:         'rgba(245,158,11,0.85)',  // amber-500
+  green:           'rgba(5,150,105,0.85)',   // emerald-600
+  red:             'rgba(220,38,38,0.85)',   // red-600
+  greyBorder:      'rgb(156,163,175)',       // gray-400
+};
+// Categorical palette (used for doughnut charts and multi-series bars).
+const CHART_PALETTE = [
+  'rgba(79,70,229,0.85)',   // indigo
+  'rgba(14,165,233,0.85)',  // sky
+  'rgba(168,85,247,0.85)',  // purple
+  'rgba(245,158,11,0.85)',  // amber
+  'rgba(5,150,105,0.85)',   // emerald
+  'rgba(236,72,153,0.85)',  // pink
+  'rgba(220,38,38,0.85)',   // red
+  'rgba(20,184,166,0.85)',  // teal
+];
+const CHART_TXT  = '#6b7280';
+const CHART_GRID = 'rgba(17,24,39,0.06)';
+function baseOptions(extra={}) {
+  return Object.assign({
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        labels: {
+          color: CHART_TXT,
+          font: { size: 11, family: 'Inter, system-ui, sans-serif' },
+          boxWidth: 10, boxHeight: 10, padding: 14, usePointStyle: true,
+        }
+      },
+      tooltip: {
+        backgroundColor: '#111827', titleColor: '#fff', bodyColor: '#f3f4f6',
+        padding: 10, cornerRadius: 6, displayColors: false,
+        titleFont: { size: 12, weight: '600' }, bodyFont: { size: 12 },
+        callbacks: {
+          label: ctx => {
+            const v = ctx.parsed.y ?? ctx.parsed.x ?? ctx.parsed;
+            if (typeof v === 'number') return `${ctx.dataset.label || ''}: ${FORMATTERS.brl.format(v)}`;
+            return `${ctx.dataset.label || ''}: ${v}`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        ticks: { color: CHART_TXT, font: { size: 11 } },
+        grid:  { color: 'transparent' },
+        border:{ color: CHART_GRID }
+      },
+      y: {
+        ticks: { color: CHART_TXT, font: { size: 11 }, callback: v => FORMATTERS.int.format(v) },
+        grid:  { color: CHART_GRID },
+        border:{ display: false }
+      }
+    }
+  }, extra);
+}
+// Apply Inter as default chart font
+if (window.Chart) {
+  Chart.defaults.font.family = 'Inter, system-ui, -apple-system, sans-serif';
+  Chart.defaults.color = CHART_TXT;
+}
+
+// Doughnut/pie options — used in the Análise por Vendedor view.
+function doughnutOptions({ tooltipFmt = (v => FORMATTERS.brl.format(v)) } = {}) {
+  return {
+    responsive: true, maintainAspectRatio: false,
+    cutout: '62%',
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: {
+          color: CHART_TXT, font: { size: 11, family: 'Inter, system-ui, sans-serif' },
+          boxWidth: 10, boxHeight: 10, padding: 12, usePointStyle: true,
+        }
+      },
+      tooltip: {
+        backgroundColor: '#111827', titleColor: '#fff', bodyColor: '#f3f4f6',
+        padding: 10, cornerRadius: 6, displayColors: false,
+        titleFont: { size: 12, weight: '600' }, bodyFont: { size: 12 },
+        callbacks: {
+          label: ctx => {
+            const sum = ctx.dataset.data.reduce((a,b)=>a+b,0) || 1;
+            const pct = (ctx.parsed / sum * 100).toFixed(1);
+            return `${ctx.label}: ${tooltipFmt(ctx.parsed)} (${pct}%)`;
+          }
+        }
+      }
+    }
+  };
+}
+
+// Options builder for horizontal bar charts. Uses category scale on Y (so the
+// labels render as actual category names, not numeric indices) and a value
+// scale on X with a configurable formatter.
+function horizontalBarOptions({ valueFormat = (v => FORMATTERS.int.format(v)), tooltipLabel = null } = {}) {
+  return {
+    responsive: true, maintainAspectRatio: false,
+    indexAxis: 'y',
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#111827', titleColor: '#fff', bodyColor: '#f3f4f6',
+        padding: 10, cornerRadius: 6, displayColors: false,
+        titleFont: { size: 12, weight: '600' }, bodyFont: { size: 12 },
+        callbacks: tooltipLabel
+          ? { label: tooltipLabel }
+          : { label: ctx => `${ctx.dataset.label || ''}: ${FORMATTERS.brl.format(ctx.parsed.x)}` }
+      }
+    },
+    scales: {
+      x: {
+        ticks: { color: CHART_TXT, font: { size: 11 }, callback: valueFormat },
+        grid:  { color: CHART_GRID },
+        border:{ display: false }
+      },
+      y: {
+        ticks: { color: CHART_TXT, font: { size: 11 }, autoSkip: false },
+        grid:  { color: 'transparent' },
+        border:{ color: CHART_GRID }
+      }
+    }
+  };
+}
+
+// ---------- charts ----------
+function renderDailyChart() {
+  const rows = state.filtered, tt = billingTypes();
+  const map = new Map();
+  for (const r of rows) {
+    if (!r.data_faturamento) continue;
+    const k = ymd(r.data_faturamento);
+    map.set(k, (map.get(k)||0) + rowRevenue(r, tt));
+  }
+  const keys = [...map.keys()].sort();
+  const labels = keys.map(k => {
+    const [y,m,d] = k.split('-'); return `${d}/${m}/${y}`;
+  });
+  const data = keys.map(k => map.get(k));
+  destroy('daily');
+  state.charts.daily = new Chart(document.getElementById('dailyChart'), {
+    type: 'line',
+    data: { labels, datasets: [{
+      label: 'Faturamento diário',
+      data,
+      borderColor: COLORS.primaryBorder,
+      backgroundColor: 'rgba(79,140,255,0.18)',
+      fill: true, tension: 0.25, pointRadius: 0
+    }]},
+    options: baseOptions()
+  });
+}
+
+function renderMonthlyChart() {
+  const rows = state.filtered, tt = billingTypes();
+  const map = new Map();
+  for (const r of rows) {
+    if (!r.data_faturamento) continue;
+    const k = ym(r.data_faturamento);
+    map.set(k, (map.get(k)||0) + rowRevenue(r, tt));
+  }
+  const keys = [...map.keys()].sort();
+  const labels = keys.map(k => {
+    const [y,m] = k.split('-'); return `${MONTH_NAMES_PT[+m-1]}/${y.slice(-2)}`;
+  });
+  const data = keys.map(k => map.get(k));
+  destroy('monthly');
+  state.charts.monthly = new Chart(document.getElementById('monthlyChart'), {
+    type: 'bar',
+    data: { labels, datasets: [{
+      label: 'Faturamento mensal',
+      data,
+      backgroundColor: COLORS.primary, borderColor: COLORS.primaryBorder, borderWidth: 1
+    }]},
+    options: baseOptions()
+  });
+}
+
+function renderPeriodChart() {
+  const gran = document.getElementById('periodGran').value;
+  const rows = state.filtered, tt = billingTypes();
+  const map = new Map();
+  for (const r of rows) {
+    if (!r.data_faturamento) continue;
+    const d = r.data_faturamento;
+    let k;
+    if (gran === 'quarter') k = `${d.getUTCFullYear()}-Q${Math.floor(d.getUTCMonth()/3)+1}`;
+    else if (gran === 'semester') k = `${d.getUTCFullYear()}-S${d.getUTCMonth() < 6 ? 1 : 2}`;
+    else k = String(d.getUTCFullYear());
+    map.set(k, (map.get(k)||0) + rowRevenue(r, tt));
+  }
+  const keys = [...map.keys()].sort();
+  const data = keys.map(k => map.get(k));
+  destroy('period');
+  state.charts.period = new Chart(document.getElementById('periodChart'), {
+    type: 'bar',
+    data: { labels: keys, datasets: [{
+      label: 'Faturamento',
+      data,
+      backgroundColor: COLORS.secondary, borderColor: COLORS.secondaryBorder, borderWidth: 1
+    }]},
+    options: baseOptions()
+  });
+}
+
+function renderOSChart() {
+  const rows = state.filtered;
+  const ab = new Map(), ft = new Map();
+  for (const r of rows) {
+    if (r.data_abertura)    ab.set(ym(r.data_abertura),    (ab.get(ym(r.data_abertura))   ||0)+1);
+    if (r.data_faturamento) ft.set(ym(r.data_faturamento), (ft.get(ym(r.data_faturamento))||0)+1);
+  }
+  const keys = [...new Set([...ab.keys(), ...ft.keys()])].sort();
+  const labels = keys.map(k => { const [y,m]=k.split('-'); return `${MONTH_NAMES_PT[+m-1]}/${y.slice(-2)}`; });
+  destroy('os');
+  state.charts.os = new Chart(document.getElementById('osChart'), {
+    type: 'bar',
+    data: { labels, datasets: [
+      { label: 'OSs Abertas',   data: keys.map(k => ab.get(k)||0), backgroundColor: COLORS.accent4 },
+      { label: 'OSs Faturadas', data: keys.map(k => ft.get(k)||0), backgroundColor: COLORS.green },
+    ]},
+    options: baseOptions({
+      scales: {
+        x: { ticks: { color: '#9ab0d6' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y: { ticks: { color: '#9ab0d6' }, grid: { color: 'rgba(255,255,255,0.06)' }, beginAtZero: true }
+      },
+      plugins: {
+        legend: { labels: { color: '#cdd9ee', font:{size:11}}},
+        tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${FORMATTERS.int.format(ctx.parsed.y)}` } }
+      }
+    })
+  });
+}
+
+function renderCityChart() {
+  const rows = state.filtered, tt = billingTypes();
+  const map = new Map();
+  for (const r of rows) {
+    if (!r.cidade) continue;
+    map.set(r.cidade, (map.get(r.cidade)||0) + rowRevenue(r, tt));
+  }
+  const top = [...map.entries()].sort((a,b)=> b[1]-a[1]).slice(0,15);
+  destroy('city');
+  state.charts.city = new Chart(document.getElementById('cityChart'), {
+    type: 'bar',
+    data: {
+      labels: top.map(t=>t[0]),
+      datasets: [{
+        label: 'Faturamento',
+        data: top.map(t=>t[1]),
+        backgroundColor: COLORS.primary,
+        borderColor: COLORS.primaryBorder, borderWidth: 1,
+        borderRadius: 4, barThickness: 'flex', maxBarThickness: 18,
+      }]
+    },
+    options: horizontalBarOptions({
+      tooltipLabel: ctx => `${ctx.label}: ${FORMATTERS.brl.format(ctx.parsed.x)}`
+    })
+  });
+}
+
+function renderSellerChart() {
+  const rows = state.filtered, tt = billingTypes();
+  const map = new Map();
+  for (const r of rows) {
+    if (!r.vendedor) continue;
+    map.set(r.vendedor, (map.get(r.vendedor)||0) + rowRevenue(r, tt));
+  }
+  const top = [...map.entries()].sort((a,b)=> b[1]-a[1]).slice(0,20);
+  destroy('seller');
+  state.charts.seller = new Chart(document.getElementById('sellerChart'), {
+    type: 'bar',
+    data: {
+      labels: top.map(t=>t[0]),
+      datasets: [{
+        label: 'Faturamento',
+        data: top.map(t=>t[1]),
+        backgroundColor: COLORS.accent3,
+        borderRadius: 4, barThickness: 'flex', maxBarThickness: 18,
+      }]
+    },
+    options: horizontalBarOptions({
+      tooltipLabel: ctx => `${ctx.label}: ${FORMATTERS.brl.format(ctx.parsed.x)}`
+    })
+  });
+}
+
+// Average discount % per seller, weighted by revenue of the chosen type.
+// Same logic used in the client ranking — so seller and client analyses are
+// directly comparable.
+function renderSellerDiscountChart() {
+  const rows = state.filtered;
+  const tipo = state.discountTipo;
+  const revenueByType = (r) =>
+      tipo === 'pecas'    ? r.venda_pecas
+    : tipo === 'servicos' ? r.venda_servicos
+    : tipo === 'terceiros'? r.venda_terceiros
+    : (r.venda_pecas + r.venda_servicos + r.venda_terceiros);
+
+  const agg = new Map();
+  for (const r of rows) {
+    if (!r.vendedor) continue;
+    const w = revenueByType(r);
+    const d = rowDiscountPct(r, tipo);
+    const v = rowDiscountValue(r, tipo);
+    if (!agg.has(r.vendedor)) agg.set(r.vendedor, { sumWD: 0, sumW: 0, count: 0, descRS: 0 });
+    const a = agg.get(r.vendedor);
+    a.count++;
+    a.descRS += v;
+    if (w > 0) { a.sumWD += d * w; a.sumW += w; }
+    else if (d) { a.sumWD += d; a.sumW += 1; }
+  }
+  const list = [...agg.entries()]
+    .map(([vendedor, a]) => ({
+      vendedor, count: a.count, descRS: a.descRS,
+      avgPct: a.sumW ? a.sumWD / a.sumW : 0,
+    }))
+    .filter(x => x.count >= 3 && x.avgPct);
+  list.sort((a,b)=> b.avgPct - a.avgPct);
+  const top = list.slice(0, 20);
+
+  const tipoLabels = { total:'total', pecas:'peças', servicos:'serviços', terceiros:'terceiros' };
+  destroy('sellerDisc');
+  state.charts.sellerDisc = new Chart(document.getElementById('sellerDiscChart'), {
+    type: 'bar',
+    data: {
+      labels: top.map(x => x.vendedor),
+      datasets: [{
+        label: `Desconto médio (${tipoLabels[tipo]})`,
+        data: top.map(x => x.avgPct),
+        backgroundColor: COLORS.red,
+        borderRadius: 4, barThickness: 'flex', maxBarThickness: 18,
+      }]
+    },
+    options: horizontalBarOptions({
+      valueFormat: v => v.toFixed(1) + '%',
+      tooltipLabel: ctx => {
+        const item = top[ctx.dataIndex];
+        return [
+          `Desconto médio: ${item.avgPct.toFixed(2)}%`,
+          `Total descontos: ${FORMATTERS.brlF.format(item.descRS)}`,
+          `OSs: ${FORMATTERS.int.format(item.count)}`,
+        ];
+      }
+    })
+  });
+}
+
+// ---------- discount ranking tables ----------
+function renderDiscountRankings() {
+  const tipo = state.discountTipo;
+  const rows = state.filtered;
+  // weight by revenue of that type so a single 99% discount on a tiny item doesn't dominate
+  const rev = (r) =>
+    tipo === 'pecas'    ? r.venda_pecas    :
+    tipo === 'servicos' ? r.venda_servicos :
+    tipo === 'terceiros'? r.venda_terceiros:
+    (r.venda_pecas + r.venda_servicos + r.venda_terceiros);
+  const agg = new Map();
+  for (const r of rows) {
+    const k = r.cliente; if (!k) continue;
+    const w = rev(r);
+    const d = rowDiscountPct(r, tipo);
+    const v = rowDiscountValue(r, tipo);
+    if (!agg.has(k)) agg.set(k, { cliente: k, sumWD: 0, sumW: 0, count: 0, descValue: 0, totalRev: 0 });
+    const a = agg.get(k);
+    a.count++;
+    a.totalRev += w;
+    a.descValue += v;
+    if (w > 0) { a.sumWD += d * w; a.sumW += w; }
+    else if (d) { a.sumWD += d; a.sumW += 1; } // fall back to simple avg if no revenue
+  }
+  const list = [...agg.values()]
+    .filter(a => a.count >= 3)
+    .map(a => ({ ...a, avgPct: a.sumW ? a.sumWD / a.sumW : 0 }));
+
+  const top    = [...list].sort((a,b)=> b.avgPct - a.avgPct).slice(0,10);
+  const bottom = [...list].sort((a,b)=> a.avgPct - b.avgPct).slice(0,10);
+
+  const tbl = data => `
+    <table>
+      <thead><tr><th>#</th><th>Cliente</th><th class="num">Desc. médio</th><th class="num">Desc. R$</th><th class="num">OSs</th></tr></thead>
+      <tbody>
+        ${data.map((d,i)=>`
+          <tr>
+            <td>${i+1}</td>
+            <td>${escapeHtml(d.cliente)}</td>
+            <td class="num">${d.avgPct.toFixed(2)}%</td>
+            <td class="num">${FORMATTERS.brlF.format(d.descValue)}</td>
+            <td class="num">${FORMATTERS.int.format(d.count)}</td>
+          </tr>`).join('') || '<tr><td colspan="5" class="small">Sem dados.</td></tr>'}
+      </tbody>
+    </table>`;
+  document.getElementById('topDiscountsTable').innerHTML    = tbl(top);
+  document.getElementById('bottomDiscountsTable').innerHTML = tbl(bottom);
+}
+document.querySelectorAll('#discountTypeTabs button').forEach(b => {
+  b.addEventListener('click', ()=>{
+    document.querySelectorAll('#discountTypeTabs button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    state.discountTipo = b.dataset.tipo;
+    renderSellerDiscountChart();
+    renderDiscountRankings();
+  });
+});
+
+// ---------- comparativo ----------
+function parseAnchor(anchor, gran, refDate) {
+  // anchor formats: 2026-Q1, 2026-03, 2026-S1, 2026
+  const a = anchor && anchor.trim();
+  if (gran === 'quarter') {
+    const m = a && a.match(/^(\d{4})[\-\/]?Q?([1-4])$/i);
+    if (m) return { year: +m[1], q: +m[2] };
+    const q = Math.floor(refDate.getUTCMonth()/3)+1;
+    return { year: refDate.getUTCFullYear(), q };
+  }
+  if (gran === 'semester') {
+    const m = a && a.match(/^(\d{4})[\-\/]?S?([1-2])$/i);
+    if (m) return { year: +m[1], s: +m[2] };
+    return { year: refDate.getUTCFullYear(), s: refDate.getUTCMonth() < 6 ? 1 : 2 };
+  }
+  if (gran === 'month') {
+    const m = a && a.match(/^(\d{4})[\-\/](\d{1,2})$/);
+    if (m) return { year: +m[1], month: +m[2] };
+    return { year: refDate.getUTCFullYear(), month: refDate.getUTCMonth()+1 };
+  }
+  // year
+  const m = a && a.match(/^(\d{4})$/);
+  if (m) return { year: +m[1] };
+  return { year: refDate.getUTCFullYear() };
+}
+function periodRange(gran, ref) {
+  if (gran === 'month') {
+    const d = new Date(Date.UTC(ref.year, ref.month-1, 1));
+    return { from: startOfMonth(d), to: endOfMonth(d), label: `${MONTH_NAMES_PT[ref.month-1]}/${ref.year}` };
+  }
+  if (gran === 'quarter') {
+    const d = new Date(Date.UTC(ref.year, (ref.q-1)*3, 1));
+    return { from: startOfQuarter(d), to: endOfQuarter(d), label: `${ref.year} Q${ref.q}` };
+  }
+  if (gran === 'semester') {
+    const d = new Date(Date.UTC(ref.year, ref.s===1 ? 0 : 6, 1));
+    return { from: startOfSemester(d), to: endOfSemester(d), label: `${ref.year} S${ref.s}` };
+  }
+  // year
+  const d = new Date(Date.UTC(ref.year, 0, 1));
+  return { from: startOfYear(d), to: endOfYear(d), label: `${ref.year}` };
+}
+function shiftYear(ref, delta) {
+  const r = { ...ref }; r.year += delta; return r;
+}
+function shiftPeriod(gran, ref, delta) {
+  if (gran === 'month') {
+    let m = ref.month + delta, y = ref.year;
+    while (m < 1)  { m += 12; y -= 1; }
+    while (m > 12) { m -= 12; y += 1; }
+    return { year: y, month: m };
+  }
+  if (gran === 'quarter') {
+    let q = ref.q + delta, y = ref.year;
+    while (q < 1) { q += 4; y -= 1; }
+    while (q > 4) { q -= 4; y += 1; }
+    return { year: y, q };
+  }
+  if (gran === 'semester') {
+    let s = ref.s + delta, y = ref.year;
+    while (s < 1) { s += 2; y -= 1; }
+    while (s > 2) { s -= 2; y += 1; }
+    return { year: y, s };
+  }
+  return { year: ref.year + delta };
+}
+function rowsInRange(rows, from, to) {
+  return rows.filter(r => r.data_faturamento && r.data_faturamento >= from && r.data_faturamento <= to);
+}
+function metricsForRows(rows) {
+  const tt = billingTypes();
+  let rev = 0, disc = 0, dCount = 0, lead = 0, lCount = 0;
+  for (const r of rows) {
+    rev += rowRevenue(r, tt);
+    if (r.desc_pct_total) { disc += r.desc_pct_total; dCount++; }
+    if (r.data_abertura && r.data_faturamento) {
+      const d = (r.data_faturamento - r.data_abertura)/86400000;
+      if (d >= 0 && d < 365) { lead += d; lCount++; }
+    }
+  }
+  return {
+    revenue: rev,
+    osCount: rows.length,
+    ticket: rows.length ? rev / rows.length : 0,
+    descMedio: dCount ? disc/dCount : 0,
+    leadMedio: lCount ? lead/lCount : 0,
+  };
+}
+// Apply Empresa/Operação/Negócio/Cidade/Vendedor filters but ignore date — used for comparativo
+function nonDateFiltered() {
+  const fEmp = new Set(selectedValues(filterEls.empresa));
+  const fOp  = new Set(selectedValues(filterEls.operacao));
+  const fNeg = new Set(selectedValues(filterEls.negocio));
+  const fCid = new Set(selectedValues(filterEls.cidade));
+  const fVen = new Set(selectedValues(filterEls.vendedor));
+  return state.rows.filter(r => {
+    if (fEmp.size && !fEmp.has(r.empresa)) return false;
+    if (fOp.size  && !fOp.has(r.operacao)) return false;
+    if (fNeg.size && !fNeg.has(r.negocio)) return false;
+    if (fCid.size && !fCid.has(r.cidade))  return false;
+    if (fVen.size && !fVen.has(r.vendedor))return false;
+    return true;
+  });
+}
+
+function renderComparativo() {
+  const gran = document.getElementById('cmpGranularity').value;
+  const dates = state.rows.map(r=>r.data_faturamento).filter(Boolean);
+  if (!dates.length) return;
+  const refDate = state.filterDate.from || dates[dates.length-1];
+  const anchor  = document.getElementById('cmpAnchor').value;
+  const ref     = parseAnchor(anchor, gran, refDate);
+  const cur     = periodRange(gran, ref);
+  const yoy     = periodRange(gran, shiftYear(ref, -1));
+  const prv     = periodRange(gran, shiftPeriod(gran, ref, -1));
+  const base    = nonDateFiltered();
+  const m1 = metricsForRows(rowsInRange(base, cur.from, cur.to));
+  const m2 = metricsForRows(rowsInRange(base, yoy.from, yoy.to));
+  const m3 = metricsForRows(rowsInRange(base, prv.from, prv.to));
+
+  const labels = ['Faturamento','OSs','Ticket Médio','Desconto médio %','Lead time (dias)'];
+  const values = [
+    [m1.revenue, m2.revenue, m3.revenue],
+    [m1.osCount, m2.osCount, m3.osCount],
+    [m1.ticket,  m2.ticket,  m3.ticket],
+    [m1.descMedio, m2.descMedio, m3.descMedio],
+    [m1.leadMedio, m2.leadMedio, m3.leadMedio],
+  ];
+  // Render only Faturamento on the bar chart (linear, readable).
+  // The other metrics live in the table below — too many magnitudes for one axis.
+  destroy('cmp');
+  state.charts.cmp = new Chart(document.getElementById('cmpChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Faturamento'],
+      datasets: [
+        { label: cur.label, data: [m1.revenue], backgroundColor: COLORS.primary },
+        { label: yoy.label, data: [m2.revenue], backgroundColor: COLORS.secondary },
+        { label: prv.label, data: [m3.revenue], backgroundColor: COLORS.accent3 },
+      ]
+    },
+    options: baseOptions({
+      scales: {
+        x: { ticks: { color:'#9ab0d6' }, grid:{color:'rgba(255,255,255,0.04)'}},
+        y: { ticks: { color:'#9ab0d6', callback: v => FORMATTERS.brl.format(v) },
+             grid: { color:'rgba(255,255,255,0.06)' }, beginAtZero: true }
+      },
+      plugins: {
+        legend: { labels: { color:'#cdd9ee' } },
+        tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${FORMATTERS.brl.format(ctx.parsed.y)}` } }
+      }
+    })
+  });
+
+  const fmt = (v, kind) => kind === 'money' ? FORMATTERS.brl.format(v)
+                          : kind === 'pct'   ? `${v.toFixed(2)}%`
+                          : kind === 'days'  ? `${v.toFixed(1)} d`
+                          : FORMATTERS.int.format(v);
+  const delta = (a,b) => {
+    if (b === 0) return a === 0 ? 0 : Infinity;
+    return ((a - b) / Math.abs(b)) * 100;
+  };
+  const dPill = d => isFinite(d)
+    ? `<span class="pill ${d>0?'good':d<0?'bad':'warn'}">${d>0?'+':''}${d.toFixed(1)}%</span>`
+    : '<span class="pill warn">—</span>';
+
+  const data = [
+    { lbl: 'Faturamento',  kind: 'money', v: [m1.revenue, m2.revenue, m3.revenue] },
+    { lbl: 'OSs',          kind: 'int',   v: [m1.osCount, m2.osCount, m3.osCount] },
+    { lbl: 'Ticket Médio', kind: 'money', v: [m1.ticket,  m2.ticket,  m3.ticket]  },
+    { lbl: 'Desconto %',   kind: 'pct',   v: [m1.descMedio, m2.descMedio, m3.descMedio] },
+    { lbl: 'Lead Time',    kind: 'days',  v: [m1.leadMedio, m2.leadMedio, m3.leadMedio] },
+  ];
+  document.getElementById('cmpTable').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>Métrica</th>
+        <th class="num">${cur.label}</th>
+        <th class="num">${yoy.label}</th>
+        <th class="num">vs. ano anterior</th>
+        <th class="num">${prv.label}</th>
+        <th class="num">vs. anterior</th>
+      </tr></thead>
+      <tbody>
+        ${data.map(d => `
+          <tr>
+            <td>${d.lbl}</td>
+            <td class="num">${fmt(d.v[0], d.kind)}</td>
+            <td class="num">${fmt(d.v[1], d.kind)}</td>
+            <td class="num">${dPill(delta(d.v[0], d.v[1]))}</td>
+            <td class="num">${fmt(d.v[2], d.kind)}</td>
+            <td class="num">${dPill(delta(d.v[0], d.v[2]))}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+document.getElementById('cmpApply').addEventListener('click', renderComparativo);
+document.getElementById('cmpGranularity').addEventListener('change', renderComparativo);
+document.getElementById('periodGran').addEventListener('change', renderPeriodChart);
+
+// ---------- sugestões ----------
+function renderSuggestions() {
+  // Use full-history (non-date-filtered) data for forecasting
+  const base = nonDateFiltered();
+  const tt = billingTypes();
+  const map = new Map();
+  for (const r of base) {
+    if (!r.data_faturamento) continue;
+    map.set(ym(r.data_faturamento), (map.get(ym(r.data_faturamento))||0) + rowRevenue(r, tt));
+  }
+  const keys = [...map.keys()].sort();
+  if (!keys.length) {
+    document.getElementById('metaMensalValue').textContent = '—';
+    document.getElementById('metaDiariaValue').textContent = '—';
+    return;
+  }
+  const lastKey = keys[keys.length-1];
+  const [ly, lm] = lastKey.split('-').map(Number);
+  let nextY = ly, nextM = lm + 1;
+  if (nextM > 12) { nextM = 1; nextY += 1; }
+
+  // last 12 vs prev 12
+  const last12  = keys.slice(-12).map(k => map.get(k));
+  const prev12  = keys.slice(-24, -12).map(k => map.get(k));
+  const last12sum = last12.reduce((a,b)=>a+b,0);
+  const prev12sum = prev12.reduce((a,b)=>a+b,0);
+  const yoyGrowth = prev12sum ? (last12sum - prev12sum) / prev12sum : 0;
+  const overallAvg = last12.length ? last12sum / last12.length : 0;
+
+  // seasonal index for the target month
+  const targetMonthAvg = (() => {
+    const sameMonthVals = keys.filter(k => +k.split('-')[1] === nextM).map(k => map.get(k));
+    if (!sameMonthVals.length) return overallAvg;
+    return sameMonthVals.reduce((a,b)=>a+b,0) / sameMonthVals.length;
+  })();
+  const overallHistAvg = keys.reduce((a,k)=>a+map.get(k),0)/keys.length;
+  const seasonalIdx = overallHistAvg ? (targetMonthAvg / overallHistAvg) : 1;
+
+  const trendFactor = 1 + Math.max(-0.3, Math.min(0.3, yoyGrowth));
+  const last3avg = last12.slice(-3).reduce((a,b)=>a+b,0) / Math.min(3, last12.length);
+  // Combine: weighted avg between recent trend and seasonal projection
+  const seasonalForecast = overallAvg * seasonalIdx * trendFactor;
+  const recencyForecast  = last3avg * trendFactor;
+  const meta = (seasonalForecast + recencyForecast) / 2;
+
+  const businessDaysNextMonth = countBusinessDays(nextY, nextM);
+  const metaDiaria = businessDaysNextMonth ? meta / businessDaysNextMonth : 0;
+
+  document.getElementById('metaMensalValue').textContent = FORMATTERS.brl.format(meta);
+  document.getElementById('metaMensalSub').innerHTML =
+    `Para <b>${FULL_MONTH_PT[nextM-1]}/${nextY}</b> · YoY ${(yoyGrowth*100).toFixed(1)}% · Sazonal ${(seasonalIdx).toFixed(2)}×`;
+  document.getElementById('metaDiariaValue').textContent = FORMATTERS.brl.format(metaDiaria);
+  document.getElementById('metaDiariaSub').textContent =
+    `${businessDaysNextMonth} dias úteis estimados em ${FULL_MONTH_PT[nextM-1]}`;
+
+  renderRiskClients(base);
+}
+
+function countBusinessDays(year, month) {
+  const start = new Date(Date.UTC(year, month-1, 1));
+  const end   = new Date(Date.UTC(year, month, 0));
+  let n = 0;
+  for (let d = new Date(start); d <= end; d = new Date(d.getTime()+86400000)) {
+    const dow = d.getUTCDay();
+    if (dow !== 0 && dow !== 6) n++;
+  }
+  return n;
+}
+
+function renderRiskClients(base) {
+  const tt = billingTypes();
+  // For each cliente: revenue per month aggregated. Compare last 3 months vs preceding 9.
+  const dates = base.map(r=>r.data_faturamento).filter(Boolean);
+  if (!dates.length) return;
+  const maxDate = new Date(Math.max(...dates));
+  const cutoffRecent = addMonths(startOfMonth(maxDate), -2); // start of (max-2) month
+  const cutoffPrior  = addMonths(startOfMonth(maxDate), -11);
+
+  const agg = new Map();
+  for (const r of base) {
+    if (!r.cliente || !r.data_faturamento) continue;
+    const d = r.data_faturamento;
+    if (d < cutoffPrior) continue;
+    const rev = rowRevenue(r, tt);
+    if (!agg.has(r.cliente)) agg.set(r.cliente, { recent: 0, prior: 0, recentCount: 0, priorCount: 0 });
+    const a = agg.get(r.cliente);
+    if (d >= cutoffRecent) { a.recent += rev; a.recentCount++; }
+    else                   { a.prior  += rev; a.priorCount++;  }
+  }
+  const list = [];
+  for (const [cliente, a] of agg) {
+    const recentAvg = a.recent / 3;
+    const priorAvg  = a.prior  / 9;
+    if (priorAvg > 0 && a.priorCount >= 3 && recentAvg < priorAvg * 0.5) {
+      list.push({
+        cliente,
+        recent: a.recent, prior: a.prior,
+        recentAvg, priorAvg,
+        recentCount: a.recentCount, priorCount: a.priorCount,
+        drop: priorAvg ? (recentAvg - priorAvg) / priorAvg : 0,
+      });
+    }
+  }
+  list.sort((a,b)=> a.drop - b.drop);
+  const top = list.slice(0, 50);
+  document.getElementById('risckClientsCount').textContent = FORMATTERS.int.format(list.length);
+  document.getElementById('riskClientsTable').innerHTML = list.length ? `
+    <table>
+      <thead><tr>
+        <th>Cliente</th>
+        <th class="num">Média 9m anteriores</th>
+        <th class="num">Média 3m recentes</th>
+        <th class="num">Variação</th>
+        <th class="num">OSs (9m / 3m)</th>
+      </tr></thead>
+      <tbody>
+        ${top.map(r => `
+          <tr>
+            <td>${escapeHtml(r.cliente)}</td>
+            <td class="num">${FORMATTERS.brl.format(r.priorAvg)}</td>
+            <td class="num">${FORMATTERS.brl.format(r.recentAvg)}</td>
+            <td class="num neg">${(r.drop*100).toFixed(1)}%</td>
+            <td class="num">${r.priorCount} / ${r.recentCount}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+    ${list.length > top.length ? `<p class="small">Mostrando ${top.length} de ${list.length} clientes em alerta.</p>` : ''}
+  ` : '<p class="small">Nenhum cliente em queda relevante detectado.</p>';
+}
+
+// ---------- OS lookup ----------
+const osSearchInput = document.getElementById('osSearch');
+const osLookupResults = document.getElementById('osLookupResults');
+const osSearchCount = document.getElementById('osSearchCount');
+osSearchInput.addEventListener('input', debounce(renderOSLookup, 200));
+
+function debounce(fn, ms) { let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
+function renderOSLookup() {
+  const q = (osSearchInput.value || '').trim().toLowerCase();
+  const rows = state.filtered;
+  let res = rows;
+  if (q) {
+    res = rows.filter(r => {
+      return (r.os && r.os.toLowerCase().includes(q))
+          || (r.cliente && r.cliente.toLowerCase().includes(q))
+          || (r.cidade && r.cidade.toLowerCase().includes(q))
+          || (r.modelo && r.modelo.toLowerCase().includes(q))
+          || (r.marca && r.marca.toLowerCase().includes(q))
+          || (r.vendedor && r.vendedor.toLowerCase().includes(q))
+          || (r.nf_pecas && r.nf_pecas.toLowerCase().includes(q))
+          || (r.nf_servicos && r.nf_servicos.toLowerCase().includes(q));
+    });
+  }
+  osSearchCount.textContent = `${FORMATTERS.int.format(res.length)} resultado(s)${q ? ` para “${q}”` : ' (todos do filtro)'}`;
+  const limited = res.slice(0, 200);
+  if (!limited.length) {
+    osLookupResults.innerHTML = '<p class="small" style="padding:8px">Nenhuma OS encontrada.</p>';
+    return;
+  }
+  osLookupResults.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>OS</th><th>Empresa/Op.</th><th>Abertura</th><th>Faturamento</th>
+          <th>Cliente</th><th>Vendedor</th><th>Cidade</th>
+          <th>Marca/Modelo</th><th>Negócio</th>
+          <th class="num">Peças</th><th class="num">Serv.</th><th class="num">Terc.</th>
+          <th class="num">Total</th><th class="num">Desc.%</th>
+          <th>NF Peças</th><th>NF Serv.</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${limited.map(r => `
+          <tr>
+            <td class="nowrap"><b>${escapeHtml(r.os)}</b></td>
+            <td class="nowrap">${escapeHtml(r.empresa)}/${escapeHtml(r.operacao)}</td>
+            <td class="nowrap">${r.data_abertura ? FORMATTERS.date.format(r.data_abertura) : ''}</td>
+            <td class="nowrap">${r.data_faturamento ? FORMATTERS.date.format(r.data_faturamento) : ''}</td>
+            <td>${escapeHtml(r.cliente)}</td>
+            <td>${escapeHtml(r.vendedor)}</td>
+            <td>${escapeHtml(r.cidade)}</td>
+            <td>${escapeHtml(r.marca)} ${escapeHtml(r.modelo)}</td>
+            <td>${escapeHtml(r.negocio)}</td>
+            <td class="num">${FORMATTERS.brlF.format(r.venda_pecas)}</td>
+            <td class="num">${FORMATTERS.brlF.format(r.venda_servicos)}</td>
+            <td class="num">${FORMATTERS.brlF.format(r.venda_terceiros)}</td>
+            <td class="num"><b>${FORMATTERS.brlF.format(r.total_os)}</b></td>
+            <td class="num">${(r.desc_pct_total||0).toFixed(2)}%</td>
+            <td class="nowrap">${escapeHtml(r.nf_pecas)}</td>
+            <td class="nowrap">${escapeHtml(r.nf_servicos)}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+    ${res.length > limited.length ? `<p class="small" style="padding:6px 8px">Mostrando ${limited.length} de ${FORMATTERS.int.format(res.length)} resultados — refine a busca.</p>` : ''}
+  `;
+}
+
+// =====================================================================
+//  ANÁLISE POR VENDEDOR — view dedicada (reuniões de vendas)
+// =====================================================================
+
+// Base for the seller view: applies all sidebar filters EXCEPT Vendedor
+// (the focal seller selector takes that role to avoid contradictory filters).
+function sellerViewBase() {
+  const fEmp = new Set(selectedValues(filterEls.empresa));
+  const fOp  = new Set(selectedValues(filterEls.operacao));
+  const fNeg = new Set(selectedValues(filterEls.negocio));
+  const fCid = new Set(selectedValues(filterEls.cidade));
+  const dFrom = state.filterDate.from;
+  const dTo   = state.filterDate.to;
+  return state.rows.filter(r => {
+    if (fEmp.size && !fEmp.has(r.empresa)) return false;
+    if (fOp.size  && !fOp.has(r.operacao)) return false;
+    if (fNeg.size && !fNeg.has(r.negocio)) return false;
+    if (fCid.size && !fCid.has(r.cidade))  return false;
+    if (dFrom && (!r.data_faturamento || r.data_faturamento < dFrom)) return false;
+    if (dTo   && (!r.data_faturamento || r.data_faturamento > dTo))   return false;
+    return true;
+  });
+}
+
+// Same as sellerViewBase but ignoring the date filter — used for the period
+// comparativo (which needs to look at adjacent windows in history).
+function sellerViewBaseAllTime() {
+  const fEmp = new Set(selectedValues(filterEls.empresa));
+  const fOp  = new Set(selectedValues(filterEls.operacao));
+  const fNeg = new Set(selectedValues(filterEls.negocio));
+  const fCid = new Set(selectedValues(filterEls.cidade));
+  return state.rows.filter(r => {
+    if (fEmp.size && !fEmp.has(r.empresa)) return false;
+    if (fOp.size  && !fOp.has(r.operacao)) return false;
+    if (fNeg.size && !fNeg.has(r.negocio)) return false;
+    if (fCid.size && !fCid.has(r.cidade))  return false;
+    return true;
+  });
+}
+
+function renderSellersView() {
+  if (!state.rows.length) return;
+
+  // Annual ranking — sempre visível, independente de seleção focal
+  renderSellersAnnualRanking();
+
+  const focal   = document.getElementById('focalSeller').value;
+  const empty   = document.getElementById('sellerEmptyState');
+  const content = document.getElementById('sellerContent');
+
+  if (!focal) {
+    empty.style.display = 'block';
+    content.style.display = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+  content.style.display = 'block';
+
+  const base       = sellerViewBase();
+  const focalRows  = base.filter(r => r.vendedor === focal);
+  const tt         = billingTypes();
+
+  renderSellerKpis(focal, base, focalRows, tt);
+  renderSellerMonthChart(focalRows, tt);
+  renderSellerTypeChart(focalRows, tt);
+  renderSellerCityChart(focalRows, tt);
+  renderSellerTopClients(focalRows, tt);
+  renderSellerBrandChart(focalRows, tt);
+  renderSellerComparativo(focal);
+  renderSellerRanking(focal, base, tt);
+}
+
+function renderSellerKpis(focal, base, focalRows, tt) {
+  let totalRev = 0, focalRev = 0;
+  for (const r of base)      totalRev += rowRevenue(r, tt);
+  let dSum = 0, dCnt = 0, leadSum = 0, leadCnt = 0;
+  for (const r of focalRows) {
+    focalRev += rowRevenue(r, tt);
+    if (r.desc_pct_total) { dSum += r.desc_pct_total; dCnt++; }
+    if (r.data_abertura && r.data_faturamento) {
+      const d = (r.data_faturamento - r.data_abertura) / 86400000;
+      if (d >= 0 && d < 365) { leadSum += d; leadCnt++; }
+    }
+  }
+  const osCount  = focalRows.length;
+  const ticket   = osCount ? focalRev / osCount : 0;
+  const share    = totalRev ? focalRev / totalRev : 0;
+  const discAvg  = dCnt ? dSum / dCnt : 0;
+  const leadAvg  = leadCnt ? leadSum / leadCnt : 0;
+
+  // Ranking position
+  const sellerTotals = new Map();
+  for (const r of base) {
+    if (!r.vendedor) continue;
+    sellerTotals.set(r.vendedor, (sellerTotals.get(r.vendedor)||0) + rowRevenue(r, tt));
+  }
+  const sortedSellers = [...sellerTotals.entries()].sort((a,b)=> b[1]-a[1]);
+  const rank = sortedSellers.findIndex(([v]) => v === focal) + 1;
+
+  const kpis = [
+    { label:'Vendedor', value: focal, sub:`Posição #${rank} de ${sortedSellers.length}`, big:false },
+    { label:'Faturamento',   value: FORMATTERS.brl.format(focalRev),  sub:`${(share*100).toFixed(1)}% do total filtrado` },
+    { label:'OSs faturadas', value: FORMATTERS.int.format(osCount),   sub:'&nbsp;' },
+    { label:'Ticket Médio',  value: FORMATTERS.brl.format(ticket),    sub:'Faturamento / OS' },
+    { label:'Desconto médio',value: discAvg.toFixed(2)+'%',           sub:'% médio sobre Total OS' },
+    { label:'Lead time médio',value: leadAvg.toFixed(1)+' dias',      sub:'Abertura → Faturamento' },
+  ];
+  document.getElementById('sellerKpis').innerHTML = kpis.map(k => `
+    <div class="kpi">
+      <div class="label">${k.label}</div>
+      <div class="value" style="${k.big===false ? 'font-size:15px;line-height:1.3' : ''}">${escapeHtml(String(k.value))}</div>
+      <div class="sub">${k.sub}</div>
+    </div>`).join('');
+}
+
+function renderSellerMonthChart(focalRows, tt) {
+  const map = new Map();
+  for (const r of focalRows) {
+    if (!r.data_faturamento) continue;
+    map.set(ym(r.data_faturamento), (map.get(ym(r.data_faturamento))||0) + rowRevenue(r, tt));
+  }
+  const keys = [...map.keys()].sort();
+  const labels = keys.map(k => { const [y,m]=k.split('-'); return `${MONTH_NAMES_PT[+m-1]}/${y.slice(-2)}`; });
+  destroy('sellerMonth');
+  state.charts.sellerMonth = new Chart(document.getElementById('sellerMonthChart'), {
+    type: 'bar',
+    data: { labels, datasets: [{
+      label: 'Faturamento',
+      data: keys.map(k => map.get(k)),
+      backgroundColor: COLORS.primary, borderColor: COLORS.primaryBorder, borderWidth: 1,
+      borderRadius: 4, maxBarThickness: 36,
+    }]},
+    options: baseOptions({
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#111827', titleColor: '#fff', bodyColor: '#f3f4f6',
+          padding: 10, cornerRadius: 6, displayColors: false,
+          callbacks: { label: ctx => FORMATTERS.brl.format(ctx.parsed.y) }
+        }
+      }
+    })
+  });
+}
+
+function renderSellerTypeChart(focalRows, tt) {
+  let pe = 0, se = 0, te = 0;
+  for (const r of focalRows) {
+    if (tt.pecas)    pe += r.venda_pecas    || 0;
+    if (tt.servicos) se += r.venda_servicos || 0;
+    if (tt.terceiros)te += r.venda_terceiros|| 0;
+  }
+  const labels = [], data = [];
+  if (tt.pecas)    { labels.push('Peças');     data.push(pe); }
+  if (tt.servicos) { labels.push('Serviços');  data.push(se); }
+  if (tt.terceiros){ labels.push('Terceiros'); data.push(te); }
+  destroy('sellerType');
+  state.charts.sellerType = new Chart(document.getElementById('sellerTypeChart'), {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: [COLORS.primary, COLORS.secondary, COLORS.accent3],
+        borderColor: '#fff', borderWidth: 2,
+      }]
+    },
+    options: doughnutOptions()
+  });
+}
+
+function renderSellerCityChart(focalRows, tt) {
+  const map = new Map();
+  for (const r of focalRows) {
+    if (!r.cidade) continue;
+    map.set(r.cidade, (map.get(r.cidade)||0) + rowRevenue(r, tt));
+  }
+  const top = [...map.entries()].sort((a,b)=> b[1]-a[1]).slice(0,12);
+  destroy('sellerCity');
+  state.charts.sellerCity = new Chart(document.getElementById('sellerCityChart'), {
+    type: 'bar',
+    data: {
+      labels: top.map(t => t[0]),
+      datasets: [{
+        label: 'Faturamento',
+        data: top.map(t => t[1]),
+        backgroundColor: COLORS.secondary,
+        borderRadius: 4, maxBarThickness: 18,
+      }]
+    },
+    options: horizontalBarOptions({
+      tooltipLabel: ctx => `${ctx.label}: ${FORMATTERS.brl.format(ctx.parsed.x)}`
+    })
+  });
+}
+
+function renderSellerTopClients(focalRows, tt) {
+  const agg = new Map();
+  for (const r of focalRows) {
+    if (!r.cliente) continue;
+    if (!agg.has(r.cliente)) agg.set(r.cliente, { revenue: 0, count: 0, dSum: 0, dCnt: 0 });
+    const a = agg.get(r.cliente);
+    a.revenue += rowRevenue(r, tt);
+    a.count++;
+    if (r.desc_pct_total) { a.dSum += r.desc_pct_total; a.dCnt++; }
+  }
+  const top = [...agg.entries()]
+    .map(([cliente, a]) => ({ cliente, ...a, descMedio: a.dCnt ? a.dSum/a.dCnt : 0,
+                              ticket: a.count ? a.revenue/a.count : 0 }))
+    .sort((a,b)=> b.revenue - a.revenue)
+    .slice(0, 10);
+  document.getElementById('sellerTopClients').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>#</th><th>Cliente</th>
+        <th class="num">Faturamento</th>
+        <th class="num">OSs</th>
+        <th class="num">Ticket</th>
+        <th class="num">Desc.%</th>
+      </tr></thead>
+      <tbody>
+        ${top.map((t,i) => `
+          <tr>
+            <td>${i+1}</td>
+            <td>${escapeHtml(t.cliente)}</td>
+            <td class="num">${FORMATTERS.brl.format(t.revenue)}</td>
+            <td class="num">${FORMATTERS.int.format(t.count)}</td>
+            <td class="num">${FORMATTERS.brl.format(t.ticket)}</td>
+            <td class="num">${t.descMedio.toFixed(2)}%</td>
+          </tr>`).join('') || '<tr><td colspan="6" class="small">Sem dados.</td></tr>'}
+      </tbody>
+    </table>`;
+}
+
+function renderSellerBrandChart(focalRows, tt) {
+  const map = new Map();
+  for (const r of focalRows) {
+    const m = (r.marca || '').trim();
+    if (!m) continue;
+    map.set(m, (map.get(m)||0) + rowRevenue(r, tt));
+  }
+  const sorted = [...map.entries()].sort((a,b)=> b[1]-a[1]);
+  const top = sorted.slice(0, 8);
+  const otherTotal = sorted.slice(8).reduce((s, [,v]) => s + v, 0);
+  const labels = top.map(t => t[0]);
+  const data = top.map(t => t[1]);
+  if (otherTotal > 0) { labels.push('Outras'); data.push(otherTotal); }
+  destroy('sellerBrand');
+  state.charts.sellerBrand = new Chart(document.getElementById('sellerBrandChart'), {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: CHART_PALETTE.slice(0, labels.length),
+        borderColor: '#fff', borderWidth: 2,
+      }]
+    },
+    options: doughnutOptions()
+  });
+}
+
+function renderSellerComparativo(focal) {
+  const dates = state.rows.map(r => r.data_faturamento).filter(Boolean);
+  const target = document.getElementById('sellerCmpTable');
+  if (!dates.length) { target.innerHTML = ''; return; }
+
+  // Determine granularity from the date filter span (≤ 32 days → month;
+  // ≤ 100 days → quarter; ≤ 200 days → semester; otherwise year).
+  const dFrom = state.filterDate.from || dates[dates.length-1];
+  const dTo   = state.filterDate.to   || dates[dates.length-1];
+  const span  = (dTo - dFrom) / 86400000;
+  const gran  = span <= 32 ? 'month' : span <= 100 ? 'quarter' : span <= 200 ? 'semester' : 'year';
+
+  const refDate = dFrom;
+  const ref =
+      gran === 'month'    ? { year: refDate.getUTCFullYear(), month: refDate.getUTCMonth()+1 }
+    : gran === 'quarter'  ? { year: refDate.getUTCFullYear(), q: Math.floor(refDate.getUTCMonth()/3)+1 }
+    : gran === 'semester' ? { year: refDate.getUTCFullYear(), s: refDate.getUTCMonth() < 6 ? 1 : 2 }
+    :                       { year: refDate.getUTCFullYear() };
+  const cur = periodRange(gran, ref);
+  const yoy = periodRange(gran, shiftYear(ref, -1));
+  const prv = periodRange(gran, shiftPeriod(gran, ref, -1));
+
+  // Filter base: ignore date filter, keep other filters, focal seller only.
+  const baseAll = sellerViewBaseAllTime().filter(r => r.vendedor === focal);
+  const m1 = metricsForRows(rowsInRange(baseAll, cur.from, cur.to));
+  const m2 = metricsForRows(rowsInRange(baseAll, yoy.from, yoy.to));
+  const m3 = metricsForRows(rowsInRange(baseAll, prv.from, prv.to));
+
+  const fmt = (v, kind) => kind === 'money' ? FORMATTERS.brl.format(v)
+                          : kind === 'pct'   ? `${v.toFixed(2)}%`
+                          : kind === 'days'  ? `${v.toFixed(1)} d`
+                          : FORMATTERS.int.format(v);
+  const delta = (a,b) => b === 0 ? (a === 0 ? 0 : Infinity) : ((a - b) / Math.abs(b)) * 100;
+  const dPill = d => isFinite(d)
+    ? `<span class="pill ${d>0?'good':d<0?'bad':'warn'}">${d>0?'+':''}${d.toFixed(1)}%</span>`
+    : '<span class="pill warn">—</span>';
+
+  const data = [
+    { lbl:'Faturamento',  kind:'money', v:[m1.revenue,   m2.revenue,   m3.revenue]   },
+    { lbl:'OSs',          kind:'int',   v:[m1.osCount,   m2.osCount,   m3.osCount]   },
+    { lbl:'Ticket Médio', kind:'money', v:[m1.ticket,    m2.ticket,    m3.ticket]    },
+    { lbl:'Desconto %',   kind:'pct',   v:[m1.descMedio, m2.descMedio, m3.descMedio] },
+  ];
+  target.innerHTML = `
+    <table>
+      <thead><tr>
+        <th>Métrica</th>
+        <th class="num">${cur.label}</th>
+        <th class="num">${yoy.label}</th>
+        <th class="num">vs. ano ant.</th>
+        <th class="num">${prv.label}</th>
+        <th class="num">vs. ant.</th>
+      </tr></thead>
+      <tbody>
+        ${data.map(d => `
+          <tr>
+            <td>${d.lbl}</td>
+            <td class="num">${fmt(d.v[0], d.kind)}</td>
+            <td class="num">${fmt(d.v[1], d.kind)}</td>
+            <td class="num">${dPill(delta(d.v[0], d.v[1]))}</td>
+            <td class="num">${fmt(d.v[2], d.kind)}</td>
+            <td class="num">${dPill(delta(d.v[0], d.v[2]))}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function renderSellerRanking(focal, base, tt) {
+  const sellerAgg = new Map();
+  for (const r of base) {
+    if (!r.vendedor) continue;
+    if (!sellerAgg.has(r.vendedor)) sellerAgg.set(r.vendedor,
+      { revenue: 0, count: 0, dSum: 0, dCnt: 0, lSum: 0, lCnt: 0 });
+    const a = sellerAgg.get(r.vendedor);
+    a.revenue += rowRevenue(r, tt);
+    a.count++;
+    if (r.desc_pct_total) { a.dSum += r.desc_pct_total; a.dCnt++; }
+    if (r.data_abertura && r.data_faturamento) {
+      const d = (r.data_faturamento - r.data_abertura) / 86400000;
+      if (d >= 0 && d < 365) { a.lSum += d; a.lCnt++; }
+    }
+  }
+  const totalRev = [...sellerAgg.values()].reduce((s,a)=> s + a.revenue, 0);
+  const list = [...sellerAgg.entries()]
+    .map(([vendedor, a]) => ({
+      vendedor,
+      revenue: a.revenue,
+      count: a.count,
+      ticket: a.count ? a.revenue/a.count : 0,
+      descMedio: a.dCnt ? a.dSum/a.dCnt : 0,
+      leadMedio: a.lCnt ? a.lSum/a.lCnt : 0,
+    }))
+    .sort((a,b)=> b.revenue - a.revenue);
+
+  document.getElementById('sellerRanking').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>#</th><th>Vendedor</th>
+        <th class="num">Faturamento</th>
+        <th class="num">% do total</th>
+        <th class="num">OSs</th>
+        <th class="num">Ticket</th>
+        <th class="num">Desc.%</th>
+        <th class="num">Lead time</th>
+      </tr></thead>
+      <tbody>
+        ${list.map((t,i) => `
+          <tr${t.vendedor === focal ? ' class="row-focal"' : ''}>
+            <td>${i+1}</td>
+            <td>${escapeHtml(t.vendedor)}</td>
+            <td class="num">${FORMATTERS.brl.format(t.revenue)}</td>
+            <td class="num">${totalRev ? ((t.revenue/totalRev)*100).toFixed(1)+'%' : '—'}</td>
+            <td class="num">${FORMATTERS.int.format(t.count)}</td>
+            <td class="num">${FORMATTERS.brl.format(t.ticket)}</td>
+            <td class="num">${t.descMedio.toFixed(2)}%</td>
+            <td class="num">${t.leadMedio.toFixed(1)} d</td>
+          </tr>`).join('') || '<tr><td colspan="8" class="small">Sem dados.</td></tr>'}
+      </tbody>
+    </table>`;
+}
+
+// =====================================================================
+//  HELPERS DE EXPORTAÇÃO E IMPRESSÃO
+// =====================================================================
+
+// CSV export — semicolon delimiter + UTF-8 BOM (Excel BR-friendly).
+function exportCSV(filename, headers, rows) {
+  const escape = v => {
+    if (v === null || v === undefined) return '';
+    const s = String(v);
+    if (/[",;\r\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  };
+  const lines = [headers.map(escape).join(';')];
+  for (const r of rows) lines.push(r.map(escape).join(';'));
+  const csv = '﻿' + lines.join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 200);
+}
+
+// Open a popup window with print-friendly HTML and trigger native print.
+function openPrintWindow(title, htmlContent) {
+  const w = window.open('', '_blank', 'width=1100,height=800');
+  if (!w) {
+    alert('Permita pop-ups deste site para gerar o relatório.');
+    return;
+  }
+  const css = `
+    @page { size: A4 portrait; margin: 14mm; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; color: #111; font-size: 10pt; line-height: 1.4; padding: 4mm; }
+    h1 { font-size: 16pt; margin: 0 0 4pt; letter-spacing: -0.01em; }
+    h2 { font-size: 12pt; margin: 14pt 0 6pt; padding-bottom: 4pt; border-bottom: 1.5px solid #000; }
+    .meta { color: #555; font-size: 9pt; margin: 0 0 14pt; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      text-align: left; padding: 5pt 6pt;
+      border-bottom: 1.5px solid #000; font-size: 8.5pt;
+      text-transform: uppercase; letter-spacing: 0.04em;
+      background: #f1f1f1;
+    }
+    tbody td {
+      padding: 4pt 6pt; border-bottom: 0.5px solid #ddd;
+      font-size: 9pt; vertical-align: top;
+    }
+    tbody tr:nth-child(even) td { background: #fafafa; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .toolbar { margin: 14pt 0; }
+    .toolbar button {
+      padding: 6pt 14pt; font-size: 10pt; cursor: pointer;
+      border: 1px solid #888; background: #fff; border-radius: 4px;
+    }
+    .toolbar button + button { margin-left: 6pt; }
+    .pagebreak { page-break-before: always; }
+    @media print { .toolbar { display: none; } body { padding: 0; } }
+  `;
+  w.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>${css}</style></head><body>${htmlContent}<div class="toolbar"><button onclick="window.print()">Imprimir</button><button onclick="window.close()">Fechar</button></div></body></html>`);
+  w.document.close();
+  setTimeout(() => { try { w.focus(); w.print(); } catch (e) {} }, 350);
+}
+
+// Carteira base — filters Empresa, Operação, Negócio, Cidade
+// (no date filter, no Vendedor filter). Used by carteira-wide views.
+function carteiraBaseAllTime() {
+  const fEmp = new Set(selectedValues(filterEls.empresa));
+  const fOp  = new Set(selectedValues(filterEls.operacao));
+  const fNeg = new Set(selectedValues(filterEls.negocio));
+  const fCid = new Set(selectedValues(filterEls.cidade));
+  return state.rows.filter(r => {
+    if (fEmp.size && !fEmp.has(r.empresa)) return false;
+    if (fOp.size  && !fOp.has(r.operacao)) return false;
+    if (fNeg.size && !fNeg.has(r.negocio)) return false;
+    if (fCid.size && !fCid.has(r.cidade))  return false;
+    return true;
+  });
+}
+
+// Distinct years in the dataset, sorted ascending.
+function availableYears() {
+  const set = new Set();
+  for (const r of state.rows) {
+    if (r.data_faturamento) set.add(r.data_faturamento.getUTCFullYear());
+  }
+  return [...set].sort((a,b) => a - b);
+}
+
+// Helper for delta% with safe handling of zero baselines.
+function deltaPct(a, b) {
+  if (b === 0) return a === 0 ? 0 : Infinity;
+  return ((a - b) / Math.abs(b)) * 100;
+}
+function deltaPill(d) {
+  return isFinite(d)
+    ? `<span class="pill ${d>0?'good':d<0?'bad':'warn'}">${d>0?'+':''}${d.toFixed(1)}%</span>`
+    : '<span class="pill warn">—</span>';
+}
+
+// =====================================================================
+//  COMPARATIVOS ANUAIS (top 20)
+// =====================================================================
+
+function buildAnnualRankingData(dimensionKey, baseRows) {
+  const tt = billingTypes();
+  const years = availableYears();
+  if (years.length < 2) return null;
+  const recent = years.slice(-Math.min(years.length, 4));
+  const byYear = new Map();
+  for (const y of recent) byYear.set(y, new Map());
+  for (const r of baseRows) {
+    const dim = (r[dimensionKey] || '').trim();
+    if (!dim || !r.data_faturamento) continue;
+    const y = r.data_faturamento.getUTCFullYear();
+    if (!byYear.has(y)) continue;
+    const m = byYear.get(y);
+    m.set(dim, (m.get(dim)||0) + rowRevenue(r, tt));
+  }
+  const latest = recent[recent.length-1];
+  const top20 = [...byYear.get(latest).entries()]
+    .sort((a,b) => b[1] - a[1])
+    .slice(0, 20)
+    .map(([k]) => k);
+  const yearTotals = new Map();
+  for (const [y, m] of byYear) {
+    let t = 0; for (const v of m.values()) t += v;
+    yearTotals.set(y, t);
+  }
+  return { recent, byYear, yearTotals, top20, latest };
+}
+
+function annualRankingTableHTML(data, dimensionLabel, opts = {}) {
+  if (!data) return '<p class="small">São necessários pelo menos 2 anos de dados.</p>';
+  const { recent, byYear, yearTotals, top20, latest } = data;
+  const colspan = 2 + 2*recent.length + (recent.length >= 2 ? 1 : 0) + (recent.length >= 3 ? 1 : 0);
+  return `
+    <table>
+      <thead>
+        <tr>
+          <th rowspan="2">#</th>
+          <th rowspan="2">${dimensionLabel}</th>
+          ${recent.map(y => `<th class="num" colspan="2">${y}${y === latest ? ' <span class="badge">atual</span>' : ''}</th>`).join('')}
+          ${recent.length >= 2 ? `<th class="num" rowspan="2">Δ vs ${recent[recent.length-2]}</th>` : ''}
+          ${recent.length >= 3 ? `<th class="num" rowspan="2">Δ vs ${recent[recent.length-3]}</th>` : ''}
+        </tr>
+        <tr>${recent.map(_ => `<th class="num">R$</th><th class="num">% ano</th>`).join('')}</tr>
+      </thead>
+      <tbody>
+        ${top20.map((dim, i) => {
+          const vals   = recent.map(y => byYear.get(y).get(dim) || 0);
+          const totals = recent.map(y => yearTotals.get(y) || 0);
+          const cells = recent.map((y, idx) => {
+            const v = vals[idx], t = totals[idx];
+            const pctOfYear = t ? (v/t)*100 : 0;
+            return `<td class="num">${FORMATTERS.brl.format(v)}</td><td class="num small">${pctOfYear.toFixed(2)}%</td>`;
+          }).join('');
+          const last = vals[vals.length-1];
+          const dPrev = recent.length >= 2 ? `<td class="num">${deltaPill(deltaPct(last, vals[vals.length-2]))}</td>` : '';
+          const dTwo  = recent.length >= 3 ? `<td class="num">${deltaPill(deltaPct(last, vals[vals.length-3]))}</td>` : '';
+          const nameCell = opts.linkClient
+            ? `<a href="#" data-pick-client="${escapeHtml(dim)}">${escapeHtml(dim)}</a>`
+            : escapeHtml(dim);
+          return `<tr>
+            <td>${i+1}</td>
+            <td>${nameCell}</td>
+            ${cells}
+            ${dPrev}
+            ${dTwo}
+          </tr>`;
+        }).join('') || `<tr><td colspan="${colspan}" class="small">Sem dados.</td></tr>`}
+      </tbody>
+    </table>`;
+}
+
+function renderClientsAnnualRanking() {
+  const data = buildAnnualRankingData('cliente', state.rows.filter(r => {
+    // carteira base + Vendedor filter (since clients-by-vendor is meaningful)
+    const fEmp = new Set(selectedValues(filterEls.empresa));
+    const fOp  = new Set(selectedValues(filterEls.operacao));
+    const fNeg = new Set(selectedValues(filterEls.negocio));
+    const fCid = new Set(selectedValues(filterEls.cidade));
+    const fVen = new Set(selectedValues(filterEls.vendedor));
+    if (fEmp.size && !fEmp.has(r.empresa)) return false;
+    if (fOp.size  && !fOp.has(r.operacao)) return false;
+    if (fNeg.size && !fNeg.has(r.negocio)) return false;
+    if (fCid.size && !fCid.has(r.cidade))  return false;
+    if (fVen.size && !fVen.has(r.vendedor))return false;
+    return true;
+  }));
+  document.getElementById('clientsAnnualRanking').innerHTML = annualRankingTableHTML(data, 'Cliente', { linkClient: true });
+  attachClientPicks();
+}
+
+function renderSellersAnnualRanking() {
+  const data = buildAnnualRankingData('vendedor', sellerViewBaseAllTime());
+  document.getElementById('sellersAnnualRanking').innerHTML = annualRankingTableHTML(data, 'Vendedor');
+}
+
+function printAnnualRanking(kind) {
+  const isClient = kind === 'clients';
+  const data = isClient
+    ? buildAnnualRankingData('cliente', state.rows.filter(r => {
+        const fEmp = new Set(selectedValues(filterEls.empresa));
+        const fOp  = new Set(selectedValues(filterEls.operacao));
+        const fNeg = new Set(selectedValues(filterEls.negocio));
+        const fCid = new Set(selectedValues(filterEls.cidade));
+        const fVen = new Set(selectedValues(filterEls.vendedor));
+        if (fEmp.size && !fEmp.has(r.empresa)) return false;
+        if (fOp.size  && !fOp.has(r.operacao)) return false;
+        if (fNeg.size && !fNeg.has(r.negocio)) return false;
+        if (fCid.size && !fCid.has(r.cidade))  return false;
+        if (fVen.size && !fVen.has(r.vendedor))return false;
+        return true;
+      }))
+    : buildAnnualRankingData('vendedor', sellerViewBaseAllTime());
+  const title = isClient ? 'Comparativo anual — Top 20 clientes' : 'Comparativo anual — Top 20 vendedores';
+  const today = new Date();
+  const html = `
+    <h1>${title}</h1>
+    <p class="meta">Gerado em ${today.toLocaleDateString('pt-BR')} ${today.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</p>
+    ${annualRankingTableHTML(data, isClient ? 'Cliente' : 'Vendedor')}
+  `;
+  openPrintWindow(title, html);
+}
+
+function csvAnnualRanking(kind) {
+  const isClient = kind === 'clients';
+  const data = isClient
+    ? buildAnnualRankingData('cliente', state.rows)
+    : buildAnnualRankingData('vendedor', sellerViewBaseAllTime());
+  if (!data) { alert('São necessários pelo menos 2 anos de dados.'); return; }
+  const { recent, byYear, yearTotals, top20 } = data;
+  const headers = ['#', isClient ? 'Cliente' : 'Vendedor'];
+  for (const y of recent) { headers.push(`${y} (R$)`, `${y} (% ano)`); }
+  if (recent.length >= 2) headers.push(`Δ vs ${recent[recent.length-2]} (%)`);
+  if (recent.length >= 3) headers.push(`Δ vs ${recent[recent.length-3]} (%)`);
+  const rows = top20.map((dim, i) => {
+    const vals = recent.map(y => byYear.get(y).get(dim) || 0);
+    const totals = recent.map(y => yearTotals.get(y) || 0);
+    const out = [i+1, dim];
+    recent.forEach((_, idx) => {
+      out.push(vals[idx].toFixed(2).replace('.', ','));
+      out.push((totals[idx] ? (vals[idx]/totals[idx])*100 : 0).toFixed(2).replace('.', ','));
+    });
+    if (recent.length >= 2) {
+      const d = deltaPct(vals[vals.length-1], vals[vals.length-2]);
+      out.push(isFinite(d) ? d.toFixed(2).replace('.', ',') : '');
+    }
+    if (recent.length >= 3) {
+      const d = deltaPct(vals[vals.length-1], vals[vals.length-3]);
+      out.push(isFinite(d) ? d.toFixed(2).replace('.', ',') : '');
+    }
+    return out;
+  });
+  const today = new Date().toISOString().slice(0, 10);
+  exportCSV(`comparativo-anual-${kind}-${today}.csv`, headers, rows);
+}
+
+// =====================================================================
+//  CLIENTES INATIVOS (com impressão por vendedor)
+// =====================================================================
+
+function aggregateClientPerformance(rows) {
+  const tt = billingTypes();
+  const agg = new Map();
+  for (const r of rows) {
+    if (!r.cliente) continue;
+    if (!agg.has(r.cliente)) agg.set(r.cliente, {
+      cliente: r.cliente, count: 0, revenue: 0,
+      revPecas: 0, revServicos: 0, revTerceiros: 0,
+      first: null, last: null,
+      sellers: new Map(), cities: new Map(), brands: new Map(),
+      dSum: 0, dCnt: 0,
+    });
+    const a = agg.get(r.cliente);
+    a.count++;
+    a.revenue += rowRevenue(r, tt);
+    a.revPecas += r.venda_pecas || 0;
+    a.revServicos += r.venda_servicos || 0;
+    a.revTerceiros += r.venda_terceiros || 0;
+    if (r.data_faturamento) {
+      if (!a.first || r.data_faturamento < a.first) a.first = r.data_faturamento;
+      if (!a.last  || r.data_faturamento > a.last)  a.last  = r.data_faturamento;
+    }
+    if (r.vendedor) a.sellers.set(r.vendedor, (a.sellers.get(r.vendedor)||0) + rowRevenue(r, tt));
+    if (r.cidade)   a.cities.set(r.cidade,    (a.cities.get(r.cidade)||0)    + 1);
+    if (r.marca)    a.brands.set(r.marca,     (a.brands.get(r.marca)||0)     + 1);
+    if (r.desc_pct_total) { a.dSum += r.desc_pct_total; a.dCnt++; }
+  }
+  // Add derived fields
+  return [...agg.values()].map(a => {
+    const sortedSellers = [...a.sellers.entries()].sort((x,y) => y[1]-x[1]);
+    const sortedCities  = [...a.cities.entries()].sort((x,y) => y[1]-x[1]);
+    const sortedBrands  = [...a.brands.entries()].sort((x,y) => y[1]-x[1]);
+    return {
+      ...a,
+      ticket: a.count ? a.revenue/a.count : 0,
+      mainSeller: sortedSellers[0]?.[0] || '',
+      mainCity:   sortedCities[0]?.[0]  || '',
+      mainBrand:  sortedBrands[0]?.[0]  || '',
+      descMedio:  a.dCnt ? a.dSum/a.dCnt : 0,
+    };
+  });
+}
+
+function computeInactives(daysThreshold) {
+  const list = aggregateClientPerformance(carteiraBaseAllTime());
+  const dates = state.rows.map(r => r.data_faturamento).filter(Boolean);
+  const refMax = dates.length ? new Date(Math.max(...dates)) : new Date();
+  const cutoff = new Date(refMax.getTime() - daysThreshold * 86400000);
+  return list
+    .filter(c => c.last && c.last < cutoff)
+    .map(c => ({ ...c, daysInactive: (refMax - c.last) / 86400000 }))
+    .sort((a,b) => b.revenue - a.revenue);
+}
+
+function renderInactiveClients() {
+  const days = parseInt(document.getElementById('inactiveDays').value, 10) || 90;
+  const vendedorFilter = document.getElementById('inactiveSellerFilter').value;
+  const all = computeInactives(days);
+  const filtered = vendedorFilter ? all.filter(c => c.mainSeller === vendedorFilter) : all;
+  const target = document.getElementById('inactiveList');
+
+  document.getElementById('inactiveCount').innerHTML =
+    `<b>${FORMATTERS.int.format(filtered.length)}</b> cliente(s) inativo(s) há mais de ${days} dia(s).`
+    + (vendedorFilter ? ` Vendedor: <b>${escapeHtml(vendedorFilter)}</b>.` : '');
+
+  if (!filtered.length) {
+    target.innerHTML = '<p class="small" style="padding:12px">Nenhum cliente inativo encontrado para os critérios atuais.</p>';
+    return;
+  }
+  const visible = filtered.slice(0, 200);
+  target.innerHTML = `
+    <table>
+      <thead><tr>
+        <th>#</th>
+        <th>Cliente</th>
+        <th>Cidade</th>
+        <th>Vendedor princ.</th>
+        <th>Marca freq.</th>
+        <th class="num">OSs</th>
+        <th class="num">Faturamento</th>
+        <th class="num">Ticket</th>
+        <th class="num">1ª passagem</th>
+        <th class="num">Última passagem</th>
+        <th class="num">Inativo há</th>
+      </tr></thead>
+      <tbody>
+        ${visible.map((c, i) => `
+          <tr>
+            <td>${i+1}</td>
+            <td><a href="#" data-pick-client="${escapeHtml(c.cliente)}">${escapeHtml(c.cliente)}</a></td>
+            <td>${escapeHtml(c.mainCity)}</td>
+            <td>${escapeHtml(c.mainSeller)}</td>
+            <td>${escapeHtml(c.mainBrand)}</td>
+            <td class="num">${FORMATTERS.int.format(c.count)}</td>
+            <td class="num">${FORMATTERS.brl.format(c.revenue)}</td>
+            <td class="num">${FORMATTERS.brl.format(c.ticket)}</td>
+            <td class="num">${c.first ? FORMATTERS.date.format(c.first) : '—'}</td>
+            <td class="num">${c.last ? FORMATTERS.date.format(c.last) : '—'}</td>
+            <td class="num"><span class="pill ${c.daysInactive > 365 ? 'bad' : c.daysInactive > 180 ? 'warn' : ''}">${Math.round(c.daysInactive)}d</span></td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+    ${filtered.length > visible.length ? `<p class="small" style="padding:8px">Mostrando ${FORMATTERS.int.format(visible.length)} de ${FORMATTERS.int.format(filtered.length)}. Use o botão <b>Imprimir</b> ou <b>Exportar CSV</b> para a lista completa.</p>` : ''}
+  `;
+  attachClientPicks();
+}
+
+function printInactiveClients() {
+  const days = parseInt(document.getElementById('inactiveDays').value, 10) || 90;
+  const vendedorFilter = document.getElementById('inactiveSellerFilter').value;
+  const all = computeInactives(days);
+
+  // Group by main seller
+  const bySeller = new Map();
+  for (const c of all) {
+    if (vendedorFilter && c.mainSeller !== vendedorFilter) continue;
+    const key = c.mainSeller || '(Sem vendedor principal)';
+    if (!bySeller.has(key)) bySeller.set(key, []);
+    bySeller.get(key).push(c);
+  }
+  const sellers = [...bySeller.keys()].sort((a,b) => a.localeCompare(b, 'pt-BR'));
+
+  const today = new Date();
+  const totalCount = [...bySeller.values()].reduce((s,a)=> s+a.length, 0);
+  let html = `
+    <h1>Clientes inativos — Relatório por vendedor</h1>
+    <p class="meta">
+      Gerado em ${today.toLocaleDateString('pt-BR')} ${today.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}<br>
+      Critério: sem compra há mais de <b>${days} dias</b><br>
+      ${vendedorFilter ? 'Vendedor: <b>' + escapeHtml(vendedorFilter) + '</b>' : 'Todos os vendedores'} ·
+      Total: <b>${FORMATTERS.int.format(totalCount)}</b> cliente(s) inativo(s)
+    </p>
+  `;
+  if (!sellers.length) {
+    html += '<p>Nenhum cliente inativo encontrado.</p>';
+  } else {
+    sellers.forEach((seller, idx) => {
+      const list = bySeller.get(seller);
+      const totalRev = list.reduce((s,c) => s + c.revenue, 0);
+      html += `<div${idx > 0 ? ' class="pagebreak"' : ''}>
+        <h2>Vendedor: ${escapeHtml(seller)} <span style="font-weight:normal;color:#666">(${list.length} cliente${list.length===1?'':'s'} · ${FORMATTERS.brl.format(totalRev)} no histórico)</span></h2>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Cliente</th>
+              <th>Cidade</th>
+              <th>Marca</th>
+              <th class="num">OSs</th>
+              <th class="num">Faturamento</th>
+              <th class="num">Ticket</th>
+              <th class="num">1ª passagem</th>
+              <th class="num">Última passagem</th>
+              <th class="num">Inativo há</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${list.map((c, i) => `
+              <tr>
+                <td>${i+1}</td>
+                <td>${escapeHtml(c.cliente)}</td>
+                <td>${escapeHtml(c.mainCity)}</td>
+                <td>${escapeHtml(c.mainBrand)}</td>
+                <td class="num">${FORMATTERS.int.format(c.count)}</td>
+                <td class="num">${FORMATTERS.brl.format(c.revenue)}</td>
+                <td class="num">${FORMATTERS.brl.format(c.ticket)}</td>
+                <td class="num">${c.first ? FORMATTERS.date.format(c.first) : '—'}</td>
+                <td class="num">${c.last ? FORMATTERS.date.format(c.last) : '—'}</td>
+                <td class="num">${Math.round(c.daysInactive)}d</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>`;
+    });
+  }
+  openPrintWindow('Clientes Inativos por Vendedor', html);
+}
+
+function csvInactiveClients() {
+  const days = parseInt(document.getElementById('inactiveDays').value, 10) || 90;
+  const vendedorFilter = document.getElementById('inactiveSellerFilter').value;
+  const all = computeInactives(days);
+  const filtered = vendedorFilter ? all.filter(c => c.mainSeller === vendedorFilter) : all;
+  const headers = ['Cliente','Cidade','Vendedor principal','Marca freq.','OSs','Faturamento','Ticket','Desc. médio %','1ª passagem','Última passagem','Dias inativo'];
+  const rows = filtered.map(c => [
+    c.cliente, c.mainCity, c.mainSeller, c.mainBrand,
+    c.count,
+    c.revenue.toFixed(2).replace('.', ','),
+    c.ticket.toFixed(2).replace('.', ','),
+    (c.descMedio||0).toFixed(2).replace('.', ','),
+    c.first ? FORMATTERS.date.format(c.first) : '',
+    c.last ? FORMATTERS.date.format(c.last) : '',
+    Math.round(c.daysInactive),
+  ]);
+  const today = new Date().toISOString().slice(0, 10);
+  const filename = `clientes-inativos-${days}d${vendedorFilter ? '-' + vendedorFilter.replace(/\W+/g,'_') : ''}-${today}.csv`;
+  exportCSV(filename, headers, rows);
+}
+
+// =====================================================================
+//  RELAÇÃO COMPLETA DE CLIENTES (sortable / pesquisável / imprimível)
+// =====================================================================
+
+function computeCompleteClientList() {
+  const list = aggregateClientPerformance(carteiraBaseAllTime());
+  const dates = state.rows.map(r => r.data_faturamento).filter(Boolean);
+  const refMax = dates.length ? new Date(Math.max(...dates)) : new Date();
+  return list.map(c => {
+    const days = c.last ? (refMax - c.last) / 86400000 : null;
+    const status = days === null ? '—'
+                  : days <= 60  ? 'Ativo'
+                  : days <= 180 ? 'Atenção'
+                  : 'Inativo';
+    return { ...c, daysInactive: days, status };
+  });
+}
+
+const COMPLETE_COLS = [
+  { key:'cliente',      label:'Cliente',         align:'left',
+    format: (v, r) => `<a href="#" data-pick-client="${escapeHtml(r.cliente)}">${escapeHtml(v)}</a>` },
+  { key:'mainCity',     label:'Cidade',          align:'left',  format: v => escapeHtml(v||'') },
+  { key:'mainSeller',   label:'Vendedor princ.', align:'left',  format: v => escapeHtml(v||'') },
+  { key:'mainBrand',    label:'Marca freq.',     align:'left',  format: v => escapeHtml(v||'') },
+  { key:'count',        label:'OSs',             align:'num',   format: v => FORMATTERS.int.format(v) },
+  { key:'revenue',      label:'Faturamento',     align:'num',   format: v => FORMATTERS.brl.format(v) },
+  { key:'ticket',       label:'Ticket',          align:'num',   format: v => FORMATTERS.brl.format(v) },
+  { key:'descMedio',    label:'Desc. médio',     align:'num',   format: v => (v||0).toFixed(2)+'%' },
+  { key:'first',        label:'1ª passagem',     align:'num',   format: v => v ? FORMATTERS.date.format(v) : '—' },
+  { key:'last',         label:'Última passagem', align:'num',   format: v => v ? FORMATTERS.date.format(v) : '—' },
+  { key:'daysInactive', label:'Dias inativo',    align:'num',   format: v => v != null ? Math.round(v) : '—' },
+  { key:'status',       label:'Status',          align:'left',
+    format: v => `<span class="pill ${v==='Ativo'?'good':v==='Atenção'?'warn':v==='Inativo'?'bad':''}">${v}</span>` },
+];
+
+function sortClientList(list) {
+  const { by, dir } = state.completeListSort;
+  return [...list].sort((a, b) => {
+    const va = a[by], vb = b[by];
+    if (va == null && vb == null) return 0;
+    if (va == null) return 1;
+    if (vb == null) return -1;
+    if (typeof va === 'number') return dir === 'asc' ? va - vb : vb - va;
+    if (va instanceof Date)     return dir === 'asc' ? va - vb : vb - va;
+    return dir === 'asc'
+      ? String(va).localeCompare(String(vb), 'pt-BR')
+      : String(vb).localeCompare(String(va), 'pt-BR');
+  });
+}
+
+function filterClientList(all) {
+  const search = (state.completeListSearch || '').trim().toLowerCase();
+  if (!search) return all;
+  return all.filter(c =>
+    (c.cliente||'').toLowerCase().includes(search) ||
+    (c.mainCity||'').toLowerCase().includes(search) ||
+    (c.mainSeller||'').toLowerCase().includes(search) ||
+    (c.mainBrand||'').toLowerCase().includes(search));
+}
+
+function renderCompleteClientList() {
+  const all = computeCompleteClientList();
+  const filtered = filterClientList(all);
+  const sorted = sortClientList(filtered);
+  const target = document.getElementById('completeList');
+  document.getElementById('completeCount').textContent =
+    `${FORMATTERS.int.format(filtered.length)} de ${FORMATTERS.int.format(all.length)} cliente(s).`;
+
+  const limit = 500;
+  const visible = sorted.slice(0, limit);
+  const { by, dir } = state.completeListSort;
+  target.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          ${COMPLETE_COLS.map(c => {
+            const arrow = (by === c.key) ? (dir === 'asc' ? ' ↑' : ' ↓') : '';
+            return `<th class="${c.align==='num'?'num':''} sortable" data-sort="${c.key}">${c.label}${arrow}</th>`;
+          }).join('')}
+        </tr>
+      </thead>
+      <tbody>
+        ${visible.map(row => `
+          <tr>
+            ${COMPLETE_COLS.map(c => `<td class="${c.align==='num'?'num':''}">${c.format ? c.format(row[c.key], row) : escapeHtml(String(row[c.key] ?? ''))}</td>`).join('')}
+          </tr>`).join('') || `<tr><td colspan="${COMPLETE_COLS.length}" class="small">Sem dados.</td></tr>`}
+      </tbody>
+    </table>
+    ${sorted.length > limit ? `<p class="small" style="padding:8px">Mostrando ${FORMATTERS.int.format(limit)} de ${FORMATTERS.int.format(sorted.length)}. Refine a busca, ordene por outra coluna ou exporte CSV para a lista completa.</p>` : ''}
+  `;
+  // Wire sort
+  target.querySelectorAll('th.sortable').forEach(th => {
+    th.onclick = () => {
+      const key = th.dataset.sort;
+      if (state.completeListSort.by === key) {
+        state.completeListSort.dir = state.completeListSort.dir === 'asc' ? 'desc' : 'asc';
+      } else {
+        state.completeListSort.by = key;
+        // Default direction: numeric/date desc, text asc
+        const sample = visible[0]?.[key];
+        state.completeListSort.dir = (typeof sample === 'number' || sample instanceof Date) ? 'desc' : 'asc';
+      }
+      renderCompleteClientList();
+    };
+  });
+  attachClientPicks();
+}
+
+function printCompleteClientList() {
+  const all = computeCompleteClientList();
+  const filtered = filterClientList(all);
+  const sorted = sortClientList(filtered);
+  const today = new Date();
+  const sortLabel = COMPLETE_COLS.find(c => c.key === state.completeListSort.by)?.label || state.completeListSort.by;
+  const html = `
+    <h1>Relação completa de clientes</h1>
+    <p class="meta">
+      Gerado em ${today.toLocaleDateString('pt-BR')} ${today.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}<br>
+      ${FORMATTERS.int.format(sorted.length)} cliente(s) · Ordenação: <b>${sortLabel}</b> (${state.completeListSort.dir === 'asc' ? 'ascendente' : 'descendente'})
+      ${state.completeListSearch ? ' · Busca: <b>' + escapeHtml(state.completeListSearch) + '</b>' : ''}
+    </p>
+    <table>
+      <thead>
+        <tr>${COMPLETE_COLS.map(c => `<th class="${c.align==='num'?'num':''}">${c.label}</th>`).join('')}</tr>
+      </thead>
+      <tbody>
+        ${sorted.map(row => `
+          <tr>
+            ${COMPLETE_COLS.map(c => {
+              const v = row[c.key];
+              let txt;
+              if (c.key === 'first' || c.key === 'last') txt = v ? FORMATTERS.date.format(v) : '—';
+              else if (c.key === 'revenue' || c.key === 'ticket') txt = FORMATTERS.brl.format(v||0);
+              else if (c.key === 'descMedio') txt = (v||0).toFixed(2)+'%';
+              else if (c.key === 'count') txt = FORMATTERS.int.format(v||0);
+              else if (c.key === 'daysInactive') txt = v != null ? Math.round(v) : '—';
+              else txt = String(v ?? '');
+              return `<td class="${c.align==='num'?'num':''}">${escapeHtml(String(txt))}</td>`;
+            }).join('')}
+          </tr>`).join('')}
+      </tbody>
+    </table>
+  `;
+  openPrintWindow('Relação completa de clientes', html);
+}
+
+function csvCompleteClientList() {
+  const all = computeCompleteClientList();
+  const headers = ['Cliente','Cidade','Vendedor principal','Marca freq.','OSs','Faturamento','Vendas Peças','Vendas Serviços','Vendas Terceiros','Ticket','Desc. médio %','1ª passagem','Última passagem','Dias inativo','Status'];
+  const rows = sortClientList(filterClientList(all)).map(c => [
+    c.cliente, c.mainCity, c.mainSeller, c.mainBrand,
+    c.count,
+    c.revenue.toFixed(2).replace('.', ','),
+    (c.revPecas||0).toFixed(2).replace('.', ','),
+    (c.revServicos||0).toFixed(2).replace('.', ','),
+    (c.revTerceiros||0).toFixed(2).replace('.', ','),
+    c.ticket.toFixed(2).replace('.', ','),
+    (c.descMedio||0).toFixed(2).replace('.', ','),
+    c.first ? FORMATTERS.date.format(c.first) : '',
+    c.last ? FORMATTERS.date.format(c.last) : '',
+    c.daysInactive != null ? Math.round(c.daysInactive) : '',
+    c.status,
+  ]);
+  const today = new Date().toISOString().slice(0, 10);
+  exportCSV(`relacao-completa-clientes-${today}.csv`, headers, rows);
+}
+
+// =====================================================================
+//  ANÁLISE POR CLIENTE — view dedicada (carteira + perfil individual)
+// =====================================================================
+
+function renderClientsView() {
+  if (!state.rows.length) return;
+
+  // Top section — sempre visível
+  renderClientOverallKpis();
+  renderParetoChart();
+  renderFreqDistChart();
+  renderTopClientsByRevenue();
+  renderTopClientsByFreq();
+  renderClientSellerMatrix();
+  renderClientsAnnualRanking();
+  renderInactiveClients();
+  renderCompleteClientList();
+
+  // Focal section — só se um cliente válido for escolhido
+  const input = document.getElementById('focalClient');
+  const focal = (input.value || '').trim();
+  const empty = document.getElementById('clientFocalEmpty');
+  const content = document.getElementById('clientFocalContent');
+
+  const isValid = focal && state.clientSet && state.clientSet.has(focal);
+  if (!isValid) {
+    empty.style.display = 'block';
+    content.style.display = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+  content.style.display = 'block';
+
+  const focalRows = state.filtered.filter(r => r.cliente === focal);
+  renderClientFocalKpis(focal, focalRows);
+  renderClientMonthChart(focalRows);
+  renderClientTypeChart(focalRows);
+  renderClientModes(focal, focalRows);
+  renderClientComparativo(focal);
+  renderClientHistory(focalRows);
+}
+
+function clientAggregates(rows, tt) {
+  const agg = new Map();
+  for (const r of rows) {
+    if (!r.cliente) continue;
+    if (!agg.has(r.cliente)) agg.set(r.cliente, {
+      cliente: r.cliente, revenue: 0, count: 0,
+      dSum: 0, dCnt: 0, sellers: new Map(),
+      first: null, last: null,
+    });
+    const a = agg.get(r.cliente);
+    a.revenue += rowRevenue(r, tt);
+    a.count++;
+    if (r.desc_pct_total) { a.dSum += r.desc_pct_total; a.dCnt++; }
+    if (r.vendedor) a.sellers.set(r.vendedor, (a.sellers.get(r.vendedor)||0) + rowRevenue(r, tt));
+    if (r.data_faturamento) {
+      if (!a.first || r.data_faturamento < a.first) a.first = r.data_faturamento;
+      if (!a.last  || r.data_faturamento > a.last)  a.last  = r.data_faturamento;
+    }
+  }
+  return agg;
+}
+
+function renderClientOverallKpis() {
+  const rows = state.filtered;
+  const tt = billingTypes();
+  const agg = clientAggregates(rows, tt);
+  const list = [...agg.values()];
+  const totalRev = list.reduce((s,a)=> s + a.revenue, 0);
+  const totalOSs = list.reduce((s,a)=> s + a.count, 0);
+  const activeClients = list.filter(a => a.revenue > 0 || a.count > 0).length;
+  const ticketAvg = totalOSs ? totalRev / totalOSs : 0;
+  const sortedRev = [...list].sort((a,b)=> b.revenue - a.revenue);
+  const sortedFreq = [...list].sort((a,b)=> b.count - a.count);
+  const top = sortedRev[0];
+  const mostFreq = sortedFreq[0];
+  // Pareto: how many clients reach 80%
+  let cum = 0, idx80 = 0;
+  for (let i=0; i<sortedRev.length; i++) {
+    cum += sortedRev[i].revenue;
+    if (cum >= 0.8 * totalRev) { idx80 = i+1; break; }
+  }
+
+  const kpis = [
+    { label:'Clientes ativos', value: FORMATTERS.int.format(activeClients), sub:'No filtro atual' },
+    { label:'Cliente nº1 (R$)', value: top ? FORMATTERS.brl.format(top.revenue) : '—',
+      sub: top ? escapeHtml(top.cliente) : '&nbsp;' },
+    { label:'Cliente mais frequente', value: mostFreq ? FORMATTERS.int.format(mostFreq.count) + ' OSs' : '—',
+      sub: mostFreq ? escapeHtml(mostFreq.cliente) : '&nbsp;' },
+    { label:'Ticket Médio (carteira)', value: FORMATTERS.brl.format(ticketAvg),
+      sub:'Receita total / Total de OSs' },
+    { label:'Concentração 80/20',
+      value: idx80 ? `${idx80} clientes` : '—',
+      sub: idx80 && activeClients ? `${((idx80/activeClients)*100).toFixed(1)}% dos clientes = 80% da receita` : '&nbsp;' },
+  ];
+  document.getElementById('clientOverallKpis').innerHTML = kpis.map(k => `
+    <div class="kpi">
+      <div class="label">${k.label}</div>
+      <div class="value" style="font-size:18px;line-height:1.2">${k.value}</div>
+      <div class="sub">${k.sub}</div>
+    </div>`).join('');
+}
+
+function renderParetoChart() {
+  const rows = state.filtered;
+  const tt = billingTypes();
+  const map = new Map();
+  for (const r of rows) {
+    if (!r.cliente) continue;
+    map.set(r.cliente, (map.get(r.cliente)||0) + rowRevenue(r, tt));
+  }
+  const sorted = [...map.entries()].filter(([,v]) => v > 0).sort((a,b)=> b[1]-a[1]);
+  const total = sorted.reduce((s,[,v])=> s+v, 0);
+
+  // Display top N to keep the chart readable
+  const N = Math.min(50, sorted.length);
+  const labels = sorted.slice(0, N).map(([c]) => c);
+  const values = sorted.slice(0, N).map(([,v]) => v);
+  let cum = 0;
+  const cumPct = sorted.slice(0, N).map(([,v]) => { cum += v; return total ? (cum/total)*100 : 0; });
+
+  // Find how many clients in TOTAL list reach 80%
+  let cumAll = 0, idx80 = 0;
+  for (let i=0; i<sorted.length; i++) {
+    cumAll += sorted[i][1];
+    if (cumAll >= 0.8 * total) { idx80 = i+1; break; }
+  }
+  const note = idx80 && sorted.length
+    ? `<b>${idx80} clientes</b> (${((idx80/sorted.length)*100).toFixed(1)}% da carteira) representam 80% do faturamento. Total de clientes: ${FORMATTERS.int.format(sorted.length)}. Mostrando os ${N} maiores.`
+    : 'Sem dados suficientes para a curva de Pareto.';
+  document.getElementById('paretoNote').innerHTML = note;
+
+  destroy('pareto');
+  state.charts.pareto = new Chart(document.getElementById('paretoChart'), {
+    data: {
+      labels,
+      datasets: [
+        { type: 'bar',  label: 'Faturamento', data: values, yAxisID: 'y1',
+          backgroundColor: COLORS.primary, borderRadius: 3, order: 2,
+          maxBarThickness: 22 },
+        { type: 'line', label: '% Acumulado', data: cumPct, yAxisID: 'y2',
+          borderColor: COLORS.red, backgroundColor: 'rgba(220,38,38,0.06)',
+          tension: 0.2, pointRadius: 0, borderWidth: 2, fill: false, order: 1 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { intersect: false, mode: 'index' },
+      plugins: {
+        legend: { labels: { color: CHART_TXT, font: { size: 11 }, usePointStyle: true, padding: 14 } },
+        tooltip: {
+          backgroundColor: '#111827', titleColor: '#fff', bodyColor: '#f3f4f6',
+          padding: 10, cornerRadius: 6, displayColors: true,
+          callbacks: {
+            label: ctx => ctx.dataset.yAxisID === 'y2'
+              ? `% Acumulado: ${ctx.parsed.y.toFixed(1)}%`
+              : `Faturamento: ${FORMATTERS.brl.format(ctx.parsed.y)}`
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { color: CHART_TXT, font: { size: 9 }, maxRotation: 75, minRotation: 60, autoSkip: false }, grid: { color: 'transparent' } },
+        y1: { type: 'linear', position: 'left',
+              ticks: { color: CHART_TXT, font: { size: 11 }, callback: v => FORMATTERS.int.format(v) },
+              grid: { color: CHART_GRID }, border: { display: false } },
+        y2: { type: 'linear', position: 'right', min: 0, max: 100,
+              ticks: { color: CHART_TXT, font: { size: 11 }, callback: v => v + '%' },
+              grid: { display: false }, border: { display: false } },
+      }
+    }
+  });
+}
+
+function renderFreqDistChart() {
+  const rows = state.filtered;
+  const counts = new Map();
+  for (const r of rows) {
+    if (!r.cliente) continue;
+    counts.set(r.cliente, (counts.get(r.cliente)||0) + 1);
+  }
+  const buckets = [
+    { label: '1 OS',         lo: 1,  hi: 1   },
+    { label: '2–3 OSs',      lo: 2,  hi: 3   },
+    { label: '4–5 OSs',      lo: 4,  hi: 5   },
+    { label: '6–10 OSs',     lo: 6,  hi: 10  },
+    { label: '11–20 OSs',    lo: 11, hi: 20  },
+    { label: '21–50 OSs',    lo: 21, hi: 50  },
+    { label: '51+ OSs',      lo: 51, hi: Infinity },
+  ];
+  const data = buckets.map(() => 0);
+  for (const c of counts.values()) {
+    for (let i=0; i<buckets.length; i++) {
+      if (c >= buckets[i].lo && c <= buckets[i].hi) { data[i]++; break; }
+    }
+  }
+  destroy('freqDist');
+  state.charts.freqDist = new Chart(document.getElementById('freqDistChart'), {
+    type: 'bar',
+    data: {
+      labels: buckets.map(b => b.label),
+      datasets: [{
+        label: 'Clientes',
+        data,
+        backgroundColor: CHART_PALETTE,
+        borderRadius: 4, maxBarThickness: 48,
+      }]
+    },
+    options: baseOptions({
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#111827', titleColor: '#fff', bodyColor: '#f3f4f6',
+          padding: 10, cornerRadius: 6, displayColors: false,
+          callbacks: { label: ctx => `${FORMATTERS.int.format(ctx.parsed.y)} clientes` }
+        }
+      }
+    })
+  });
+}
+
+function renderTopClientsByRevenue() {
+  const rows = state.filtered;
+  const tt = billingTypes();
+  const agg = clientAggregates(rows, tt);
+  const top = [...agg.values()].sort((a,b)=> b.revenue - a.revenue).slice(0, 20);
+  document.getElementById('topClientsByRevenue').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>#</th><th>Cliente</th>
+        <th class="num">Faturamento</th>
+        <th class="num">OSs</th>
+        <th class="num">Ticket</th>
+        <th class="num">Desc.%</th>
+      </tr></thead>
+      <tbody>
+        ${top.map((t,i) => `
+          <tr>
+            <td>${i+1}</td>
+            <td><a href="#" data-pick-client="${escapeHtml(t.cliente)}">${escapeHtml(t.cliente)}</a></td>
+            <td class="num">${FORMATTERS.brl.format(t.revenue)}</td>
+            <td class="num">${FORMATTERS.int.format(t.count)}</td>
+            <td class="num">${FORMATTERS.brl.format(t.count ? t.revenue/t.count : 0)}</td>
+            <td class="num">${t.dCnt ? (t.dSum/t.dCnt).toFixed(2) + '%' : '—'}</td>
+          </tr>`).join('') || '<tr><td colspan="6" class="small">Sem dados.</td></tr>'}
+      </tbody>
+    </table>`;
+  attachClientPicks();
+}
+
+function renderTopClientsByFreq() {
+  const rows = state.filtered;
+  const tt = billingTypes();
+  const agg = clientAggregates(rows, tt);
+  const top = [...agg.values()].sort((a,b)=> b.count - a.count || b.revenue - a.revenue).slice(0, 20);
+  document.getElementById('topClientsByFreq').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>#</th><th>Cliente</th>
+        <th class="num">OSs</th>
+        <th class="num">Faturamento</th>
+        <th class="num">Última passagem</th>
+      </tr></thead>
+      <tbody>
+        ${top.map((t,i) => `
+          <tr>
+            <td>${i+1}</td>
+            <td><a href="#" data-pick-client="${escapeHtml(t.cliente)}">${escapeHtml(t.cliente)}</a></td>
+            <td class="num">${FORMATTERS.int.format(t.count)}</td>
+            <td class="num">${FORMATTERS.brl.format(t.revenue)}</td>
+            <td class="num">${t.last ? FORMATTERS.date.format(t.last) : '—'}</td>
+          </tr>`).join('') || '<tr><td colspan="5" class="small">Sem dados.</td></tr>'}
+      </tbody>
+    </table>`;
+  attachClientPicks();
+}
+
+function attachClientPicks() {
+  document.querySelectorAll('[data-pick-client]').forEach(a => {
+    a.onclick = (e) => {
+      e.preventDefault();
+      const c = a.dataset.pickClient;
+      document.getElementById('focalClient').value = c;
+      renderClientsView();
+      document.getElementById('clientFocalContent').scrollIntoView({ behavior:'smooth', block:'start' });
+    };
+  });
+}
+
+function renderClientSellerMatrix() {
+  const rows = state.filtered;
+  const tt = billingTypes();
+  const agg = clientAggregates(rows, tt);
+  const top = [...agg.values()].sort((a,b)=> b.revenue - a.revenue).slice(0, 50);
+  const totalRev = [...agg.values()].reduce((s,a)=> s+a.revenue, 0);
+
+  document.getElementById('clientSellerMatrix').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>#</th><th>Cliente</th>
+        <th class="num">Faturamento</th>
+        <th class="num">% carteira</th>
+        <th class="num">OSs</th>
+        <th>Vendedor principal</th>
+        <th class="num">% com principal</th>
+        <th class="num">Outros vendedores</th>
+      </tr></thead>
+      <tbody>
+        ${top.map((t,i) => {
+          const sellers = [...t.sellers.entries()].sort((a,b)=> b[1]-a[1]);
+          const main = sellers[0];
+          const mainPct = main && t.revenue ? (main[1]/t.revenue)*100 : 0;
+          return `
+            <tr>
+              <td>${i+1}</td>
+              <td><a href="#" data-pick-client="${escapeHtml(t.cliente)}">${escapeHtml(t.cliente)}</a></td>
+              <td class="num">${FORMATTERS.brl.format(t.revenue)}</td>
+              <td class="num">${totalRev ? ((t.revenue/totalRev)*100).toFixed(2)+'%' : '—'}</td>
+              <td class="num">${FORMATTERS.int.format(t.count)}</td>
+              <td>${main ? escapeHtml(main[0]) : '—'}</td>
+              <td class="num">${mainPct.toFixed(1)}%</td>
+              <td class="num">${Math.max(0, sellers.length - 1)}</td>
+            </tr>`;
+        }).join('') || '<tr><td colspan="8" class="small">Sem dados.</td></tr>'}
+      </tbody>
+    </table>`;
+  attachClientPicks();
+}
+
+// ---------- focal client ----------
+function renderClientFocalKpis(focal, focalRows) {
+  const tt = billingTypes();
+  let revenue = 0, dSum = 0, dCnt = 0, leadSum = 0, leadCnt = 0;
+  let first = null, last = null;
+  for (const r of focalRows) {
+    revenue += rowRevenue(r, tt);
+    if (r.desc_pct_total) { dSum += r.desc_pct_total; dCnt++; }
+    if (r.data_abertura && r.data_faturamento) {
+      const d = (r.data_faturamento - r.data_abertura) / 86400000;
+      if (d >= 0 && d < 365) { leadSum += d; leadCnt++; }
+    }
+    if (r.data_faturamento) {
+      if (!first || r.data_faturamento < first) first = r.data_faturamento;
+      if (!last  || r.data_faturamento > last)  last  = r.data_faturamento;
+    }
+  }
+  const osCount = focalRows.length;
+  const ticket = osCount ? revenue/osCount : 0;
+  const discAvg = dCnt ? dSum/dCnt : 0;
+  const leadAvg = leadCnt ? leadSum/leadCnt : 0;
+
+  // Position in client ranking (within current filter)
+  const allClients = clientAggregates(state.filtered, tt);
+  const sorted = [...allClients.values()].sort((a,b)=> b.revenue - a.revenue);
+  const rank = sorted.findIndex(c => c.cliente === focal) + 1;
+
+  // Average days between visits
+  const sortedDates = focalRows.map(r => r.data_faturamento).filter(Boolean).sort((a,b)=> a-b);
+  let intervalSum = 0, intervalCnt = 0;
+  for (let i=1;i<sortedDates.length;i++) {
+    intervalSum += (sortedDates[i] - sortedDates[i-1]) / 86400000;
+    intervalCnt++;
+  }
+  const avgInterval = intervalCnt ? intervalSum/intervalCnt : 0;
+
+  // Active vs inactive (compared to filter end or max date)
+  const dates = state.rows.map(r=>r.data_faturamento).filter(Boolean);
+  const refMax = state.filterDate.to || (dates.length ? new Date(Math.max(...dates)) : null);
+  const daysSinceLast = (last && refMax) ? Math.max(0, (refMax - last) / 86400000) : null;
+  const status = daysSinceLast === null ? '—'
+                : daysSinceLast <= 60 ? 'Ativo'
+                : daysSinceLast <= 180 ? 'Atenção'
+                : 'Inativo';
+  const statusClass = status === 'Ativo' ? 'good' : status === 'Atenção' ? 'warn' : status === 'Inativo' ? 'bad' : '';
+
+  const kpis = [
+    { label:'Cliente', value: focal, big:false, sub:`Posição #${rank} de ${sorted.length}` },
+    { label:'Faturamento', value: FORMATTERS.brl.format(revenue), sub:`${FORMATTERS.int.format(osCount)} OSs no filtro` },
+    { label:'Ticket Médio', value: FORMATTERS.brl.format(ticket), sub:'&nbsp;' },
+    { label:'Desconto médio', value: discAvg.toFixed(2)+'%', sub:'&nbsp;' },
+    { label:'Lead time médio', value: leadAvg.toFixed(1)+' dias', sub:'Abertura → Faturamento' },
+    { label:'Frequência média', value: avgInterval ? avgInterval.toFixed(0)+' dias' : '—', sub:'Entre passagens' },
+    { label:'1ª passagem', value: first ? FORMATTERS.date.format(first) : '—', sub:'&nbsp;' },
+    { label:'Última passagem',
+      value: last ? FORMATTERS.date.format(last) : '—',
+      sub: daysSinceLast !== null ? `<span class="pill ${statusClass}">${status}</span> · ${Math.round(daysSinceLast)}d atrás` : '&nbsp;' },
+  ];
+  document.getElementById('clientFocalKpis').innerHTML = kpis.map(k => `
+    <div class="kpi">
+      <div class="label">${k.label}</div>
+      <div class="value" style="${k.big===false ? 'font-size:14px;line-height:1.3' : 'font-size:18px;line-height:1.2'}">${escapeHtml(String(k.value))}</div>
+      <div class="sub">${k.sub}</div>
+    </div>`).join('');
+}
+
+function renderClientMonthChart(focalRows) {
+  const tt = billingTypes();
+  const map = new Map();
+  for (const r of focalRows) {
+    if (!r.data_faturamento) continue;
+    map.set(ym(r.data_faturamento), (map.get(ym(r.data_faturamento))||0) + rowRevenue(r, tt));
+  }
+  const keys = [...map.keys()].sort();
+  const labels = keys.map(k => { const [y,m]=k.split('-'); return `${MONTH_NAMES_PT[+m-1]}/${y.slice(-2)}`; });
+  destroy('clientMonth');
+  state.charts.clientMonth = new Chart(document.getElementById('clientMonthChart'), {
+    type: 'bar',
+    data: { labels, datasets: [{
+      label: 'Faturamento',
+      data: keys.map(k => map.get(k)),
+      backgroundColor: COLORS.primary, borderColor: COLORS.primaryBorder, borderWidth: 1,
+      borderRadius: 4, maxBarThickness: 36,
+    }]},
+    options: baseOptions({
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#111827', titleColor: '#fff', bodyColor: '#f3f4f6',
+          padding: 10, cornerRadius: 6, displayColors: false,
+          callbacks: { label: ctx => FORMATTERS.brl.format(ctx.parsed.y) }
+        }
+      }
+    })
+  });
+}
+
+function renderClientTypeChart(focalRows) {
+  const tt = billingTypes();
+  let pe = 0, se = 0, te = 0;
+  for (const r of focalRows) {
+    if (tt.pecas)    pe += r.venda_pecas    || 0;
+    if (tt.servicos) se += r.venda_servicos || 0;
+    if (tt.terceiros)te += r.venda_terceiros|| 0;
+  }
+  const labels = [], data = [];
+  if (tt.pecas)    { labels.push('Peças');     data.push(pe); }
+  if (tt.servicos) { labels.push('Serviços');  data.push(se); }
+  if (tt.terceiros){ labels.push('Terceiros'); data.push(te); }
+  destroy('clientType');
+  state.charts.clientType = new Chart(document.getElementById('clientTypeChart'), {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: [COLORS.primary, COLORS.secondary, COLORS.accent3],
+        borderColor: '#fff', borderWidth: 2,
+      }]
+    },
+    options: doughnutOptions()
+  });
+}
+
+// "Modas" = top 3 most frequent values per dimension for this client
+function renderClientModes(focal, focalRows) {
+  const dims = [
+    { key:'vendedor', label:'Vendedor' },
+    { key:'marca',    label:'Marca' },
+    { key:'modelo',   label:'Modelo' },
+    { key:'cidade',   label:'Cidade' },
+    { key:'operacao', label:'Operação' },
+    { key:'negocio',  label:'Negócio' },
+  ];
+  const tt = billingTypes();
+  const blocks = dims.map(dim => {
+    const map = new Map();
+    for (const r of focalRows) {
+      const v = (r[dim.key] || '').trim();
+      if (!v) continue;
+      if (!map.has(v)) map.set(v, { count: 0, revenue: 0 });
+      const a = map.get(v);
+      a.count++;
+      a.revenue += rowRevenue(r, tt);
+    }
+    const top = [...map.entries()].sort((a,b)=> b[1].count - a[1].count || b[1].revenue - a[1].revenue).slice(0,3);
+    if (!top.length) {
+      return `<div class="mode-block"><div class="mode-label">${dim.label}</div><div class="small">—</div></div>`;
+    }
+    return `
+      <div class="mode-block">
+        <div class="mode-label">${dim.label}</div>
+        ${top.map((t, i) => `
+          <div class="mode-item">
+            <span class="mode-rank">${i+1}</span>
+            <span class="mode-name">${escapeHtml(t[0])}</span>
+            <span class="mode-count">${t[1].count} OSs · ${FORMATTERS.brl.format(t[1].revenue)}</span>
+          </div>`).join('')}
+      </div>`;
+  });
+  document.getElementById('clientModes').innerHTML = `<div class="modes-grid">${blocks.join('')}</div>`;
+}
+
+function renderClientComparativo(focal) {
+  const dates = state.rows.map(r => r.data_faturamento).filter(Boolean);
+  const target = document.getElementById('clientCmpTable');
+  if (!dates.length) { target.innerHTML = ''; return; }
+
+  const dFrom = state.filterDate.from || dates[dates.length-1];
+  const dTo   = state.filterDate.to   || dates[dates.length-1];
+  const span  = (dTo - dFrom) / 86400000;
+  const gran  = span <= 32 ? 'month' : span <= 100 ? 'quarter' : span <= 200 ? 'semester' : 'year';
+
+  const refDate = dFrom;
+  const ref =
+      gran === 'month'    ? { year: refDate.getUTCFullYear(), month: refDate.getUTCMonth()+1 }
+    : gran === 'quarter'  ? { year: refDate.getUTCFullYear(), q: Math.floor(refDate.getUTCMonth()/3)+1 }
+    : gran === 'semester' ? { year: refDate.getUTCFullYear(), s: refDate.getUTCMonth() < 6 ? 1 : 2 }
+    :                       { year: refDate.getUTCFullYear() };
+  const cur = periodRange(gran, ref);
+  const yoy = periodRange(gran, shiftYear(ref, -1));
+  const prv = periodRange(gran, shiftPeriod(gran, ref, -1));
+
+  // All-time, no date filter, but apply other sidebar filters AND restrict to this client.
+  const fEmp = new Set(selectedValues(filterEls.empresa));
+  const fOp  = new Set(selectedValues(filterEls.operacao));
+  const fNeg = new Set(selectedValues(filterEls.negocio));
+  const fCid = new Set(selectedValues(filterEls.cidade));
+  const fVen = new Set(selectedValues(filterEls.vendedor));
+  const baseAll = state.rows.filter(r => {
+    if (r.cliente !== focal) return false;
+    if (fEmp.size && !fEmp.has(r.empresa)) return false;
+    if (fOp.size  && !fOp.has(r.operacao)) return false;
+    if (fNeg.size && !fNeg.has(r.negocio)) return false;
+    if (fCid.size && !fCid.has(r.cidade))  return false;
+    if (fVen.size && !fVen.has(r.vendedor))return false;
+    return true;
+  });
+
+  const m1 = metricsForRows(rowsInRange(baseAll, cur.from, cur.to));
+  const m2 = metricsForRows(rowsInRange(baseAll, yoy.from, yoy.to));
+  const m3 = metricsForRows(rowsInRange(baseAll, prv.from, prv.to));
+
+  const fmt = (v, kind) => kind === 'money' ? FORMATTERS.brl.format(v)
+                          : kind === 'pct'   ? `${v.toFixed(2)}%`
+                          : kind === 'days'  ? `${v.toFixed(1)} d`
+                          : FORMATTERS.int.format(v);
+  const delta = (a,b) => b === 0 ? (a === 0 ? 0 : Infinity) : ((a - b) / Math.abs(b)) * 100;
+  const dPill = d => isFinite(d)
+    ? `<span class="pill ${d>0?'good':d<0?'bad':'warn'}">${d>0?'+':''}${d.toFixed(1)}%</span>`
+    : '<span class="pill warn">—</span>';
+
+  const data = [
+    { lbl:'Faturamento',  kind:'money', v:[m1.revenue,   m2.revenue,   m3.revenue]   },
+    { lbl:'OSs',          kind:'int',   v:[m1.osCount,   m2.osCount,   m3.osCount]   },
+    { lbl:'Ticket Médio', kind:'money', v:[m1.ticket,    m2.ticket,    m3.ticket]    },
+    { lbl:'Desconto %',   kind:'pct',   v:[m1.descMedio, m2.descMedio, m3.descMedio] },
+  ];
+  target.innerHTML = `
+    <table>
+      <thead><tr>
+        <th>Métrica</th>
+        <th class="num">${cur.label}</th>
+        <th class="num">${yoy.label}</th>
+        <th class="num">vs. ano ant.</th>
+        <th class="num">${prv.label}</th>
+        <th class="num">vs. ant.</th>
+      </tr></thead>
+      <tbody>
+        ${data.map(d => `
+          <tr>
+            <td>${d.lbl}</td>
+            <td class="num">${fmt(d.v[0], d.kind)}</td>
+            <td class="num">${fmt(d.v[1], d.kind)}</td>
+            <td class="num">${dPill(delta(d.v[0], d.v[1]))}</td>
+            <td class="num">${fmt(d.v[2], d.kind)}</td>
+            <td class="num">${dPill(delta(d.v[0], d.v[2]))}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function renderClientHistory(focalRows) {
+  // sort by data_faturamento desc; fall back to data_abertura
+  const sorted = [...focalRows].sort((a,b) => {
+    const da = a.data_faturamento || a.data_abertura || 0;
+    const db = b.data_faturamento || b.data_abertura || 0;
+    return db - da;
+  });
+  document.getElementById('clientHistoryCount').textContent = `${FORMATTERS.int.format(sorted.length)} OS(s) no filtro atual.`;
+  if (!sorted.length) {
+    document.getElementById('clientHistoryTable').innerHTML = '<p class="small" style="padding:12px">Nenhuma OS para este cliente no filtro atual.</p>';
+    return;
+  }
+  document.getElementById('clientHistoryTable').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>OS</th><th>Empresa/Op.</th>
+        <th>Abertura</th><th>Faturamento</th>
+        <th>Vendedor</th><th>Cidade</th>
+        <th>Marca/Modelo</th><th>Negócio</th>
+        <th class="num">Peças</th><th class="num">Serv.</th><th class="num">Terc.</th>
+        <th class="num">Total</th><th class="num">Desc.%</th>
+      </tr></thead>
+      <tbody>
+        ${sorted.map(r => `
+          <tr>
+            <td class="nowrap"><b>${escapeHtml(r.os)}</b></td>
+            <td class="nowrap">${escapeHtml(r.empresa)}/${escapeHtml(r.operacao)}</td>
+            <td class="nowrap">${r.data_abertura ? FORMATTERS.date.format(r.data_abertura) : ''}</td>
+            <td class="nowrap">${r.data_faturamento ? FORMATTERS.date.format(r.data_faturamento) : ''}</td>
+            <td>${escapeHtml(r.vendedor)}</td>
+            <td>${escapeHtml(r.cidade)}</td>
+            <td>${escapeHtml(r.marca)} ${escapeHtml(r.modelo)}</td>
+            <td>${escapeHtml(r.negocio)}</td>
+            <td class="num">${FORMATTERS.brlF.format(r.venda_pecas)}</td>
+            <td class="num">${FORMATTERS.brlF.format(r.venda_servicos)}</td>
+            <td class="num">${FORMATTERS.brlF.format(r.venda_terceiros)}</td>
+            <td class="num"><b>${FORMATTERS.brlF.format(r.total_os)}</b></td>
+            <td class="num">${(r.desc_pct_total||0).toFixed(2)}%</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+// ---------- master render ----------
+function renderAll() {
+  renderKpis();
+  renderDailyChart();
+  renderMonthlyChart();
+  renderPeriodChart();
+  renderOSChart();
+  renderCityChart();
+  renderSellerChart();
+  renderSellerDiscountChart();
+  renderDiscountRankings();
+  renderComparativo();
+  renderSuggestions();
+  renderOSLookup();
+  if (currentView === 'sellers') renderSellersView();
+  if (currentView === 'clients') renderClientsView();
+}
+
+</script>
+</body>
+</html>

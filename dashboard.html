@@ -433,6 +433,183 @@
   ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 999px; border: 2px solid var(--bg); }
   ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
 
+  /* Elements visible only on print */
+  .print-only { display: none; }
+
+  /* Per-card mini print button (injected automatically by JS) */
+  .card-print-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all .15s;
+  }
+  .card-print-btn:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  /* ========================================================================
+     PRINT STYLES — current screen → A4 landscape with filter banner.
+     Hides interactive chrome (sidebar, tabs controls, modals) and keeps
+     the actual charts/tables of the active view. Very long lists (OS Lookup,
+     Inativos, Relação Completa) are excluded — they have their own
+     dedicated print buttons with better layout.
+     ======================================================================== */
+  @media print {
+    /* Page setup */
+    @page { size: A4 landscape; margin: 10mm; }
+
+    /* Reset background + light text */
+    html, body {
+      background: #fff !important; color: #000 !important;
+      font-size: 9pt !important;
+    }
+
+    /* Print-only banner becomes visible */
+    .print-only { display: block !important; }
+
+    /* Hide UI chrome */
+    header.topbar,
+    aside.filters,
+    .view-tabs,
+    .modal-overlay,
+    .source-pill,
+    #fileInput {
+      display: none !important;
+    }
+
+    /* Hide interactive controls inside cards */
+    .card .toolbar-flex .controls,
+    .card .toolbar-flex .actions-group,
+    .compact-filters,
+    .preset,
+    .file-info,
+    .footer-note {
+      display: none !important;
+    }
+
+    /* Cards with their own dedicated print buttons (or interactive-only) */
+    .no-print { display: none !important; }
+
+    /* Main layout — sidebar gone, content takes full width */
+    main {
+      display: block !important;
+      grid-template-columns: 1fr !important;
+      min-height: auto !important;
+    }
+    section.content { padding: 0 !important; overflow: visible !important; }
+
+    /* Print header banner */
+    #printHeader {
+      margin: 0 0 5mm 0;
+      padding-bottom: 3mm;
+      border-bottom: 1.5pt solid #000;
+    }
+    #printHeader h1 {
+      font-size: 14pt; font-weight: 700; margin: 0 0 1mm;
+      letter-spacing: -0.01em;
+    }
+    #printHeader .gen {
+      font-size: 8.5pt; color: #555; margin-bottom: 2.5mm;
+    }
+    #printHeader .focal {
+      font-size: 10pt; font-weight: 600; margin-bottom: 2.5mm;
+    }
+    #printFilters {
+      display: flex !important; flex-wrap: wrap;
+      gap: 1.5mm; font-size: 8pt;
+    }
+    #printFilters .filter-chip {
+      display: inline-block;
+      background: #f0f0f0;
+      border: 0.5pt solid #bbb;
+      padding: 0.6mm 2.5mm; border-radius: 2pt;
+      line-height: 1.4;
+    }
+    #printFilters .filter-chip b { color: #000; font-weight: 600; }
+    #printFilters .filter-chip span { color: #444; }
+
+    /* Cards */
+    .card {
+      background: #fff !important;
+      border: 0.5pt solid #aaa !important;
+      box-shadow: none !important;
+      padding: 3mm 4mm !important;
+      margin-bottom: 4mm !important;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .card h3 {
+      font-size: 10.5pt !important; margin: 0 0 2mm !important;
+      page-break-after: avoid;
+    }
+    .card h4 { font-size: 9.5pt !important; }
+    .card p.small { font-size: 7.5pt !important; color: #555 !important; }
+
+    /* KPI grid */
+    .kpis {
+      display: grid !important;
+      grid-template-columns: repeat(auto-fit, minmax(40mm, 1fr)) !important;
+      gap: 2mm !important; margin-bottom: 4mm !important;
+    }
+    .kpi {
+      padding: 2mm 2.5mm !important;
+      border: 0.5pt solid #aaa !important;
+      background: #fff !important;
+    }
+    .kpi .label { font-size: 6.5pt !important; }
+    .kpi .value { font-size: 12pt !important; margin-top: 0.5mm !important; }
+    .kpi .sub   { font-size: 6.5pt !important; }
+    .kpi.suggestion { background: #f8f8f8 !important; }
+
+    /* Grids stay side-by-side on landscape */
+    .grid.two   { grid-template-columns: 1fr 1fr !important; gap: 4mm !important; }
+    .grid.three { grid-template-columns: 1fr 1fr 1fr !important; gap: 4mm !important; }
+
+    /* Chart wraps — fixed height so they print at a reasonable size */
+    .card .chart-wrap { height: 70mm !important; max-height: 70mm !important; }
+    .card.tall .chart-wrap { height: 90mm !important; max-height: 90mm !important; }
+    canvas { max-width: 100% !important; height: auto !important; }
+
+    /* Tables */
+    table { font-size: 7.5pt !important; }
+    table th, table td {
+      padding: 1mm 1.5mm !important;
+      border-bottom: 0.3pt solid #ccc !important;
+    }
+    table th {
+      background: #ebebeb !important;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+
+    /* Pills keep their tinted backgrounds (semantic info) */
+    .pill {
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+      font-size: 7pt !important;
+    }
+
+    /* Details — open by default during print */
+    details > div, details[open] > div { display: block !important; }
+    details summary { display: none !important; }
+
+    /* Tabs: hide tab buttons, but keep tab content */
+    .tabs { display: none !important; }
+
+    /* Lookup table wrap (OS lookup) — already in .no-print on its card */
+    .lookup-table-wrap { max-height: none !important; overflow: visible !important; }
+
+    /* Ensure all views are visible if currently active.
+       Hidden views still keep inline display:none from JS — those stay hidden. */
+  }
+
   /* Config modal */
   .modal-overlay {
     position: fixed; inset: 0; z-index: 100;
@@ -522,6 +699,7 @@
   <span id="sourcePill" class="source-pill" style="display:none"><span class="dot"></span><span id="sourcePillText">Fonte remota</span></span>
   <div class="spacer"></div>
   <input type="file" id="fileInput" accept=".xlsx,.xls,.xlsm,.xlsb" style="display:none">
+  <button class="btn secondary" id="printViewBtn" title="Imprimir a tela atual com os filtros aplicados" disabled>🖨 Imprimir tela</button>
   <button class="btn secondary" id="configBtn" title="Configurar fonte de dados (OneDrive / URL)">⚙ Fonte</button>
   <button class="btn secondary" id="reloadBtn" disabled>Recarregar</button>
   <button class="btn" id="loadBtn">Carregar Excel</button>
@@ -560,9 +738,12 @@
         Quem abrir o dashboard precisa estar logado na conta Microsoft da empresa.
       </p>
 
-      <p><b>GitHub Pages / Cloudflare Pages / Netlify</b> ⭐ (mais confiável):
-        suba <code>dashboard.html</code> e o Excel no mesmo repositório. Use a URL pública do arquivo. Sem CORS, sem login, sem risco de Microsoft mudar política. Ideal para distribuição.
+      <p><b>GitHub</b> ⭐ (mais confiável — basta repositório público, não precisa GitHub Pages):
+        Suba o Excel no repo. Cole aqui a URL <code>github.com/usuario/repo/blob/main/arquivo.xlsx</code> que o dashboard converte sozinho para a URL <code>raw.githubusercontent.com</code> (CORS aberto).
+        Para hospedar o dashboard também, ative <i>Settings → Pages</i> no repo.
       </p>
+
+      <p><b>Cloudflare Pages / Netlify</b>: suba o site estático e use a URL pública do Excel. Mesma lógica.</p>
 
       <p><b>Não funciona</b>: link <code>https://1drv.ms/...</code> direto (401), pasta de rede (<code>file://</code>), URL do "Compartilhar" do OneDrive Personal.</p>
     </details>
@@ -650,10 +831,19 @@
 
     <div id="dashboard" style="display:none">
 
+      <!-- Banner visible only when printing (filled dynamically by JS) -->
+      <div id="printHeader" class="print-only">
+        <h1 id="printTitle">Dashboard de Faturamento</h1>
+        <div class="gen" id="printGenerated"></div>
+        <div class="focal" id="printFocal"></div>
+        <div id="printFilters"></div>
+      </div>
+
       <nav class="view-tabs">
         <button class="active" data-view="overview">Visão Geral</button>
         <button data-view="sellers">Análise por Vendedor</button>
         <button data-view="clients">Análise por Cliente</button>
+        <button data-view="month">Visão Mês Atual</button>
       </nav>
 
       <div id="view-overview" class="view">
@@ -727,6 +917,21 @@
         </div>
       </div>
 
+      <div class="card">
+        <div class="toolbar-flex">
+          <h3>Faturamento por Marca / Modelo / Motor <span class="badge">top 15</span></h3>
+          <div class="controls">
+            <div class="tabs" id="vehicleTabs">
+              <button class="active" data-dim="marca">Marca</button>
+              <button data-dim="modelo">Modelo</button>
+              <button data-dim="motor">Motor</button>
+            </div>
+          </div>
+        </div>
+        <div class="chart-wrap" style="height:420px"><canvas id="vehicleChart"></canvas></div>
+        <p class="small"><b>Marca</b> usa a coluna Y; <b>Modelo</b> usa a coluna Z na íntegra; <b>Motor</b> é extraído do último segmento do Modelo (após o último "/"). Respeita os filtros e os tipos de faturamento.</p>
+      </div>
+
       <div class="grid two">
         <div class="card">
           <h3>Descontos por Vendedor</h3>
@@ -787,7 +992,7 @@
       </div>
 
       <!-- Consulta de OS -->
-      <div class="card">
+      <div class="card no-print">
         <h3>Consulta de OS</h3>
         <div class="toolbar-flex">
           <input type="text" id="osSearch" class="search" placeholder="Buscar por OS, cliente, vendedor, cidade, marca…" />
@@ -939,27 +1144,45 @@
           <div id="clientsAnnualRanking" class="scroll-x"></div>
         </div>
 
-        <div class="card">
+        <div class="card no-print">
           <div class="toolbar-flex">
             <h3>Clientes inativos</h3>
             <div class="actions-group">
+              <button class="btn secondary" id="printInactiveFlat">Imprimir</button>
               <button class="btn" id="printInactive">Imprimir por vendedor</button>
               <button class="btn secondary" id="csvInactive">Exportar CSV</button>
             </div>
           </div>
           <div class="compact-filters">
             <span class="small">Vendedor</span>
-            <select id="inactiveSellerFilter" style="min-width:200px"></select>
+            <select id="inactiveSellerFilter" style="min-width:180px"></select>
             <span class="small">Sem comprar há mais de</span>
             <input type="number" id="inactiveDays" value="90" min="30" max="730" step="30" style="width:80px">
             <span class="small">dias</span>
+            <span class="small">· Histórico dos últimos</span>
+            <select id="inactiveWindow" style="width:120px">
+              <option value="0">Sempre</option>
+              <option value="1">1 ano</option>
+              <option value="2">2 anos</option>
+              <option value="3" selected>3 anos</option>
+              <option value="5">5 anos</option>
+              <option value="10">10 anos</option>
+            </select>
+            <span class="small">· Ordenar por</span>
+            <select id="inactiveSort" style="width:140px">
+              <option value="revenue" selected>Faturamento</option>
+              <option value="alpha">Alfabética</option>
+              <option value="ticket">Ticket Médio</option>
+              <option value="count">OSs</option>
+              <option value="daysInactive">Tempo inativo</option>
+            </select>
           </div>
           <p class="small" id="inactiveCount" style="margin:0 0 8px"></p>
           <div id="inactiveList" class="scroll-x"></div>
-          <p class="small">Cálculo: a "última passagem" é comparada à data máxima da base. O botão <b>Imprimir por vendedor</b> gera um relatório com uma página por vendedor — ideal para entregar a cada um.</p>
+          <p class="small"><b>Histórico dos últimos N anos</b>: considera só clientes cuja última compra ocorreu nesse intervalo (descarta clientes "perdidos há muito tempo"). <b>Imprimir</b> gera lista única; <b>Imprimir por vendedor</b> separa em uma página por vendedor — para entregar a cada um.</p>
         </div>
 
-        <div class="card">
+        <div class="card no-print">
           <div class="toolbar-flex">
             <h3>Relação completa de clientes</h3>
             <div class="actions-group">
@@ -1018,6 +1241,87 @@
         </div><!-- /clientFocalContent -->
 
       </div><!-- /view-clients -->
+
+      <div id="view-month" class="view" style="display:none">
+
+        <div class="card">
+          <div class="toolbar-flex">
+            <h3>Visão do Mês Atual <span id="monthPeriodBadge" class="badge"></span></h3>
+            <div class="actions-group">
+              <input type="file" id="monthPdfInput" accept=".xls,.xlsx,.xlsm,.xlsb" style="display:none">
+              <button class="btn secondary" id="monthLoadBtn">📂 Carregar Excel</button>
+              <button class="btn secondary" id="monthReloadBtn" disabled>Recarregar</button>
+            </div>
+          </div>
+          <p class="small" style="margin:0"><span id="monthFileInfo">Nenhum arquivo carregado.</span> <b>Fluxo recomendado</b>: crie uma aba <code>Mes_corrente</code> no <code>Faturamento_Geral_V2.xlsx</code> e cole os dados do mês atual lá — esta tela carrega automaticamente quando você abre o dashboard, sem upload separado. Alternativamente, carregue um arquivo Excel manualmente abaixo.</p>
+        </div>
+
+        <div id="monthEmpty" class="seller-empty">
+          <p style="margin: 0 0 8px"><b>Aba <code>Mes_corrente</code> não encontrada</b> na planilha base.</p>
+          <p style="margin: 0; font-size: 12px">Crie uma aba com esse nome no <code>Faturamento_Geral_V2.xlsx</code> contendo os dados do mês (colunas: OS, Cliente, Modelo, Veículo, Placa, datas de Recepção/Orçamento/Produção/Conferência/Fechamento/Faturamento Peças/Faturamento Serviços, NF Peças, NF Serviços, Peças, Serviços, Terceiros, Total, Operação) — ou carregue um Excel mensal pelo botão acima.</p>
+        </div>
+
+        <div id="monthContent" style="display:none">
+
+          <!-- KPIs do mês -->
+          <div class="kpis" id="monthKpis"></div>
+
+          <!-- Meta -->
+          <div class="card">
+            <div class="toolbar-flex">
+              <h3>Meta de Faturamento</h3>
+              <div class="controls">
+                <label class="small">Meta mensal R$</label>
+                <input type="number" id="monthMetaInput" placeholder="0" step="1000" style="width:140px">
+                <button class="btn secondary" id="monthMetaSave">Salvar meta</button>
+              </div>
+            </div>
+            <div class="kpis" id="monthMetaKpis" style="margin-bottom:14px"></div>
+            <div class="chart-wrap"><canvas id="monthMetaChart"></canvas></div>
+            <p class="small">A meta diária é a meta mensal dividida pelos dias úteis do mês. A linha vermelha tracejada mostra a meta acumulada (incrementada nos dias úteis) e a azul mostra o realizado acumulado das OSs faturadas. Meta persistida por mês no navegador.</p>
+          </div>
+
+          <!-- Fluxo diário -->
+          <div class="card">
+            <h3>Fluxo Diário: OSs Abertas vs Faturadas</h3>
+            <div class="chart-wrap"><canvas id="monthDailyChart"></canvas></div>
+            <p class="small">Abertas = data de Abertura Recepção. Faturadas = data de Fechamento Financeiro. Permite ver o ritmo de entrada × saída do mês.</p>
+          </div>
+
+          <!-- Operações + Top clientes -->
+          <div class="grid two">
+            <div class="card">
+              <h3>Faturamento por Operação</h3>
+              <div class="chart-wrap" style="height:360px"><canvas id="monthOpChart"></canvas></div>
+            </div>
+            <div class="card">
+              <h3>Top 10 clientes do mês</h3>
+              <div id="monthTopClients" class="scroll-x"></div>
+            </div>
+          </div>
+
+          <!-- Lista detalhada das OSs -->
+          <div class="card no-print">
+            <div class="toolbar-flex">
+              <h3>Detalhamento de OSs <span class="badge" id="monthOSCount"></span></h3>
+              <div class="controls">
+                <label class="small">Status</label>
+                <select id="monthFilterStatus">
+                  <option value="">Todas</option>
+                  <option value="aberta">Abertas</option>
+                  <option value="producao">Em produção</option>
+                  <option value="faturadaParcial">Faturadas Parcial</option>
+                  <option value="faturada">Faturadas</option>
+                </select>
+                <input type="text" id="monthFilterSearch" placeholder="Buscar OS, cliente, placa…" style="min-width:240px; padding:5px 9px; font-size:12px; font-family:inherit; border:1px solid var(--border); border-radius: var(--radius-sm)">
+              </div>
+            </div>
+            <div id="monthOSTable" class="scroll-x lookup-table-wrap"></div>
+          </div>
+
+        </div><!-- /monthContent -->
+
+      </div><!-- /view-month -->
 
     </div>
   </section>
@@ -1158,7 +1462,10 @@ const state = {
   filterDate: { from: null, to: null },
   charts: {},        // chartName -> Chart instance
   discountTipo: 'total',
+  vehicleDim: 'marca', // 'marca' | 'modelo' | 'motor'
   clientSet: null,
+  monthData: null,   // { period, empresa, osRows }
+  monthMeta: null,   // { metaMensal }
   completeListSort:   { by: 'revenue', dir: 'desc' },
   completeListSearch: '',
 };
@@ -1207,6 +1514,14 @@ function saveSourceConfig(cfg) {
 function convertSourceUrl(input) {
   const url = (input || '').trim();
   if (!url) return '';
+  // GitHub viewer URL → raw file URL (CORS-enabled).
+  // github.com/{user}/{repo}/blob/{branch}/{path} → raw.githubusercontent.com/{user}/{repo}/{branch}/{path}
+  const ghBlob = url.match(/^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/([^/]+)\/(.+?)(\?|$)/i);
+  if (ghBlob) {
+    return `https://raw.githubusercontent.com/${ghBlob[1]}/${ghBlob[2]}/${ghBlob[3]}/${ghBlob[4]}`;
+  }
+  // Already a raw GitHub URL — keep it
+  if (/raw\.githubusercontent\.com/i.test(url)) return url;
   // Already a working direct-download URL on OneDrive consumer
   if (/onedrive\.live\.com\/download\?/i.test(url)) return url;
   // Already a Graph API shares endpoint (legacy)
@@ -1292,6 +1607,9 @@ reloadBtn.addEventListener('click', () => {
     fileInput.click();
   }
 });
+
+// Print current view (with filter banner)
+document.getElementById('printViewBtn').addEventListener('click', printCurrentView);
 
 // ----- Config modal wiring -----
 const configModal = document.getElementById('configModal');
@@ -1473,6 +1791,9 @@ async function loadWorkbookFromBuffer(buf, sourceName, opts = {}) {
     state.rows = rows;
     document.getElementById('fileInfo').textContent = `${sourceName} — ${FORMATTERS.int.format(rows.length)} OSs`;
     document.getElementById('reloadBtn').disabled = false;
+    document.getElementById('printViewBtn').disabled = false;
+    // Inject per-card print buttons (idempotent — safe to call again on reload)
+    addCardPrintButtons();
     document.getElementById('emptyState').style.display = 'none';
     document.getElementById('dashboard').style.display  = 'block';
 
@@ -1488,6 +1809,11 @@ async function loadWorkbookFromBuffer(buf, sourceName, opts = {}) {
 
     initFilters();
     applyFilters();
+
+    // Auto-load monthly data from a "Mes_corrente" sheet inside the same workbook,
+    // if present. This unifies the data source — one file in OneDrive/GitHub,
+    // historical data on the first sheet and current month on "Mes_corrente".
+    tryAutoLoadMonthFromWorkbook(wb);
   } catch (err) {
     console.error(err);
     document.getElementById('fileInfo').textContent = `Erro: ${err.message}`;
@@ -1570,6 +1896,7 @@ const VIEW_RENDERERS = {
   overview: null,            // already rendered by renderAll()
   sellers:  () => renderSellersView(),
   clients:  () => renderClientsView(),
+  month:    () => { if (state.monthData) renderMonthView(); },
 };
 let currentView = 'overview';
 document.querySelectorAll('.view-tabs button').forEach(b => {
@@ -1586,6 +1913,57 @@ function switchView(name) {
 }
 document.getElementById('focalSeller').addEventListener('change', renderSellersView);
 document.getElementById('focalClient').addEventListener('change', renderClientsView);
+
+// =====================================================================
+// VISÃO MÊS ATUAL — wiring (file upload, drag & drop, meta, filters)
+// =====================================================================
+const monthLoadBtn   = document.getElementById('monthLoadBtn');
+const monthReloadBtn = document.getElementById('monthReloadBtn');
+const monthPdfInput  = document.getElementById('monthPdfInput');
+let lastMonthFile = null;
+
+monthLoadBtn.addEventListener('click', () => monthPdfInput.click());
+monthReloadBtn.addEventListener('click', () => { if (lastMonthFile) loadMonthExcelFromFile(lastMonthFile); });
+monthPdfInput.addEventListener('change', (e) => {
+  const f = e.target.files[0];
+  if (f) { lastMonthFile = f; loadMonthExcelFromFile(f); }
+});
+
+// Drag-and-drop on the upload card
+const monthUploadCard = document.querySelector('#view-month > .card');
+if (monthUploadCard) {
+  ['dragenter','dragover'].forEach(ev =>
+    monthUploadCard.addEventListener(ev, e => {
+      e.preventDefault();
+      monthUploadCard.style.borderColor = 'var(--accent)';
+    }));
+  ['dragleave','drop'].forEach(ev =>
+    monthUploadCard.addEventListener(ev, e => {
+      e.preventDefault();
+      monthUploadCard.style.borderColor = '';
+    }));
+  monthUploadCard.addEventListener('drop', e => {
+    const f = [...(e.dataTransfer?.files || [])].find(x => /\.(xlsx?|xlsm|xlsb)$/i.test(x.name));
+    if (f) { lastMonthFile = f; loadMonthExcelFromFile(f); }
+  });
+}
+
+// Save meta
+document.getElementById('monthMetaSave').addEventListener('click', () => {
+  if (!state.monthData) return;
+  const v = parseFloat(document.getElementById('monthMetaInput').value) || 0;
+  state.monthMeta = { metaMensal: v };
+  saveMonthMetaToStorage(state.monthData.period, state.monthMeta);
+  renderMonthMetaSection();
+});
+document.getElementById('monthMetaInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('monthMetaSave').click();
+});
+
+// OS table filters
+document.getElementById('monthFilterStatus').addEventListener('change', renderMonthOSTable);
+document.getElementById('monthFilterSearch').addEventListener('input',
+  debounce(renderMonthOSTable, 200));
 document.getElementById('clearFocalClient').addEventListener('click', () => {
   document.getElementById('focalClient').value = '';
   renderClientsView();
@@ -1598,9 +1976,10 @@ document.getElementById('printClientsAnnual').addEventListener('click', () => pr
 document.getElementById('csvClientsAnnual').addEventListener('click', () => csvAnnualRanking('clients'));
 
 // Inactive clients controls
-document.getElementById('inactiveDays').addEventListener('change', renderInactiveClients);
-document.getElementById('inactiveSellerFilter').addEventListener('change', renderInactiveClients);
+['inactiveDays','inactiveSellerFilter','inactiveWindow','inactiveSort'].forEach(id =>
+  document.getElementById(id).addEventListener('change', renderInactiveClients));
 document.getElementById('printInactive').addEventListener('click', printInactiveClients);
+document.getElementById('printInactiveFlat').addEventListener('click', printInactiveClientsFlat);
 document.getElementById('csvInactive').addEventListener('click', csvInactiveClients);
 
 // Complete client list controls
@@ -1628,14 +2007,33 @@ function applyPreset(preset) {
   }
   filterEls.dateFrom.value = ymd(from);
   filterEls.dateTo.value   = ymd(to);
+  // Presets are date-based — clear the year filter to keep the model coherent.
+  [...filterEls.ano.options].forEach(o => o.selected = false);
   applyFilters();
 }
 
 document.querySelectorAll('aside.filters .preset button').forEach(b => {
   b.addEventListener('click', ()=> applyPreset(b.dataset.preset));
 });
-['dateFrom','dateTo'].forEach(id => document.getElementById(id).addEventListener('change', applyFilters));
-['filtAno','filtEmpresa','filtOperacao','filtNegocio','filtCidade','filtVendedor'].forEach(id =>
+// Date range and year filter are mutually exclusive — using one clears the other.
+// Otherwise the intersection often becomes empty (e.g. "Last 12 months" + "Year 2019"
+// produces zero rows because no data is in both windows simultaneously).
+['dateFrom','dateTo'].forEach(id => {
+  document.getElementById(id).addEventListener('change', () => {
+    if (filterEls.dateFrom.value || filterEls.dateTo.value) {
+      [...filterEls.ano.options].forEach(o => o.selected = false);
+    }
+    applyFilters();
+  });
+});
+filterEls.ano.addEventListener('change', () => {
+  if (selectedValues(filterEls.ano).length) {
+    filterEls.dateFrom.value = '';
+    filterEls.dateTo.value = '';
+  }
+  applyFilters();
+});
+['filtEmpresa','filtOperacao','filtNegocio','filtCidade','filtVendedor'].forEach(id =>
   document.getElementById(id).addEventListener('change', applyFilters));
 ['tipoPecas','tipoServicos','tipoTerceiros'].forEach(id =>
   document.getElementById(id).addEventListener('change', applyFilters));
@@ -2081,6 +2479,60 @@ function renderSellerChart() {
 // Average discount % per seller, weighted by revenue of the chosen type.
 // Same logic used in the client ranking — so seller and client analyses are
 // directly comparable.
+// Extracts the requested dimension from a row.
+//  marca   → r.marca
+//  modelo  → r.modelo (whole string)
+//  motor   → last segment of r.modelo after the last "/" (best-effort heuristic)
+function getVehicleDimension(r, dim) {
+  if (dim === 'marca')  return (r.marca || '').trim();
+  if (dim === 'modelo') return (r.modelo || '').trim();
+  if (dim === 'motor') {
+    const s = (r.modelo || '').trim();
+    if (!s) return '';
+    const parts = s.split('/').map(p => p.trim()).filter(Boolean);
+    if (!parts.length) return '';
+    // If only one segment, return as-is. Otherwise return the last segment
+    // (usually the engine code, e.g. "DC11" in "SCANIA/124/DC11").
+    return parts[parts.length - 1];
+  }
+  return '';
+}
+
+function renderVehicleChart() {
+  const rows = state.filtered, tt = billingTypes();
+  const dim = state.vehicleDim;
+  const map = new Map();
+  for (const r of rows) {
+    const key = getVehicleDimension(r, dim);
+    if (!key) continue;
+    map.set(key, (map.get(key) || 0) + rowRevenue(r, tt));
+  }
+  const sorted = [...map.entries()].sort((a, b) => b[1] - a[1]);
+  const top = sorted.slice(0, 15);
+  const total = sorted.reduce((s, [, v]) => s + v, 0);
+
+  destroy('vehicle');
+  state.charts.vehicle = new Chart(document.getElementById('vehicleChart'), {
+    type: 'bar',
+    data: {
+      labels: top.map(t => t[0]),
+      datasets: [{
+        label: 'Faturamento',
+        data: top.map(t => t[1]),
+        backgroundColor: COLORS.accent4,
+        borderRadius: 4, maxBarThickness: 18,
+      }]
+    },
+    options: horizontalBarOptions({
+      tooltipLabel: ctx => {
+        const v = ctx.parsed.x;
+        const pct = total ? (v / total * 100).toFixed(1) : '0.0';
+        return [`${ctx.label}: ${FORMATTERS.brl.format(v)}`, `${pct}% do total na dimensão`];
+      }
+    })
+  });
+}
+
 function renderSellerDiscountChart() {
   const rows = state.filtered;
   const tipo = state.discountTipo;
@@ -2197,6 +2649,16 @@ document.querySelectorAll('#discountTypeTabs button').forEach(b => {
   });
 });
 
+// Vehicle dimension tabs (Marca / Modelo / Motor)
+document.querySelectorAll('#vehicleTabs button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#vehicleTabs button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    state.vehicleDim = b.dataset.dim;
+    renderVehicleChart();
+  });
+});
+
 // ---------- comparativo ----------
 function parseAnchor(anchor, gran, refDate) {
   // anchor formats: 2026-Q1, 2026-03, 2026-S1, 2026
@@ -2306,12 +2768,18 @@ function renderComparativo() {
   const gran = document.getElementById('cmpGranularity').value;
   const dates = state.rows.map(r=>r.data_faturamento).filter(Boolean);
   if (!dates.length) return;
-  const refDate = state.filterDate.from || dates[dates.length-1];
+  // Reference date priority: year filter (latest selected) > date filter > latest data.
+  const selectedYears = selectedValues(filterEls.ano).map(Number);
+  const refDate = selectedYears.length
+    ? new Date(Date.UTC(Math.max(...selectedYears), 11, 31))
+    : (state.filterDate.from || dates[dates.length-1]);
   const anchor  = document.getElementById('cmpAnchor').value;
   const ref     = parseAnchor(anchor, gran, refDate);
   const cur     = periodRange(gran, ref);
   const yoy     = periodRange(gran, shiftYear(ref, -1));
-  const prv     = periodRange(gran, shiftPeriod(gran, ref, -1));
+  // For year granularity, the "antecedent" is 2 years ago — otherwise it would
+  // collide with YoY (both = previous year), producing a duplicate column.
+  const prv     = periodRange(gran, shiftPeriod(gran, ref, gran === 'year' ? -2 : -1));
   const base    = nonDateFiltered();
   const m1 = metricsForRows(rowsInRange(base, cur.from, cur.to));
   const m2 = metricsForRows(rowsInRange(base, yoy.from, yoy.to));
@@ -2865,14 +3333,23 @@ function renderSellerComparativo(focal) {
   const target = document.getElementById('sellerCmpTable');
   if (!dates.length) { target.innerHTML = ''; return; }
 
-  // Determine granularity from the date filter span (≤ 32 days → month;
-  // ≤ 100 days → quarter; ≤ 200 days → semester; otherwise year).
-  const dFrom = state.filterDate.from || dates[dates.length-1];
-  const dTo   = state.filterDate.to   || dates[dates.length-1];
-  const span  = (dTo - dFrom) / 86400000;
-  const gran  = span <= 32 ? 'month' : span <= 100 ? 'quarter' : span <= 200 ? 'semester' : 'year';
+  // Reference and granularity:
+  //  - If the year filter is active, force year granularity with the latest selected year.
+  //  - Otherwise infer granularity from the date-filter span:
+  //    ≤ 32 days → month; ≤ 100 → quarter; ≤ 200 → semester; otherwise year.
+  const selectedYears = selectedValues(filterEls.ano).map(Number);
+  let refDate, gran;
+  if (selectedYears.length) {
+    refDate = new Date(Date.UTC(Math.max(...selectedYears), 11, 31));
+    gran = 'year';
+  } else {
+    const dFrom = state.filterDate.from || dates[dates.length-1];
+    const dTo   = state.filterDate.to   || dates[dates.length-1];
+    const span  = (dTo - dFrom) / 86400000;
+    gran = span <= 32 ? 'month' : span <= 100 ? 'quarter' : span <= 200 ? 'semester' : 'year';
+    refDate = dFrom;
+  }
 
-  const refDate = dFrom;
   const ref =
       gran === 'month'    ? { year: refDate.getUTCFullYear(), month: refDate.getUTCMonth()+1 }
     : gran === 'quarter'  ? { year: refDate.getUTCFullYear(), q: Math.floor(refDate.getUTCMonth()/3)+1 }
@@ -2880,7 +3357,8 @@ function renderSellerComparativo(focal) {
     :                       { year: refDate.getUTCFullYear() };
   const cur = periodRange(gran, ref);
   const yoy = periodRange(gran, shiftYear(ref, -1));
-  const prv = periodRange(gran, shiftPeriod(gran, ref, -1));
+  // For year granularity, antecedent = 2 years ago (avoiding duplicate of YoY).
+  const prv = periodRange(gran, shiftPeriod(gran, ref, gran === 'year' ? -2 : -1));
 
   // Filter base: ignore date filter, keep other filters, focal seller only.
   const baseAll = sellerViewBaseAllTime().filter(r => r.vendedor === focal);
@@ -2979,6 +3457,388 @@ function renderSellerRanking(focal, base, tt) {
           </tr>`).join('') || '<tr><td colspan="8" class="small">Sem dados.</td></tr>'}
       </tbody>
     </table>`;
+}
+
+// =====================================================================
+//  IMPRESSÃO DA TELA ATUAL (com identificação dos filtros)
+// =====================================================================
+//
+// Generates a print-friendly view of whichever tab is currently active,
+// including a header banner that lists every filter applied. The actual
+// rendering is driven by `@media print` CSS; this JS only:
+//   1. Populates the banner (title, focal subject, filter chips)
+//   2. Resizes Chart.js canvases so they re-layout for the print container
+//   3. Calls window.print() — the browser shows the preview/dialog.
+
+function buildFilterSummary() {
+  const chip = (label, value) =>
+    `<span class="filter-chip"><b>${label}:</b> <span>${value}</span></span>`;
+  const items = [];
+
+  // Período / Ano (mutually exclusive)
+  const dFrom = filterEls.dateFrom.value;
+  const dTo   = filterEls.dateTo.value;
+  const years = selectedValues(filterEls.ano);
+  if (years.length) {
+    items.push(chip('Ano', years.sort().join(', ')));
+  } else if (dFrom || dTo) {
+    const f = dFrom ? FORMATTERS.date.format(new Date(dFrom + 'T00:00:00Z')) : '—';
+    const t = dTo   ? FORMATTERS.date.format(new Date(dTo   + 'T00:00:00Z')) : '—';
+    items.push(chip('Período', `${f} → ${t}`));
+  } else {
+    items.push(chip('Período', 'Toda a base'));
+  }
+
+  // Negócio
+  const neg = selectedValues(filterEls.negocio);
+  if (neg.length) items.push(chip('Negócio', neg.join(', ')));
+
+  // Tipo de Faturamento
+  const tipos = [];
+  if (filterEls.pecas.checked)    tipos.push('Peças');
+  if (filterEls.servicos.checked) tipos.push('Serviços');
+  if (filterEls.terceiros.checked)tipos.push('Terceiros');
+  items.push(chip('Tipo', tipos.join(' + ') || '—'));
+
+  // Vendedor
+  const ven = selectedValues(filterEls.vendedor);
+  if (ven.length) items.push(chip('Vendedor',
+    ven.length > 6 ? `${ven.slice(0, 6).join(', ')} +${ven.length - 6}` : ven.join(', ')));
+
+  // Operação
+  const op = selectedValues(filterEls.operacao);
+  if (op.length) items.push(chip('Operação', op.join(', ')));
+
+  // Cidade
+  const cid = selectedValues(filterEls.cidade);
+  if (cid.length) items.push(chip('Cidade',
+    cid.length > 6 ? `${cid.slice(0, 6).join(', ')} +${cid.length - 6}` : cid.join(', ')));
+
+  // Empresa
+  const emp = selectedValues(filterEls.empresa);
+  if (emp.length) items.push(chip('Empresa', emp.join(', ')));
+
+  return items.join('');
+}
+
+function printCurrentView() {
+  // Header content
+  const viewLabel = ({
+    overview: 'Visão Geral',
+    sellers:  'Análise por Vendedor',
+    clients:  'Análise por Cliente',
+  })[currentView] || 'Dashboard';
+  document.getElementById('printTitle').textContent =
+    `Dashboard de Faturamento — ${viewLabel}`;
+  const now = new Date();
+  document.getElementById('printGenerated').textContent =
+    `Gerado em ${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
+    + (state.fileName ? ` · Fonte: ${state.fileName}` : '')
+    + ` · ${FORMATTERS.int.format(state.filtered.length)} de ${FORMATTERS.int.format(state.rows.length)} OSs no filtro`;
+
+  // Optional focal subject (seller/client)
+  let focal = '';
+  if (currentView === 'sellers') {
+    const v = document.getElementById('focalSeller').value;
+    if (v) focal = `Vendedor focal: ${v}`;
+  } else if (currentView === 'clients') {
+    const v = document.getElementById('focalClient').value;
+    if (v) focal = `Cliente focal: ${v}`;
+  }
+  document.getElementById('printFocal').textContent = focal;
+
+  // Filter chips
+  document.getElementById('printFilters').innerHTML = buildFilterSummary();
+
+  // Trigger the browser print dialog. The @media print CSS handles layout.
+  window.print();
+}
+
+// Chart.js needs to recompute layouts when the container size changes between
+// screen and print. The `beforeprint` event fires before the print preview
+// renders — resizing each chart there ensures crisp output.
+window.addEventListener('beforeprint', () => {
+  for (const name of Object.keys(state.charts)) {
+    try { state.charts[name].resize(); } catch {}
+  }
+});
+window.addEventListener('afterprint', () => {
+  for (const name of Object.keys(state.charts)) {
+    try { state.charts[name].resize(); } catch {}
+  }
+});
+
+// =====================================================================
+//  IMPRESSÃO INDIVIDUAL POR CARD
+//  Cada gráfico/relatório pode ser impresso isoladamente, levando o
+//  mesmo cabeçalho com os filtros aplicados.
+// =====================================================================
+
+// Walks every printable card and injects a small "🖨 Imprimir" button.
+// Cards already flagged `.no-print` (OS Lookup, Inativos, Relação Completa —
+// each has its own dedicated print button) are skipped. The focal-selector
+// header cards are also skipped (they're just UI controls, no content).
+function addCardPrintButtons() {
+  document.querySelectorAll('#dashboard .card').forEach(card => {
+    if (card.classList.contains('no-print')) return;
+    if (card.querySelector(':scope > .card-print-btn')) return; // already added
+    if (card.querySelector(':scope .toolbar-flex .card-print-btn')) return;
+    // Skip cards that are just focal selectors (no real printable content)
+    if (card.querySelector('#focalClient') || card.querySelector('#focalSeller')) return;
+
+    const h3 = card.querySelector(':scope > h3, :scope > .toolbar-flex > h3');
+    if (!h3) return;
+
+    const btn = document.createElement('button');
+    btn.className = 'card-print-btn';
+    btn.title = 'Imprimir somente este card (com os filtros aplicados)';
+    btn.textContent = '🖨 Imprimir';
+    btn.type = 'button';
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      printSingleCard(card);
+    });
+
+    // Preferred placement: inside an existing toolbar-flex's actions/controls,
+    // so it sits aligned with the card's other controls.
+    const toolbar = card.querySelector(':scope > .toolbar-flex');
+    if (toolbar) {
+      const actions = toolbar.querySelector(':scope > .actions-group');
+      const controls = toolbar.querySelector(':scope > .controls');
+      if (actions)       actions.appendChild(btn);
+      else if (controls) controls.appendChild(btn);
+      else {
+        const wrap = document.createElement('div');
+        wrap.className = 'actions-group';
+        wrap.appendChild(btn);
+        toolbar.appendChild(wrap);
+      }
+    } else {
+      // Card has only a plain <h3> as header — append to it (CSS aligns it right).
+      btn.style.marginLeft = 'auto';
+      h3.appendChild(btn);
+    }
+  });
+}
+
+// Builds a print-ready document for a single card and opens it in a popup.
+function printSingleCard(cardEl) {
+  // 1. Title (strip our own injected button and any decorative badges)
+  let title = 'Relatório';
+  const h3 = cardEl.querySelector(':scope > h3, :scope > .toolbar-flex > h3');
+  if (h3) {
+    const t = h3.cloneNode(true);
+    t.querySelectorAll('.card-print-btn, .badge').forEach(el => el.remove());
+    title = t.textContent.trim().replace(/\s+/g, ' ') || 'Relatório';
+  }
+
+  // 2. Deep-clone the card for safe manipulation
+  const clone = cardEl.cloneNode(true);
+
+  // 3. Remove interactive elements
+  clone.querySelectorAll('.controls, .actions-group, .card-print-btn, .tabs').forEach(el => el.remove());
+
+  // 4. Force <details> open and drop their summary toggles
+  clone.querySelectorAll('details').forEach(d => {
+    d.setAttribute('open', '');
+    d.querySelectorAll(':scope > summary').forEach(s => s.remove());
+  });
+
+  // 5. Convert each canvas to an image (the live chart's pixels)
+  const origCanvases = cardEl.querySelectorAll('canvas');
+  const cloneCanvases = clone.querySelectorAll('canvas');
+  for (let i = 0; i < origCanvases.length && i < cloneCanvases.length; i++) {
+    try {
+      const dataUrl = origCanvases[i].toDataURL('image/png');
+      const img = document.createElement('img');
+      img.src = dataUrl;
+      img.alt = title;
+      img.style.maxWidth = '100%';
+      img.style.height = 'auto';
+      img.style.display = 'block';
+      img.style.margin = '4pt auto';
+      cloneCanvases[i].replaceWith(img);
+    } catch (err) {
+      console.warn('Falha ao converter canvas para imagem:', err);
+    }
+  }
+
+  // 6. Drop the card's original title (banner already shows it)
+  clone.querySelector(':scope > h3')?.remove();
+  // If the title was inside a toolbar-flex, drop the whole leftover toolbar
+  const leftoverToolbar = clone.querySelector(':scope > .toolbar-flex');
+  if (leftoverToolbar && !leftoverToolbar.textContent.trim()) leftoverToolbar.remove();
+  // Also remove a now-empty toolbar with just the title removed
+  clone.querySelectorAll(':scope > .toolbar-flex > h3').forEach(h => h.remove());
+
+  // 7. Build the print document
+  const filterSummary = buildFilterSummary();
+  const now = new Date();
+  const viewLabel = ({
+    overview: 'Visão Geral',
+    sellers:  'Análise por Vendedor',
+    clients:  'Análise por Cliente',
+  })[currentView] || 'Dashboard';
+
+  let focalLine = '';
+  if (currentView === 'sellers') {
+    const v = document.getElementById('focalSeller').value;
+    if (v) focalLine = `<div class="focal">Vendedor focal: <b>${escapeHtml(v)}</b></div>`;
+  } else if (currentView === 'clients') {
+    const v = document.getElementById('focalClient').value;
+    if (v) focalLine = `<div class="focal">Cliente focal: <b>${escapeHtml(v)}</b></div>`;
+  }
+
+  const html = `
+    <h1>${escapeHtml(title)}</h1>
+    <p class="meta">
+      ${viewLabel} · Gerado em ${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })}
+      ${state.fileName ? ' · Fonte: ' + escapeHtml(state.fileName) : ''}
+      · ${FORMATTERS.int.format(state.filtered.length)} de ${FORMATTERS.int.format(state.rows.length)} OSs no filtro
+    </p>
+    ${focalLine}
+    <div class="filter-banner">${filterSummary}</div>
+    <div class="card-print-content">${clone.innerHTML}</div>
+  `;
+  openPrintWindowChart(title, html);
+}
+
+// Popup variant of openPrintWindow tuned for chart-heavy single-card reports.
+// Landscape A4, chart-friendly typography, pill colors preserved.
+function openPrintWindowChart(title, htmlContent) {
+  const w = window.open('', '_blank', 'width=1180,height=820');
+  if (!w) {
+    alert('Permita pop-ups deste site para gerar o relatório.');
+    return;
+  }
+  const css = `
+    @page { size: A4 landscape; margin: 12mm; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 4mm;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #111; font-size: 10pt; line-height: 1.45;
+    }
+    h1 {
+      font-size: 17pt; margin: 0 0 3pt;
+      letter-spacing: -0.01em; font-weight: 700;
+    }
+    .meta { color: #555; font-size: 9pt; margin: 0 0 4pt; }
+    .focal { font-size: 11pt; font-weight: 600; margin: 4pt 0 6pt; color: #000; }
+
+    .filter-banner {
+      display: flex; flex-wrap: wrap; gap: 4pt;
+      margin: 0 0 10pt 0; padding: 6pt 0;
+      border-top: 0.5pt solid #ccc;
+      border-bottom: 1pt solid #000;
+    }
+    .filter-chip {
+      display: inline-block;
+      background: #f3f3f3;
+      border: 0.5pt solid #aaa;
+      padding: 1.5pt 7pt; border-radius: 3pt;
+      font-size: 8.5pt;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+    .filter-chip b { color: #000; font-weight: 600; }
+    .filter-chip span { color: #333; }
+
+    .card-print-content { font-size: 9.5pt; }
+    .card-print-content > .chart-wrap,
+    .card-print-content .chart-wrap {
+      page-break-inside: avoid;
+      max-height: 130mm;
+    }
+    .card-print-content img {
+      max-width: 100%; height: auto;
+      display: block; margin: 4pt auto;
+    }
+    .card-print-content p { margin: 4pt 0; }
+    .card-print-content p.small { font-size: 8pt; color: #666; }
+    .card-print-content h4 { font-size: 10pt; margin: 8pt 0 4pt; font-weight: 600; }
+
+    .card-print-content table { width: 100%; border-collapse: collapse; margin-top: 6pt; }
+    .card-print-content th {
+      text-align: left; padding: 3pt 5pt;
+      border-bottom: 1pt solid #000; font-size: 8.5pt;
+      text-transform: uppercase; letter-spacing: 0.04em;
+      background: #f0f0f0;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+    .card-print-content td {
+      padding: 2.5pt 5pt; border-bottom: 0.3pt solid #ccc;
+      font-size: 9pt; vertical-align: top;
+    }
+    .card-print-content .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .card-print-content tbody tr:nth-child(even) td {
+      background: #fafafa;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+
+    .card-print-content .pill {
+      display: inline-block; padding: 1pt 7pt;
+      border-radius: 99pt; font-size: 7.5pt; font-weight: 600;
+      border: 0.5pt solid #bbb; background: #f5f5f5; color: #444;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+    .card-print-content .pill.good { background: #ecfdf5; border-color: #a7f3d0; color: #047857; }
+    .card-print-content .pill.bad  { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+    .card-print-content .pill.warn { background: #fffbeb; border-color: #fde68a; color: #b45309; }
+    .card-print-content .badge {
+      display: inline-block; padding: 0.5pt 4pt;
+      border-radius: 2pt; font-size: 7pt;
+      background: #eee; border: 0.5pt solid #ccc; color: #555;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+
+    .card-print-content .grid.two,
+    .card-print-content .grid.three { display: grid; gap: 6pt; margin-top: 4pt; }
+    .card-print-content .grid.two   { grid-template-columns: 1fr 1fr; }
+    .card-print-content .grid.three { grid-template-columns: 1fr 1fr 1fr; }
+
+    .card-print-content .kpis {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(40mm, 1fr));
+      gap: 3pt; margin-bottom: 6pt;
+    }
+    .card-print-content .kpi {
+      border: 0.5pt solid #aaa; padding: 3pt 6pt; background: #fff;
+    }
+    .card-print-content .kpi.suggestion {
+      background: #eef2ff;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+    .card-print-content .kpi .label {
+      font-size: 6.5pt; text-transform: uppercase;
+      letter-spacing: 0.05em; color: #666;
+    }
+    .card-print-content .kpi .value {
+      font-size: 13pt; font-weight: 700; margin-top: 1pt;
+      font-variant-numeric: tabular-nums;
+    }
+    .card-print-content .kpi .sub { font-size: 7pt; color: #888; margin-top: 1pt; }
+
+    .card-print-content .scroll-x { overflow: visible !important; }
+    .card-print-content .lookup-table-wrap {
+      max-height: none !important; overflow: visible !important;
+      border: 0 !important;
+    }
+
+    .toolbar { margin: 14pt 0 0; padding-top: 8pt; border-top: 0.5pt solid #ddd; }
+    .toolbar button {
+      padding: 6pt 14pt; font-size: 10pt; cursor: pointer;
+      border: 1px solid #888; background: #fff; border-radius: 4px;
+    }
+    .toolbar button + button { margin-left: 6pt; }
+
+    @media print {
+      .toolbar { display: none; }
+      body { padding: 0; }
+    }
+  `;
+  w.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>${css}</style></head><body>${htmlContent}<div class="toolbar"><button onclick="window.print()">Imprimir</button><button onclick="window.close()">Fechar</button></div></body></html>`);
+  w.document.close();
+  setTimeout(() => { try { w.focus(); w.print(); } catch (e) {} }, 400);
 }
 
 // =====================================================================
@@ -3287,27 +4147,61 @@ function aggregateClientPerformance(rows) {
   });
 }
 
-function computeInactives(daysThreshold) {
+// daysThreshold: minimum days since last purchase to be considered inactive
+// windowYears:  if > 0, also require last purchase to be within the last N years
+//               (excludes "long-lost" clients that aren't worth recovering)
+function computeInactives(daysThreshold, windowYears = 0) {
   const list = aggregateClientPerformance(carteiraBaseAllTime());
   const dates = state.rows.map(r => r.data_faturamento).filter(Boolean);
   const refMax = dates.length ? new Date(Math.max(...dates)) : new Date();
   const cutoff = new Date(refMax.getTime() - daysThreshold * 86400000);
+  const windowCutoff = windowYears > 0
+    ? new Date(refMax.getTime() - windowYears * 365.25 * 86400000)
+    : null;
   return list
     .filter(c => c.last && c.last < cutoff)
-    .map(c => ({ ...c, daysInactive: (refMax - c.last) / 86400000 }))
-    .sort((a,b) => b.revenue - a.revenue);
+    .filter(c => !windowCutoff || c.last >= windowCutoff)
+    .map(c => ({ ...c, daysInactive: (refMax - c.last) / 86400000 }));
+}
+
+// Human-readable label for the inactives sort key.
+function sortLabel(by) {
+  return ({ revenue:'Faturamento', alpha:'Alfabética', ticket:'Ticket Médio',
+            count:'OSs', daysInactive:'Tempo inativo' })[by] || 'Faturamento';
+}
+
+// Sort an inactive-clients list by the chosen key.
+function sortInactives(list, by) {
+  switch (by) {
+    case 'alpha':        return [...list].sort((a,b) => (a.cliente||'').localeCompare(b.cliente||'', 'pt-BR'));
+    case 'ticket':       return [...list].sort((a,b) => b.ticket - a.ticket);
+    case 'count':        return [...list].sort((a,b) => b.count - a.count);
+    case 'daysInactive': return [...list].sort((a,b) => b.daysInactive - a.daysInactive);
+    case 'revenue':
+    default:             return [...list].sort((a,b) => b.revenue - a.revenue);
+  }
+}
+
+// Read all controls + apply seller and sort filters in one shot.
+function getInactivesView() {
+  const days        = parseInt(document.getElementById('inactiveDays').value, 10) || 90;
+  const windowYears = parseInt(document.getElementById('inactiveWindow').value, 10) || 0;
+  const seller      = document.getElementById('inactiveSellerFilter').value;
+  const sortBy      = document.getElementById('inactiveSort').value;
+  const all         = computeInactives(days, windowYears);
+  const filtered    = seller ? all.filter(c => c.mainSeller === seller) : all;
+  return { days, windowYears, seller, sortBy, list: sortInactives(filtered, sortBy) };
 }
 
 function renderInactiveClients() {
-  const days = parseInt(document.getElementById('inactiveDays').value, 10) || 90;
-  const vendedorFilter = document.getElementById('inactiveSellerFilter').value;
-  const all = computeInactives(days);
-  const filtered = vendedorFilter ? all.filter(c => c.mainSeller === vendedorFilter) : all;
+  const { days, windowYears, seller, list: filtered } = getInactivesView();
   const target = document.getElementById('inactiveList');
 
   document.getElementById('inactiveCount').innerHTML =
-    `<b>${FORMATTERS.int.format(filtered.length)}</b> cliente(s) inativo(s) há mais de ${days} dia(s).`
-    + (vendedorFilter ? ` Vendedor: <b>${escapeHtml(vendedorFilter)}</b>.` : '');
+    `<b>${FORMATTERS.int.format(filtered.length)}</b> cliente(s) inativo(s) há mais de ${days} dia(s)`
+    + (windowYears ? `, ativos nos últimos ${windowYears} ano${windowYears>1?'s':''}` : '')
+    + (seller ? `, vendedor <b>${escapeHtml(seller)}</b>` : '')
+    + '.';
 
   if (!filtered.length) {
     target.innerHTML = '<p class="small" style="padding:12px">Nenhum cliente inativo encontrado para os critérios atuais.</p>';
@@ -3352,14 +4246,11 @@ function renderInactiveClients() {
 }
 
 function printInactiveClients() {
-  const days = parseInt(document.getElementById('inactiveDays').value, 10) || 90;
-  const vendedorFilter = document.getElementById('inactiveSellerFilter').value;
-  const all = computeInactives(days);
+  const { days, windowYears, seller: vendedorFilter, sortBy, list } = getInactivesView();
 
-  // Group by main seller
+  // Group the (already sorted) list by main seller.
   const bySeller = new Map();
-  for (const c of all) {
-    if (vendedorFilter && c.mainSeller !== vendedorFilter) continue;
+  for (const c of list) {
     const key = c.mainSeller || '(Sem vendedor principal)';
     if (!bySeller.has(key)) bySeller.set(key, []);
     bySeller.get(key).push(c);
@@ -3367,13 +4258,14 @@ function printInactiveClients() {
   const sellers = [...bySeller.keys()].sort((a,b) => a.localeCompare(b, 'pt-BR'));
 
   const today = new Date();
-  const totalCount = [...bySeller.values()].reduce((s,a)=> s+a.length, 0);
+  const totalCount = list.length;
   let html = `
     <h1>Clientes inativos — Relatório por vendedor</h1>
     <p class="meta">
       Gerado em ${today.toLocaleDateString('pt-BR')} ${today.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}<br>
-      Critério: sem compra há mais de <b>${days} dias</b><br>
+      Critério: sem compra há mais de <b>${days} dias</b>${windowYears ? ` · Histórico dos últimos <b>${windowYears} ano${windowYears>1?'s':''}</b>` : ''}<br>
       ${vendedorFilter ? 'Vendedor: <b>' + escapeHtml(vendedorFilter) + '</b>' : 'Todos os vendedores'} ·
+      Ordenação: <b>${sortLabel(sortBy)}</b> ·
       Total: <b>${FORMATTERS.int.format(totalCount)}</b> cliente(s) inativo(s)
     </p>
   `;
@@ -3423,24 +4315,72 @@ function printInactiveClients() {
   openPrintWindow('Clientes Inativos por Vendedor', html);
 }
 
+// Single-list print (no per-seller grouping). Useful for executive review.
+function printInactiveClientsFlat() {
+  const { days, windowYears, seller: vendedorFilter, sortBy, list } = getInactivesView();
+  const today = new Date();
+  const html = `
+    <h1>Clientes inativos</h1>
+    <p class="meta">
+      Gerado em ${today.toLocaleDateString('pt-BR')} ${today.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}<br>
+      Critério: sem compra há mais de <b>${days} dias</b>${windowYears ? ` · Histórico dos últimos <b>${windowYears} ano${windowYears>1?'s':''}</b>` : ''}<br>
+      ${vendedorFilter ? 'Vendedor: <b>' + escapeHtml(vendedorFilter) + '</b>' : 'Todos os vendedores'} ·
+      Ordenação: <b>${sortLabel(sortBy)}</b> ·
+      Total: <b>${FORMATTERS.int.format(list.length)}</b> cliente(s) inativo(s)
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Cliente</th>
+          <th>Cidade</th>
+          <th>Vendedor</th>
+          <th>Marca</th>
+          <th class="num">OSs</th>
+          <th class="num">Faturamento</th>
+          <th class="num">Ticket</th>
+          <th class="num">1ª passagem</th>
+          <th class="num">Última passagem</th>
+          <th class="num">Inativo há</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${list.map((c, i) => `
+          <tr>
+            <td>${i+1}</td>
+            <td>${escapeHtml(c.cliente)}</td>
+            <td>${escapeHtml(c.mainCity)}</td>
+            <td>${escapeHtml(c.mainSeller)}</td>
+            <td>${escapeHtml(c.mainBrand)}</td>
+            <td class="num">${FORMATTERS.int.format(c.count)}</td>
+            <td class="num">${FORMATTERS.brl.format(c.revenue)}</td>
+            <td class="num">${FORMATTERS.brl.format(c.ticket)}</td>
+            <td class="num">${c.first ? FORMATTERS.date.format(c.first) : '—'}</td>
+            <td class="num">${c.last  ? FORMATTERS.date.format(c.last)  : '—'}</td>
+            <td class="num">${Math.round(c.daysInactive)}d</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+  openPrintWindow('Clientes Inativos', html);
+}
+
 function csvInactiveClients() {
-  const days = parseInt(document.getElementById('inactiveDays').value, 10) || 90;
-  const vendedorFilter = document.getElementById('inactiveSellerFilter').value;
-  const all = computeInactives(days);
-  const filtered = vendedorFilter ? all.filter(c => c.mainSeller === vendedorFilter) : all;
+  const { days, windowYears, seller: vendedorFilter, list } = getInactivesView();
   const headers = ['Cliente','Cidade','Vendedor principal','Marca freq.','OSs','Faturamento','Ticket','Desc. médio %','1ª passagem','Última passagem','Dias inativo'];
-  const rows = filtered.map(c => [
+  const rows = list.map(c => [
     c.cliente, c.mainCity, c.mainSeller, c.mainBrand,
     c.count,
     c.revenue.toFixed(2).replace('.', ','),
     c.ticket.toFixed(2).replace('.', ','),
     (c.descMedio||0).toFixed(2).replace('.', ','),
     c.first ? FORMATTERS.date.format(c.first) : '',
-    c.last ? FORMATTERS.date.format(c.last) : '',
+    c.last  ? FORMATTERS.date.format(c.last)  : '',
     Math.round(c.daysInactive),
   ]);
   const today = new Date().toISOString().slice(0, 10);
-  const filename = `clientes-inativos-${days}d${vendedorFilter ? '-' + vendedorFilter.replace(/\W+/g,'_') : ''}-${today}.csv`;
+  const filename = `clientes-inativos-${days}d${windowYears ? '-' + windowYears + 'a' : ''}${vendedorFilter ? '-' + vendedorFilter.replace(/\W+/g,'_') : ''}-${today}.csv`;
   exportCSV(filename, headers, rows);
 }
 
@@ -4225,6 +5165,717 @@ function renderClientHistory(focalRows) {
     </table>`;
 }
 
+// =====================================================================
+//  VISÃO MÊS ATUAL — lê o relatório mensal de OSs em PDF
+//  (gerado pelo sistema da oficina, layout monospace fixed-width).
+//  Cada linha de Tj do PDF é uma OS completa, identificável por padrão.
+// =====================================================================
+
+const MONTH_META_KEY_PREFIX = 'fat-v2-month-meta-';
+
+function getMonthMetaKey(period) {
+  if (!period) return null;
+  const y = period.from.getUTCFullYear();
+  const m = period.from.getUTCMonth() + 1;
+  return `${MONTH_META_KEY_PREFIX}${y}-${String(m).padStart(2,'0')}`;
+}
+function loadMonthMeta(period) {
+  const key = getMonthMetaKey(period);
+  if (!key) return {};
+  try { return JSON.parse(localStorage.getItem(key)) || {}; }
+  catch { return {}; }
+}
+function saveMonthMetaToStorage(period, meta) {
+  const key = getMonthMetaKey(period);
+  if (key) localStorage.setItem(key, JSON.stringify(meta));
+}
+
+// Fuzzy column-name dictionary for the monthly OSs Excel.
+// The exporter from the workshop system uses Portuguese labels; the parser
+// matches them case-insensitively and accent-insensitively (normHeader).
+const MONTH_COL_MAP = {
+  os:                   ['os', 'o.s.', 'numero os', 'numero da os', 'ordem servico', 'ordem de servico'],
+  cliente:              ['cliente', 'nome cliente', 'razao social', 'cliente fantasia'],
+  modelo:               ['modelo'],
+  veiculo:              ['veiculo'],
+  placa:                ['placa'],
+  aberturaRecepcao:     ['abertura recepcao', 'recepcao', 'data recepcao', 'abertura', 'data abertura', 'dt abertura', 'dt recepcao'],
+  aberturaOrcamento:    ['abertura orcamento', 'orcamento', 'data orcamento', 'dt orcamento'],
+  aberturaProducao:     ['abertura producao', 'inicio producao', 'data inicio producao', 'dt producao', 'producao'],
+  conferenciaProducao:  ['conferencia producao', 'conferencia', 'data conferencia', 'dt conferencia'],
+  fechamentoFinanceiro: ['fechamento financeiro', 'financeiro', 'data fechamento', 'fechamento', 'dt fechamento'],
+  faturamentoPecas:     ['faturamento pecas', 'data faturamento pecas', 'dt faturamento pecas', 'dt fat pecas', 'fat pecas'],
+  faturamentoServicos:  ['faturamento servicos', 'data faturamento servicos', 'dt faturamento servicos', 'dt fat servicos', 'fat servicos'],
+  nfPecas:              ['nf pecas', 'nota fiscal pecas', 'numero nf pecas'],
+  nfServicos:           ['nf servicos', 'nota fiscal servicos', 'numero nf servicos'],
+  valorPecas:           ['valor pecas', 'preco pecas', 'preco venda pecas', 'venda pecas', 'pecas'],
+  valorServicos:        ['valor servicos', 'preco servicos', 'preco venda servicos', 'venda servicos', 'servicos'],
+  valorTerceiros:       ['valor terceiros', 'valor terceiro', 'serv terc', 'serv terceiros', 'serv terceiro', 'terceiros', 'preco venda terceiro'],
+  valorTotal:           ['valor total', 'total os', 'total geral', 'total'],
+  operacao:             ['operacao', 'cod operacao', 'codigo operacao'],
+  operacaoNome:         ['descricao operacao', 'nome operacao', 'desc operacao'],
+  empresa:              ['empresa', 'cod empresa', 'filial'],
+};
+
+function detectMonthExcelColumns(headerRow) {
+  const cols = {};
+  if (!Array.isArray(headerRow)) return cols;
+  // Build a normalized lookup of each header cell
+  const norm = headerRow.map(h => normHeader(h));
+  for (const [key, candidates] of Object.entries(MONTH_COL_MAP)) {
+    let best = -1, bestScore = 0;
+    for (let i = 0; i < norm.length; i++) {
+      const h = norm[i];
+      if (!h) continue;
+      for (const c of candidates) {
+        // Exact match wins
+        if (h === c) { best = i; bestScore = 1000; break; }
+        // Header contains the candidate phrase as a whole
+        if (h.includes(c)) {
+          const score = c.length; // longer matches preferred
+          if (score > bestScore) { best = i; bestScore = score; }
+        }
+      }
+      if (bestScore >= 1000) break;
+    }
+    if (best >= 0) cols[key] = best;
+  }
+  return cols;
+}
+
+function parseMonthExcelRow(row, cols) {
+  const get = (k) => cols[k] == null ? null : row[cols[k]];
+  const dateVal = (v) => {
+    if (v == null || v === '') return null;
+    if (v instanceof Date && !isNaN(v)) return new Date(Date.UTC(v.getFullYear(), v.getMonth(), v.getDate()));
+    if (typeof v === 'number' && isFinite(v) && v > 30000 && v < 80000) return excelSerialToDate(v);
+    const s = String(v).trim();
+    // Match DD/MM/YY or DD/MM/YYYY
+    const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+    if (m) {
+      let y = +m[3];
+      if (y < 100) y += 2000;
+      return new Date(Date.UTC(y, +m[2]-1, +m[1]));
+    }
+    const d = new Date(s);
+    return isNaN(d) ? null : d;
+  };
+  const numVal = (v) => {
+    if (v == null || v === '') return 0;
+    if (typeof v === 'number') return v;
+    const s = String(v).trim();
+    if (s === '-' || s === '') return 0;
+    const norm = s.replace(/\s+/g, '').replace(/\./g, '').replace(',', '.');
+    const n = parseFloat(norm);
+    return isNaN(n) ? 0 : n;
+  };
+  const strVal = (v) => v == null ? '' : String(v).trim();
+  const nfVal = (v) => { const t = strVal(v); return (t === '-' || !t) ? '' : t; };
+
+  const osRaw = get('os');
+  if (osRaw == null || osRaw === '') return null;
+  // Normalize OS to a zero-padded 6-digit string when numeric
+  let os = strVal(osRaw);
+  if (/^\d+$/.test(os) && os.length < 6) os = os.padStart(6, '0');
+
+  const operacao = strVal(get('operacao'));
+  const operacaoNome = strVal(get('operacaoNome'));
+  let operation = null;
+  if (operacao || operacaoNome) {
+    operation = { code: operacao, name: operacaoNome || '' };
+  }
+
+  return {
+    os,
+    cliente:              strVal(get('cliente')),
+    modelo:               strVal(get('modelo')),
+    veiculo:              strVal(get('veiculo')),
+    placa:                strVal(get('placa')),
+    aberturaRecepcao:     dateVal(get('aberturaRecepcao')),
+    aberturaOrcamento:    dateVal(get('aberturaOrcamento')),
+    aberturaProducao:     dateVal(get('aberturaProducao')),
+    conferenciaProducao:  dateVal(get('conferenciaProducao')),
+    fechamentoFinanceiro: dateVal(get('fechamentoFinanceiro')),
+    faturamentoPecas:     dateVal(get('faturamentoPecas')),
+    faturamentoServicos:  dateVal(get('faturamentoServicos')),
+    nfPecas:              nfVal(get('nfPecas')),
+    nfServicos:           nfVal(get('nfServicos')),
+    valorPecas:           numVal(get('valorPecas')),
+    valorServicos:        numVal(get('valorServicos')),
+    valorTerceiros:       numVal(get('valorTerceiros')),
+    valorTotal:           numVal(get('valorTotal')),
+    operation,
+    empresa:              strVal(get('empresa')),
+  };
+}
+
+// Try to parse a single worksheet as a monthly OS sheet.
+// Returns { sheetName, cols, dataRows } or null if header isn't detected.
+function tryParseMonthSheet(ws, sheetName) {
+  const matrix = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, raw: true });
+  if (!matrix.length) return null;
+  for (let i = 0; i < Math.min(20, matrix.length); i++) {
+    const row = matrix[i];
+    if (!row || row.every(c => c == null || c === '')) continue;
+    const cols = detectMonthExcelColumns(row);
+    if (cols.os != null && cols.cliente != null && cols.valorTotal != null) {
+      const dataRows = matrix.slice(i + 1).filter(r => r && r.some(c => c != null && c !== ''));
+      return { sheetName, cols, dataRows };
+    }
+  }
+  return null;
+}
+
+function parseMonthlyExcel(arrayBuffer, preferredSheet) {
+  const wb = XLSX.read(arrayBuffer, { type: 'array', cellDates: true });
+  return parseMonthlyFromWorkbook(wb, preferredSheet);
+}
+
+function parseMonthlyFromWorkbook(wb, preferredSheet) {
+  if (!wb.SheetNames.length) throw new Error('Planilha sem abas.');
+
+  // Sheet search order: preferred name first (case + accent insensitive),
+  // then all the others. Allows the same logic to handle a dedicated
+  // "Mes_corrente" sheet OR a standalone monthly Excel file.
+  const order = [];
+  if (preferredSheet) {
+    const want = normHeader(preferredSheet);
+    const match = wb.SheetNames.find(sn => normHeader(sn) === want);
+    if (match) order.push(match);
+  }
+  for (const sn of wb.SheetNames) if (!order.includes(sn)) order.push(sn);
+
+  let best = null;
+  for (const sn of order) {
+    const candidate = tryParseMonthSheet(wb.Sheets[sn], sn);
+    if (candidate && (!best || candidate.dataRows.length > best.dataRows.length)) {
+      best = candidate;
+      // If the preferred sheet matched, stop searching — that's the canonical source.
+      if (preferredSheet && normHeader(sn) === normHeader(preferredSheet)) break;
+    }
+  }
+  if (!best) throw new Error('Não foi possível detectar o cabeçalho (OS, Cliente, Valor Total). Verifique as colunas.');
+
+  const osRows = [];
+  for (const row of best.dataRows) {
+    const r = parseMonthExcelRow(row, best.cols);
+    if (r && r.os) osRows.push(r);
+  }
+  if (!osRows.length) throw new Error('Cabeçalho encontrado mas nenhuma linha de OS válida foi lida.');
+
+  // Derive period from the data — earliest opening month to latest closing month.
+  let minDate = null, maxDate = null;
+  for (const r of osRows) {
+    const candidates = [r.aberturaRecepcao, r.aberturaOrcamento, r.fechamentoFinanceiro, r.faturamentoPecas, r.faturamentoServicos];
+    for (const d of candidates) {
+      if (d) {
+        if (!minDate || d < minDate) minDate = d;
+        if (!maxDate || d > maxDate) maxDate = d;
+      }
+    }
+  }
+  let period = null;
+  if (minDate && maxDate) {
+    // Snap to whole-month for meta / chart purposes
+    period = {
+      from: new Date(Date.UTC(minDate.getUTCFullYear(), minDate.getUTCMonth(), 1)),
+      to:   new Date(Date.UTC(maxDate.getUTCFullYear(), maxDate.getUTCMonth() + 1, 0)),
+    };
+  }
+
+  const empresa = osRows.find(r => r.empresa)?.empresa || null;
+  return { period, empresa, osRows, sheetName: best.sheetName };
+}
+
+// =====================================================================
+//  Status & billed-value helpers
+//
+// User rule:
+//   • "Faturada"        — billing date present for every service component
+//                         that has a value (peças e/ou serviços).
+//   • "Faturada Parcial"— both Peças AND Serviços have value, but only one
+//                         of the two has a faturamento date.
+//   • "Em Produção"     — production started but no billing.
+//   • "Aberta"          — only recepção, no production yet.
+//
+// Realized revenue:
+//   • For 'faturada'        → full Total OS
+//   • For 'faturada parcial'→ Total OS minus the unbilled component
+//   • Otherwise             → 0
+// =====================================================================
+function getOSStatus(r) {
+  const vP = r.valorPecas    || 0;
+  const vS = r.valorServicos || 0;
+  const fP = !!r.faturamentoPecas;
+  const fS = !!r.faturamentoServicos;
+
+  if (vP > 0 && vS > 0) {
+    if (fP && fS)        return 'faturada';
+    if (fP || fS)        return 'faturadaParcial';
+  } else if (vP > 0) {
+    if (fP)              return 'faturada';
+  } else if (vS > 0) {
+    if (fS)              return 'faturada';
+  } else if ((r.valorTerceiros || 0) > 0 && (fP || fS)) {
+    return 'faturada';
+  }
+  if (r.aberturaProducao || r.conferenciaProducao) return 'producao';
+  return 'aberta';
+}
+
+function osBilledValue(r) {
+  const status = getOSStatus(r);
+  if (status === 'faturada') return r.valorTotal || 0;
+  if (status === 'faturadaParcial') {
+    const total = r.valorTotal || 0;
+    if (!r.faturamentoPecas)    return total - (r.valorPecas    || 0);
+    if (!r.faturamentoServicos) return total - (r.valorServicos || 0);
+    return total;
+  }
+  return 0;
+}
+
+function osBilledDate(r) {
+  const dates = [];
+  if (r.faturamentoPecas)    dates.push(r.faturamentoPecas);
+  if (r.faturamentoServicos) dates.push(r.faturamentoServicos);
+  if (!dates.length) return null;
+  // Use the latest faturamento date (when the OS was "last invoiced").
+  return new Date(Math.max(...dates.map(d => d.getTime())));
+}
+
+const STATUS_LABEL = {
+  aberta:           'Aberta',
+  producao:         'Em produção',
+  faturadaParcial:  'Faturada Parcial',
+  faturada:         'Faturada',
+};
+const STATUS_PILL = {
+  aberta:           '',
+  producao:         'warn',
+  faturadaParcial:  'warn',
+  faturada:         'good',
+};
+
+async function loadMonthExcelFromFile(file) {
+  document.getElementById('monthFileInfo').textContent = `Lendo ${file.name}…`;
+  try {
+    const buf = await file.arrayBuffer();
+    // Try the "Mes_corrente" sheet first (case-insensitive) — works whether
+    // the user uploads the unified Faturamento_Geral_V2.xlsx OR a standalone
+    // monthly file (where the only sheet won't match and the parser falls
+    // back to other sheets automatically).
+    const result = parseMonthlyExcel(buf, 'Mes_corrente');
+    finalizeMonthLoad(result, file.name);
+  } catch (err) {
+    console.error(err);
+    document.getElementById('monthFileInfo').textContent = `Erro: ${err.message}`;
+    alert('Erro ao processar a planilha:\n' + err.message);
+  }
+}
+
+// Try to populate the Visão Mês Atual from a sheet named "Mes_corrente"
+// inside an already-parsed workbook. If the sheet isn't present, updates
+// the empty state with diagnostic info so the user can self-troubleshoot.
+function tryAutoLoadMonthFromWorkbook(wb) {
+  const sheetNames = wb.SheetNames.slice();
+  console.log('[Mes_corrente] Abas detectadas no arquivo carregado:', sheetNames);
+
+  // Recognize a few common spellings (with/without accents and separators).
+  const candidates = ['mes_corrente', 'mes corrente', 'mes-corrente',
+                      'mes_atual', 'mes atual', 'current_month'];
+  const matchSheet = sheetNames.find(sn => candidates.includes(normHeader(sn)));
+
+  if (!matchSheet) {
+    updateMonthEmptyState(sheetNames);
+    return;
+  }
+  try {
+    const result = parseMonthlyFromWorkbook(wb, matchSheet);
+    if (!result || !result.osRows.length || !result.period) {
+      console.warn('[Mes_corrente] Aba encontrada mas sem OSs válidas:', matchSheet);
+      updateMonthEmptyState(sheetNames, matchSheet, 'Aba encontrada mas sem OSs válidas. Verifique cabeçalho e dados.');
+      return;
+    }
+    finalizeMonthLoad(result, `Aba "${matchSheet}" da base`);
+  } catch (err) {
+    console.warn('[tryAutoLoadMonthFromWorkbook]', err);
+    updateMonthEmptyState(sheetNames, matchSheet, err.message);
+  }
+}
+
+// Replace the Visão Mês Atual empty-state with a diagnostic message listing
+// the sheets that the dashboard actually sees in the currently-loaded file.
+function updateMonthEmptyState(sheetNames, foundSheet, errorMsg) {
+  const empty = document.getElementById('monthEmpty');
+  if (!empty) return;
+  const list = (sheetNames || []).map(n =>
+    `<code style="background:#fff; padding:1px 6px; border-radius:3px; border:1px solid var(--border)">${escapeHtml(n)}</code>`
+  ).join(' · ') || '<i>nenhuma</i>';
+  if (foundSheet) {
+    empty.innerHTML = `
+      <p style="margin:0 0 8px"><b>Aba <code>${escapeHtml(foundSheet)}</code> encontrada</b>, mas não foi possível processá-la.</p>
+      <p style="margin:0 0 10px; font-size:12px">${errorMsg ? escapeHtml(errorMsg) : 'Erro desconhecido'}</p>
+      <p style="margin:0; font-size:12px">Verifique se o cabeçalho tem as colunas <b>OS</b>, <b>Cliente</b> e <b>Valor Total</b> (qualquer aliás aceito) na primeira linha da aba.</p>`;
+  } else {
+    empty.innerHTML = `
+      <p style="margin:0 0 8px"><b>Aba <code>Mes_corrente</code> não encontrada</b> no arquivo carregado.</p>
+      <p style="margin:0 0 10px; font-size:12px">Abas detectadas: ${list}</p>
+      <p style="margin:0 0 6px; font-size:12px"><b>Se você acabou de criar a aba:</b></p>
+      <ol style="margin:0 0 10px; padding-left:22px; font-size:12px; text-align:left; display:inline-block">
+        <li>Salve o arquivo no Excel</li>
+        <li>Se usa GitHub: faça <b>commit</b> e <b>push</b> da versão atualizada</li>
+        <li>Aguarde 1–5 min (cache do CDN do GitHub) <i>ou</i> faça Ctrl+Shift+R</li>
+        <li>Clique em <b>Recarregar</b> no topo do dashboard</li>
+      </ol>
+      <p style="margin:0; font-size:12px">Alternativamente, clique em <b>📂 Carregar Excel</b> acima e selecione o arquivo local diretamente — funciona offline e ignora o cache remoto.</p>`;
+  }
+}
+
+// Shared post-parse routine — updates state, UI and triggers rendering.
+function finalizeMonthLoad(result, sourceLabel) {
+  if (!result.period || !result.osRows.length) {
+    throw new Error('Não foi possível identificar OSs — verifique o formato da planilha.');
+  }
+  state.monthData = result;
+  document.getElementById('monthFileInfo').innerHTML =
+    `<b>${escapeHtml(sourceLabel)}</b> — ${FORMATTERS.int.format(result.osRows.length)} OSs`
+    + (result.empresa ? ' · ' + escapeHtml(result.empresa) : '')
+    + ` · Período ${FORMATTERS.date.format(result.period.from)} a ${FORMATTERS.date.format(result.period.to)}`
+    + (result.sheetName ? ` · Aba: <code>${escapeHtml(result.sheetName)}</code>` : '');
+  document.getElementById('monthPeriodBadge').textContent =
+    `${String(result.period.from.getUTCMonth()+1).padStart(2,'0')}/${result.period.from.getUTCFullYear()}`;
+  document.getElementById('monthReloadBtn').disabled = false;
+  document.getElementById('monthEmpty').style.display = 'none';
+  document.getElementById('monthContent').style.display = 'block';
+
+  state.monthMeta = loadMonthMeta(result.period);
+  document.getElementById('monthMetaInput').value = state.monthMeta.metaMensal || '';
+
+  renderMonthView();
+  addCardPrintButtons();
+}
+
+// =====================================================================
+//  Render functions for the Visão Mês Atual view
+// =====================================================================
+
+function renderMonthView() {
+  if (!state.monthData) return;
+  renderMonthKpis();
+  renderMonthDailyChart();
+  renderMonthMetaSection();
+  renderMonthOperationChart();
+  renderMonthTopClients();
+  renderMonthOSTable();
+}
+
+function renderMonthKpis() {
+  const { osRows, period } = state.monthData;
+  let realizadoFat = 0;       // R$ realizado em OSs totalmente faturadas
+  let realizadoParcial = 0;   // R$ realizado em OSs parcialmente faturadas
+  let osFaturadas = 0, osParciais = 0, osProducao = 0, osAbertas = 0;
+  let leadSum = 0, leadCnt = 0;
+
+  for (const r of osRows) {
+    const status = getOSStatus(r);
+    if (status === 'faturada') {
+      osFaturadas++;
+      realizadoFat += osBilledValue(r);
+      const billedDate = osBilledDate(r);
+      if (r.aberturaRecepcao && billedDate) {
+        const d = (billedDate - r.aberturaRecepcao) / 86400000;
+        if (d >= 0 && d < 365) { leadSum += d; leadCnt++; }
+      }
+    } else if (status === 'faturadaParcial') {
+      osParciais++;
+      realizadoParcial += osBilledValue(r);
+    } else if (status === 'producao') osProducao++;
+    else                              osAbertas++;
+  }
+  const realizado = realizadoFat + realizadoParcial;
+  const osFatTotal = osFaturadas + osParciais;
+  const ticket = osFatTotal ? realizado / osFatTotal : 0;
+  const periodDays = Math.max(1, Math.round((period.to - period.from) / 86400000) + 1);
+  const dailyAvg = realizado / periodDays;
+  const leadAvg = leadCnt ? leadSum / leadCnt : 0;
+
+  const kpis = [
+    { label: 'Faturamento realizado',  value: FORMATTERS.brl.format(realizado),     sub: `Inclui R$ ${FORMATTERS.int.format(realizadoParcial)} de parciais` },
+    { label: 'Total de OSs',           value: FORMATTERS.int.format(osRows.length), sub: '&nbsp;' },
+    { label: 'OSs Faturadas',          value: FORMATTERS.int.format(osFaturadas),
+      sub: `${osRows.length ? ((osFaturadas/osRows.length)*100).toFixed(1) : 0}% do total` },
+    { label: 'OSs Faturadas Parcial',  value: FORMATTERS.int.format(osParciais),
+      sub: 'Peças e Serviços, falta 1' },
+    { label: 'OSs Em Produção',        value: FORMATTERS.int.format(osProducao),    sub: 'Conf. ou Produção iniciada' },
+    { label: 'OSs Abertas',            value: FORMATTERS.int.format(osAbertas),     sub: 'Sem início de produção' },
+    { label: 'Ticket Médio',           value: FORMATTERS.brl.format(ticket),        sub: 'Realizado / OSs faturadas' },
+    { label: 'Lead time médio',        value: leadAvg.toFixed(1) + ' dias',         sub: 'Abertura → último faturamento' },
+  ];
+  document.getElementById('monthKpis').innerHTML = kpis.map(k => `
+    <div class="kpi">
+      <div class="label">${k.label}</div>
+      <div class="value">${k.value}</div>
+      <div class="sub">${k.sub}</div>
+    </div>`).join('');
+}
+
+function renderMonthMetaSection() {
+  const { osRows, period } = state.monthData;
+  const meta = state.monthMeta || {};
+  const metaMensal = +meta.metaMensal || 0;
+
+  let realizado = 0;
+  for (const r of osRows) realizado += osBilledValue(r);
+
+  const year  = period.from.getUTCFullYear();
+  const month = period.from.getUTCMonth() + 1;
+  const totalBizDays = countBusinessDays(year, month);
+
+  // Days elapsed: from start of month to today or period.to, whichever is earlier
+  const now = new Date();
+  const monthStart = new Date(Date.UTC(year, month - 1, 1));
+  const monthEnd   = new Date(Date.UTC(year, month, 0));
+  const refToday   = (now < monthEnd) ? now : monthEnd;
+  let bizElapsed = 0;
+  for (let d = new Date(monthStart); d <= refToday; d = new Date(d.getTime() + 86400000)) {
+    const dow = d.getUTCDay();
+    if (dow !== 0 && dow !== 6) bizElapsed++;
+  }
+
+  const metaDiaria = totalBizDays ? metaMensal / totalBizDays : 0;
+  const metaProRata = metaDiaria * bizElapsed;
+  const projecao = bizElapsed > 0 ? (realizado / bizElapsed) * totalBizDays : 0;
+  const pctMensal  = metaMensal  ? (realizado / metaMensal)  * 100 : 0;
+  const pctProRata = metaProRata ? (realizado / metaProRata) * 100 : 0;
+
+  const pillProRata = pctProRata >= 100 ? 'good' : pctProRata >= 80 ? 'warn' : 'bad';
+  const pillProjecao = (metaMensal && projecao >= metaMensal) ? 'good'
+                     : (metaMensal && projecao >= metaMensal*0.9) ? 'warn' : 'bad';
+
+  const kpis = [
+    { label: 'Meta Mensal',          value: FORMATTERS.brl.format(metaMensal),  sub: `${totalBizDays} dias úteis no mês` },
+    { label: 'Meta Diária',          value: FORMATTERS.brl.format(metaDiaria),  sub: 'Mensal ÷ dias úteis' },
+    { label: 'Meta acumulada',       value: FORMATTERS.brl.format(metaProRata), sub: `${bizElapsed} dia(s) útil(eis) decorridos` },
+    { label: 'Realizado',            value: FORMATTERS.brl.format(realizado),   sub: 'OSs faturadas' },
+    { label: '% da meta mensal',     value: pctMensal.toFixed(1) + '%',
+      sub: `<span class="pill ${pctMensal>=100?'good':pctMensal>=80?'warn':'bad'}">${pctMensal>=100?'✓ atingida':pctMensal>=80?'próximo':'em construção'}</span>` },
+    { label: '% pro-rata',           value: pctProRata.toFixed(1) + '%',
+      sub: `<span class="pill ${pillProRata}">${pctProRata>=100?'✓ acima do esperado':pctProRata>=80?'no ritmo':'abaixo do ritmo'}</span>` },
+    { label: 'Projeção fim do mês',  value: FORMATTERS.brl.format(projecao),
+      sub: metaMensal ? `<span class="pill ${pillProjecao}">${((projecao/metaMensal)*100).toFixed(1)}% da meta</span>` : '&nbsp;' },
+  ];
+  document.getElementById('monthMetaKpis').innerHTML = kpis.map(k => `
+    <div class="kpi suggestion">
+      <div class="label">${k.label}</div>
+      <div class="value">${k.value}</div>
+      <div class="sub">${k.sub}</div>
+    </div>`).join('');
+
+  renderMonthMetaChart(metaMensal, totalBizDays, monthStart, monthEnd);
+}
+
+function renderMonthMetaChart(metaMensal, totalBizDays, monthStart, monthEnd) {
+  const { osRows } = state.monthData;
+  const metaPerBizDay = totalBizDays ? metaMensal / totalBizDays : 0;
+  const dailyRealized = new Map();
+  for (const r of osRows) {
+    const d = osBilledDate(r);
+    const v = osBilledValue(r);
+    if (d && v) {
+      const k = ymd(d);
+      dailyRealized.set(k, (dailyRealized.get(k) || 0) + v);
+    }
+  }
+  const labels = [], realized = [], meta = [];
+  let cumR = 0, cumM = 0;
+  for (let d = new Date(monthStart); d <= monthEnd; d = new Date(d.getTime() + 86400000)) {
+    const k = ymd(d);
+    labels.push(`${String(d.getUTCDate()).padStart(2,'0')}/${String(d.getUTCMonth()+1).padStart(2,'0')}`);
+    cumR += (dailyRealized.get(k) || 0);
+    const dow = d.getUTCDay();
+    if (dow !== 0 && dow !== 6) cumM += metaPerBizDay;
+    realized.push(cumR);
+    meta.push(cumM);
+  }
+  destroy('monthMeta');
+  state.charts.monthMeta = new Chart(document.getElementById('monthMetaChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Meta acumulada',      data: meta,     borderColor: 'rgba(220,38,38,0.9)', backgroundColor: 'transparent', borderWidth: 2, borderDash: [6,5], pointRadius: 0, tension: 0 },
+        { label: 'Realizado acumulado', data: realized, borderColor: COLORS.primaryBorder,  backgroundColor: 'rgba(79,70,229,0.12)', borderWidth: 2, fill: true, tension: 0.25, pointRadius: 0 },
+      ]
+    },
+    options: baseOptions()
+  });
+}
+
+function renderMonthDailyChart() {
+  const { osRows, period } = state.monthData;
+  const monthStart = new Date(Date.UTC(period.from.getUTCFullYear(), period.from.getUTCMonth(), 1));
+  const monthEnd   = new Date(Date.UTC(period.from.getUTCFullYear(), period.from.getUTCMonth() + 1, 0));
+  const abertas = new Map(), faturadas = new Map(), parciais = new Map();
+  for (const r of osRows) {
+    if (r.aberturaRecepcao) {
+      const k = ymd(r.aberturaRecepcao);
+      abertas.set(k, (abertas.get(k)||0) + 1);
+    }
+    const status = getOSStatus(r);
+    const d = osBilledDate(r);
+    if (d && (status === 'faturada' || status === 'faturadaParcial')) {
+      const k = ymd(d);
+      if (status === 'faturada') faturadas.set(k, (faturadas.get(k)||0) + 1);
+      else                       parciais.set(k,  (parciais.get(k)||0)  + 1);
+    }
+  }
+  const labels = [], aArr = [], fArr = [], pArr = [];
+  for (let d = new Date(monthStart); d <= monthEnd; d = new Date(d.getTime() + 86400000)) {
+    const k = ymd(d);
+    labels.push(`${String(d.getUTCDate()).padStart(2,'0')}/${String(d.getUTCMonth()+1).padStart(2,'0')}`);
+    aArr.push(abertas.get(k) || 0);
+    fArr.push(faturadas.get(k) || 0);
+    pArr.push(parciais.get(k) || 0);
+  }
+  destroy('monthDaily');
+  state.charts.monthDaily = new Chart(document.getElementById('monthDailyChart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'OSs Abertas',            data: aArr, backgroundColor: COLORS.accent4 },
+        { label: 'OSs Faturadas',          data: fArr, backgroundColor: COLORS.green   },
+        { label: 'OSs Faturadas Parcial',  data: pArr, backgroundColor: 'rgba(245,158,11,0.85)' },
+      ]
+    },
+    options: baseOptions({
+      scales: {
+        x: { ticks: { color: CHART_TXT, font: { size: 11 } }, grid: { color: 'transparent' } },
+        y: { ticks: { color: CHART_TXT, font: { size: 11 }, callback: v => FORMATTERS.int.format(v) }, grid: { color: CHART_GRID }, beginAtZero: true }
+      },
+      plugins: {
+        legend: { labels: { color: CHART_TXT, font: { size: 11 }, boxWidth: 10, boxHeight: 10, padding: 14, usePointStyle: true } },
+        tooltip: {
+          backgroundColor: '#111827', titleColor: '#fff', bodyColor: '#f3f4f6',
+          padding: 10, cornerRadius: 6, displayColors: false,
+          callbacks: { label: ctx => `${ctx.dataset.label}: ${FORMATTERS.int.format(ctx.parsed.y)}` }
+        }
+      }
+    })
+  });
+}
+
+function renderMonthOperationChart() {
+  const map = new Map();
+  for (const r of state.monthData.osRows) {
+    const k = r.operation ? `${r.operation.code} ${r.operation.name}` : '— sem operação —';
+    map.set(k, (map.get(k) || 0) + r.valorTotal);
+  }
+  const sorted = [...map.entries()].sort((a,b) => b[1] - a[1]);
+  destroy('monthOp');
+  state.charts.monthOp = new Chart(document.getElementById('monthOpChart'), {
+    type: 'bar',
+    data: {
+      labels: sorted.map(s => s[0]),
+      datasets: [{
+        label: 'Faturamento',
+        data: sorted.map(s => s[1]),
+        backgroundColor: COLORS.primary,
+        borderRadius: 4, maxBarThickness: 22,
+      }]
+    },
+    options: horizontalBarOptions({
+      tooltipLabel: ctx => `${ctx.label}: ${FORMATTERS.brl.format(ctx.parsed.x)}`
+    })
+  });
+}
+
+function renderMonthTopClients() {
+  const agg = new Map();
+  for (const r of state.monthData.osRows) {
+    if (!r.cliente) continue;
+    if (!agg.has(r.cliente)) agg.set(r.cliente, { rev: 0, count: 0 });
+    const a = agg.get(r.cliente);
+    // Realizado (only what was actually billed)
+    a.rev += osBilledValue(r);
+    a.count++;
+  }
+  const top = [...agg.entries()]
+    .map(([c, m]) => ({ cliente: c, rev: m.rev, count: m.count, ticket: m.count ? m.rev/m.count : 0 }))
+    .sort((a,b) => b.rev - a.rev)
+    .slice(0, 10);
+  document.getElementById('monthTopClients').innerHTML = `
+    <table>
+      <thead><tr><th>#</th><th>Cliente</th><th class="num">OSs</th><th class="num">Faturamento</th><th class="num">Ticket</th></tr></thead>
+      <tbody>
+        ${top.map((t,i) => `
+          <tr>
+            <td>${i+1}</td>
+            <td>${escapeHtml(t.cliente)}</td>
+            <td class="num">${FORMATTERS.int.format(t.count)}</td>
+            <td class="num">${FORMATTERS.brl.format(t.rev)}</td>
+            <td class="num">${FORMATTERS.brl.format(t.ticket)}</td>
+          </tr>`).join('') || '<tr><td colspan="5" class="small">Sem dados.</td></tr>'}
+      </tbody>
+    </table>`;
+}
+
+function renderMonthOSTable() {
+  const status = document.getElementById('monthFilterStatus').value;
+  const search = (document.getElementById('monthFilterSearch').value || '').trim().toLowerCase();
+  let rows = state.monthData.osRows;
+  if (status) rows = rows.filter(r => getOSStatus(r) === status);
+  if (search) rows = rows.filter(r =>
+    (r.os || '').toLowerCase().includes(search) ||
+    (r.cliente || '').toLowerCase().includes(search) ||
+    (r.placa || '').toLowerCase().includes(search) ||
+    (r.modelo || '').toLowerCase().includes(search) ||
+    (r.veiculo || '').toLowerCase().includes(search));
+
+  document.getElementById('monthOSCount').textContent =
+    `${FORMATTERS.int.format(rows.length)} OSs`;
+
+  const visible = rows.slice(0, 300);
+  document.getElementById('monthOSTable').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>OS</th><th>Cliente</th><th>Operação</th><th>Modelo/Veículo</th><th>Placa</th>
+        <th class="num">Abertura</th><th class="num">Faturamento</th>
+        <th>Status</th>
+        <th class="num">Peças</th><th class="num">Serv.</th><th class="num">Terc.</th>
+        <th class="num">Total</th><th class="num">Realizado</th>
+      </tr></thead>
+      <tbody>
+        ${visible.map(r => {
+          const st = getOSStatus(r);
+          const billedDate = osBilledDate(r);
+          const billedValue = osBilledValue(r);
+          // Indicators ✓/× per component when partial
+          const pIcon = (r.valorPecas    > 0) ? (r.faturamentoPecas    ? ' <span class="good-text" title="Faturada">✓</span>' : ' <span class="danger-text" title="Não faturada">×</span>') : '';
+          const sIcon = (r.valorServicos > 0) ? (r.faturamentoServicos ? ' <span class="good-text" title="Faturada">✓</span>' : ' <span class="danger-text" title="Não faturada">×</span>') : '';
+          return `<tr>
+            <td><b>${escapeHtml(r.os)}</b></td>
+            <td>${escapeHtml(r.cliente)}</td>
+            <td class="nowrap">${r.operation ? escapeHtml(r.operation.code) : ''}</td>
+            <td>${escapeHtml(r.modelo)} ${escapeHtml(r.veiculo)}</td>
+            <td>${escapeHtml(r.placa)}</td>
+            <td class="num">${r.aberturaRecepcao ? FORMATTERS.date.format(r.aberturaRecepcao) : '—'}</td>
+            <td class="num">${billedDate ? FORMATTERS.date.format(billedDate) : '—'}</td>
+            <td><span class="pill ${STATUS_PILL[st]}">${STATUS_LABEL[st] || st}</span></td>
+            <td class="num">${FORMATTERS.brlF.format(r.valorPecas)}${pIcon}</td>
+            <td class="num">${FORMATTERS.brlF.format(r.valorServicos)}${sIcon}</td>
+            <td class="num">${FORMATTERS.brlF.format(r.valorTerceiros)}</td>
+            <td class="num"><b>${FORMATTERS.brlF.format(r.valorTotal)}</b></td>
+            <td class="num ${billedValue > 0 ? 'good-text' : ''}">${FORMATTERS.brlF.format(billedValue)}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+    ${rows.length > visible.length ? `<p class="small" style="padding:8px">Mostrando 300 de ${FORMATTERS.int.format(rows.length)}. Refine a busca para filtrar.</p>` : ''}
+  `;
+}
+
 // ---------- master render ----------
 function renderAll() {
   renderKpis();
@@ -4234,6 +5885,7 @@ function renderAll() {
   renderOSChart();
   renderCityChart();
   renderSellerChart();
+  renderVehicleChart();
   renderSellerDiscountChart();
   renderDiscountRankings();
   renderComparativo();

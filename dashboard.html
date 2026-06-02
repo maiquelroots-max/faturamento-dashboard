@@ -843,7 +843,7 @@
         <button class="active" data-view="overview">Visão Geral</button>
         <button data-view="sellers">Análise por Vendedor</button>
         <button data-view="clients">Análise por Cliente</button>
-        <button data-view="month">Visão Mês Atual</button>
+        <!-- Tab "Visão Mês Atual" desativada — código preservado em view-month caso seja reativado depois -->
       </nav>
 
       <div id="view-overview" class="view">
@@ -904,6 +904,23 @@
           <div class="chart-wrap"><canvas id="osChart"></canvas></div>
           <p class="small">Usa as datas de Abertura e Faturamento de cada OS no filtro.</p>
         </div>
+      </div>
+
+      <div class="card">
+        <div class="toolbar-flex">
+          <h3>Evolução do Faturamento por Tipo</h3>
+          <div class="controls">
+            <label class="small">Granularidade</label>
+            <select id="tipoEvolGran">
+              <option value="month" selected>Mensal</option>
+              <option value="quarter">Trimestral</option>
+              <option value="semester">Semestral</option>
+              <option value="year">Anual</option>
+            </select>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="tipoEvolChart"></canvas></div>
+        <p class="small">Três séries (Peças · Serviços · Terceiros) sobre o tempo, no nível escolhido. Respeita os filtros laterais e os checkboxes de Tipo de Faturamento. <b>Clique na legenda do gráfico</b> para ocultar/mostrar cada linha individualmente.</p>
       </div>
 
       <div class="grid two">
@@ -1029,6 +1046,72 @@
           </div>
           <p class="small" style="margin:0 0 10px">Top 20 vendedores pelo faturamento do <b>ano mais recente</b>, com valores e participação dos últimos 4 anos. Aplica filtros de Empresa, Operação, Negócio e Cidade (ignora período e filtro de Vendedor).</p>
           <div id="sellersAnnualRanking" class="scroll-x"></div>
+        </div>
+
+        <!-- Aquisição e Reativação de Clientes — sempre visível na aba de vendedor.
+             Quando um vendedor focal é escolhido, filtra para os clientes dele;
+             sem focal, mostra o time inteiro. Usa Sheet1 (state.rows). -->
+        <div class="card no-print">
+          <div class="toolbar-flex">
+            <h3>Aquisição e Reativação de Clientes <span class="badge" id="sellerAcqMonthBadge"></span></h3>
+            <div class="controls">
+              <label class="small">Reativado: sem comprar há mais de</label>
+              <select id="sellerReactivationMonths">
+                <option value="6">6 meses</option>
+                <option value="12" selected>1 ano</option>
+                <option value="18">18 meses</option>
+                <option value="24">2 anos</option>
+                <option value="36">3 anos</option>
+              </select>
+              <button class="btn secondary" id="printSellerAcquisition">🖨 Imprimir</button>
+            </div>
+          </div>
+          <p class="small" style="margin:0 0 10px"><span id="sellerAcqContext"></span> O <b>mês de referência</b> é detectado automaticamente como o último mês com faturamento na base histórica do <code>Faturamento_Geral_V2</code> (Sheet1). Aplica filtros laterais (exceto Período e Vendedor).</p>
+          <div class="kpis" id="sellerAcquisitionKpis" style="margin-bottom:14px"></div>
+          <div class="grid two">
+            <div>
+              <h4>Clientes Novos <span class="badge" id="sellerNovosCount"></span></h4>
+              <div id="sellerNovosTable" class="scroll-x"></div>
+            </div>
+            <div>
+              <h4>Clientes Reativados <span class="badge" id="sellerReativadosCount"></span></h4>
+              <div id="sellerReativadosTable" class="scroll-x"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Movimento da Base de Clientes (Novos × Perdidos por período) -->
+        <div class="card no-print">
+          <div class="toolbar-flex">
+            <h3>Movimento da Base de Clientes <span class="badge" id="movPeriodBadge"></span></h3>
+            <div class="controls">
+              <label class="small">Período (últimos)</label>
+              <select id="movPeriodMonths">
+                <option value="3">3 meses</option>
+                <option value="6">6 meses</option>
+                <option value="12" selected>12 meses</option>
+                <option value="24">24 meses</option>
+                <option value="36">36 meses</option>
+              </select>
+              <button class="btn secondary" id="printClientMovement">🖨 Imprimir</button>
+            </div>
+          </div>
+          <p class="small" style="margin:0 0 10px">
+            <b>Novo</b> = cliente cuja primeira compra ocorreu dentro do período.
+            <b>Perdido</b> = cliente que já comprava antes do período mas <b>não</b> comprou nenhuma vez dentro dele.
+            <span id="movContext"></span>
+          </p>
+          <div class="kpis" id="movementKpis" style="margin-bottom:14px"></div>
+          <div class="grid two">
+            <div>
+              <h4>Clientes Novos <span class="badge" id="movNovosCount"></span></h4>
+              <div id="movNovosTable" class="scroll-x"></div>
+            </div>
+            <div>
+              <h4>Clientes Perdidos <span class="badge" id="movPerdidosCount"></span></h4>
+              <div id="movPerdidosTable" class="scroll-x"></div>
+            </div>
+          </div>
         </div>
 
         <div id="sellerEmptyState" class="seller-empty">
@@ -1263,22 +1346,47 @@
 
         <div id="monthContent" style="display:none">
 
-          <!-- KPIs do mês -->
+          <!-- Resumo: Meta / Realizado / Projetado -->
+          <div class="card">
+            <div class="toolbar-flex">
+              <h3>Resumo do mês <span class="badge">Cliente · 1100 / 1107</span></h3>
+            </div>
+            <p class="small" style="margin:0 0 10px">Considera apenas operações <b>1100 (Retífica Cliente)</b> e <b>1107 (Mecânica Cliente)</b>. As OS internas (1102, 1103, 1104, 1105, 1106…) aparecem em card separado mais abaixo.</p>
+            <div class="grid three" id="monthSummaryKpis"></div>
+          </div>
+
+          <!-- KPIs operacionais -->
           <div class="kpis" id="monthKpis"></div>
 
-          <!-- Meta -->
+          <!-- Meta (4 tipos) -->
           <div class="card">
             <div class="toolbar-flex">
               <h3>Meta de Faturamento</h3>
               <div class="controls">
-                <label class="small">Meta mensal R$</label>
-                <input type="number" id="monthMetaInput" placeholder="0" step="1000" style="width:140px">
                 <button class="btn secondary" id="monthMetaSave">Salvar meta</button>
+              </div>
+            </div>
+            <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px">
+              <div>
+                <label class="small" style="display:block; margin-bottom:4px">Meta Peças (R$)</label>
+                <input type="number" id="monthMetaPecas" placeholder="0" step="1000" style="width:100%; padding:7px 9px; border:1px solid var(--border); border-radius:6px; font-family:inherit; font-size:13px">
+              </div>
+              <div>
+                <label class="small" style="display:block; margin-bottom:4px">Meta Serviços (R$)</label>
+                <input type="number" id="monthMetaServicos" placeholder="0" step="1000" style="width:100%; padding:7px 9px; border:1px solid var(--border); border-radius:6px; font-family:inherit; font-size:13px">
+              </div>
+              <div>
+                <label class="small" style="display:block; margin-bottom:4px">Meta Terceiros (R$)</label>
+                <input type="number" id="monthMetaTerceiros" placeholder="0" step="1000" style="width:100%; padding:7px 9px; border:1px solid var(--border); border-radius:6px; font-family:inherit; font-size:13px">
+              </div>
+              <div>
+                <label class="small" style="display:block; margin-bottom:4px">Meta Total (R$)</label>
+                <input type="number" id="monthMetaTotal" placeholder="auto = soma" step="1000" style="width:100%; padding:7px 9px; border:1px solid var(--border); border-radius:6px; font-family:inherit; font-size:13px">
               </div>
             </div>
             <div class="kpis" id="monthMetaKpis" style="margin-bottom:14px"></div>
             <div class="chart-wrap"><canvas id="monthMetaChart"></canvas></div>
-            <p class="small">A meta diária é a meta mensal dividida pelos dias úteis do mês. A linha vermelha tracejada mostra a meta acumulada (incrementada nos dias úteis) e a azul mostra o realizado acumulado das OSs faturadas. Meta persistida por mês no navegador.</p>
+            <p class="small">Meta Total é auto-calculada (Peças+Serviços+Terceiros) se você deixar em branco. A linha verde mostra a <b>Projeção</b> = Realizado + OSs sinalizadas como "Este mês" na seção <i>Projeção do Mês</i> abaixo. Salvo por mês no navegador.</p>
           </div>
 
           <!-- Fluxo diário -->
@@ -1288,15 +1396,87 @@
             <p class="small">Abertas = data de Abertura Recepção. Faturadas = data de Fechamento Financeiro. Permite ver o ritmo de entrada × saída do mês.</p>
           </div>
 
-          <!-- Operações + Top clientes -->
-          <div class="grid two">
-            <div class="card">
-              <h3>Faturamento por Operação</h3>
-              <div class="chart-wrap" style="height:360px"><canvas id="monthOpChart"></canvas></div>
+          <!-- Top clientes do mês -->
+          <div class="card">
+            <h3>Top 10 clientes do mês</h3>
+            <div id="monthTopClients" class="scroll-x"></div>
+          </div>
+
+          <!-- Aquisição e Reativação de Clientes -->
+          <div class="card no-print">
+            <div class="toolbar-flex">
+              <h3>Aquisição e Reativação de Clientes</h3>
+              <div class="controls">
+                <label class="small">Reativado: sem comprar há mais de</label>
+                <select id="monthReactivationMonths">
+                  <option value="6">6 meses</option>
+                  <option value="12" selected>1 ano</option>
+                  <option value="18">18 meses</option>
+                  <option value="24">2 anos</option>
+                  <option value="36">3 anos</option>
+                </select>
+                <button class="btn secondary" id="printMonthAcquisition">🖨 Imprimir</button>
+              </div>
             </div>
-            <div class="card">
-              <h3>Top 10 clientes do mês</h3>
-              <div id="monthTopClients" class="scroll-x"></div>
+            <div class="kpis" id="monthAcquisitionKpis" style="margin-bottom:14px"></div>
+            <div class="grid two">
+              <div>
+                <h4>Clientes Novos <span class="badge" id="monthNovosCount"></span></h4>
+                <div id="monthNovosTable" class="scroll-x"></div>
+              </div>
+              <div>
+                <h4>Clientes Reativados <span class="badge" id="monthReativadosCount"></span></h4>
+                <div id="monthReativadosTable" class="scroll-x"></div>
+              </div>
+            </div>
+            <p class="small"><b>Novo</b>: cliente sem nenhum faturamento anterior na base histórica do <code>Faturamento_Geral_V2</code>. <b>Reativado</b>: cliente cuja última compra (antes do mês atual) foi há mais do que o período selecionado. Considera apenas OSs Cliente (1100/1107) faturadas no mês.</p>
+          </div>
+
+          <!-- Projeção do Mês: OSs em aberto com sinalização de previsão de faturamento -->
+          <div class="card no-print">
+            <div class="toolbar-flex">
+              <h3>Projeção do Mês <span class="badge" id="monthProjCount"></span></h3>
+              <div class="controls">
+                <label class="small">Status</label>
+                <select id="monthProjFilter">
+                  <option value="all">Todas em aberto</option>
+                  <option value="aberta">Abertas</option>
+                  <option value="producao">Em Produção</option>
+                  <option value="faturadaParcial">Faturadas Parcial</option>
+                  <option value="abandonada">Abandonadas</option>
+                </select>
+                <label class="small">Previsão</label>
+                <select id="monthProjFlagFilter">
+                  <option value="all">Todas</option>
+                  <option value="este">Este mês</option>
+                  <option value="prox">Próximo mês</option>
+                  <option value="unsure">Sem previsão</option>
+                  <option value="no">Não fechará</option>
+                </select>
+                <button class="btn secondary" id="printMonthProj">🖨 Imprimir</button>
+              </div>
+            </div>
+            <div class="kpis" id="monthProjSummary" style="margin-bottom:14px"></div>
+            <div id="monthProjTable" class="scroll-x lookup-table-wrap"></div>
+            <p class="small">Para cada OS em aberto, escolha se há previsão de faturamento <b>neste mês</b>, no <b>próximo</b> ou <b>sem previsão</b>. O comentário fica salvo localmente e aparece em todos os usos. Projeções alimentam a linha verde do gráfico de Meta acima.</p>
+          </div>
+
+          <!-- OS Internas: operações ≠ 1100/1107 (garantia, retrabalho, internas) -->
+          <div class="card">
+            <div class="toolbar-flex">
+              <h3>OS Internas <span class="badge" id="monthInternaCount"></span></h3>
+            </div>
+            <p class="small" style="margin:0 0 10px">Operações que não geram faturamento direto a cliente (1102 Garantia, 1103/1105 Manutenção Interna, 1104 Remanufatura, 1106 Retrabalho, etc.).</p>
+            <div class="kpis" id="monthInternaKpis" style="margin-bottom:14px"></div>
+            <div class="grid two">
+              <div>
+                <h4>Top operações</h4>
+                <div id="monthInternaOps" class="scroll-x"></div>
+              </div>
+              <div>
+                <h4>Detalhamento</h4>
+                <div id="monthInternaTable" class="scroll-x lookup-table-wrap" style="max-height: 360px"></div>
+              </div>
             </div>
           </div>
 
@@ -1312,7 +1492,19 @@
                   <option value="producao">Em produção</option>
                   <option value="faturadaParcial">Faturadas Parcial</option>
                   <option value="faturada">Faturadas</option>
+                  <option value="abandonada">Abandonadas (&gt;60 dias)</option>
                 </select>
+                <label class="small">Ordenar por</label>
+                <select id="monthSortBy">
+                  <option value="aberturaRecepcao">Data Recepção</option>
+                  <option value="osNum">Número OS</option>
+                  <option value="cliente">Cliente (A→Z)</option>
+                  <option value="billedDate">Data Faturamento</option>
+                  <option value="valorTotal">Valor Total</option>
+                  <option value="status">Status</option>
+                  <option value="daysOld">Dias em aberto</option>
+                </select>
+                <button class="btn secondary" id="monthSortDir" title="Inverter ordem">↓</button>
                 <input type="text" id="monthFilterSearch" placeholder="Buscar OS, cliente, placa…" style="min-width:240px; padding:5px 9px; font-size:12px; font-family:inherit; border:1px solid var(--border); border-radius: var(--radius-sm)">
               </div>
             </div>
@@ -1465,7 +1657,9 @@ const state = {
   vehicleDim: 'marca', // 'marca' | 'modelo' | 'motor'
   clientSet: null,
   monthData: null,   // { period, empresa, osRows }
-  monthMeta: null,   // { metaMensal }
+  monthMeta: null,   // { metaPecas, metaServicos, metaTerceiros, metaTotal }
+  monthSort:     { by: 'aberturaRecepcao', dir: 'desc' },  // OS Detail table
+  monthProjSort: { by: 'status',           dir: 'asc'  },  // Projeção do Mês table
   completeListSort:   { by: 'revenue', dir: 'desc' },
   completeListSearch: '',
 };
@@ -1878,8 +2072,8 @@ function initFilters() {
   inactSel.innerHTML = '<option value="">Todos os vendedores</option>' +
     sellers.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
 
-  // Date range from data
-  const dates = state.rows.map(r => r.data_faturamento).filter(Boolean).sort((a,b)=> a-b);
+  // Date range from data (Sheet1 + Mes_corrente when available)
+  const dates = getAllBillingDates().sort((a,b) => a - b);
   if (dates.length) {
     const lo = dates[0], hi = dates[dates.length-1];
     filterEls.dateFrom.min = ymd(lo); filterEls.dateFrom.max = ymd(hi);
@@ -1913,6 +2107,14 @@ function switchView(name) {
 }
 document.getElementById('focalSeller').addEventListener('change', renderSellersView);
 document.getElementById('focalClient').addEventListener('change', renderClientsView);
+
+// Seller view — Aquisição e Reativação de Clientes (card sempre visível)
+document.getElementById('sellerReactivationMonths').addEventListener('change', renderSellerAcquisition);
+document.getElementById('printSellerAcquisition').addEventListener('click', printSellerAcquisition);
+
+// Seller view — Movimento da Base de Clientes (Novos × Perdidos por período)
+document.getElementById('movPeriodMonths').addEventListener('change', renderClientMovement);
+document.getElementById('printClientMovement').addEventListener('click', printClientMovement);
 
 // =====================================================================
 // VISÃO MÊS ATUAL — wiring (file upload, drag & drop, meta, filters)
@@ -1948,22 +2150,49 @@ if (monthUploadCard) {
   });
 }
 
-// Save meta
-document.getElementById('monthMetaSave').addEventListener('click', () => {
+// Save meta (4 inputs)
+function saveMonthMetaFromInputs() {
   if (!state.monthData) return;
-  const v = parseFloat(document.getElementById('monthMetaInput').value) || 0;
-  state.monthMeta = { metaMensal: v };
-  saveMonthMetaToStorage(state.monthData.period, state.monthMeta);
+  const newMeta = {
+    metaPecas:     parseFloat(document.getElementById('monthMetaPecas').value)     || 0,
+    metaServicos:  parseFloat(document.getElementById('monthMetaServicos').value)  || 0,
+    metaTerceiros: parseFloat(document.getElementById('monthMetaTerceiros').value) || 0,
+    metaTotal:     parseFloat(document.getElementById('monthMetaTotal').value)     || 0,
+  };
+  state.monthMeta = newMeta;
+  saveMonthMetaToStorage(state.monthData.period, newMeta);
+  renderMonthSummaryHeader();
   renderMonthMetaSection();
-});
-document.getElementById('monthMetaInput').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') document.getElementById('monthMetaSave').click();
+}
+document.getElementById('monthMetaSave').addEventListener('click', saveMonthMetaFromInputs);
+['monthMetaPecas','monthMetaServicos','monthMetaTerceiros','monthMetaTotal'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') saveMonthMetaFromInputs();
+  });
 });
 
-// OS table filters
+// OS table filters + sort
 document.getElementById('monthFilterStatus').addEventListener('change', renderMonthOSTable);
 document.getElementById('monthFilterSearch').addEventListener('input',
   debounce(renderMonthOSTable, 200));
+document.getElementById('monthSortBy').addEventListener('change', (e) => {
+  state.monthSort.by = e.target.value;
+  renderMonthOSTable();
+});
+document.getElementById('monthSortDir').addEventListener('click', (e) => {
+  state.monthSort.dir = state.monthSort.dir === 'desc' ? 'asc' : 'desc';
+  e.target.textContent = state.monthSort.dir === 'desc' ? '↓' : '↑';
+  renderMonthOSTable();
+});
+
+// Projection filters + print
+document.getElementById('monthProjFilter').addEventListener('change', renderMonthProjections);
+document.getElementById('monthProjFlagFilter').addEventListener('change', renderMonthProjections);
+document.getElementById('printMonthProj').addEventListener('click', printMonthProjections);
+
+// Acquisition (Novos & Reativados)
+document.getElementById('monthReactivationMonths').addEventListener('change', renderMonthAcquisition);
+document.getElementById('printMonthAcquisition').addEventListener('click', printMonthAcquisition);
 document.getElementById('clearFocalClient').addEventListener('click', () => {
   document.getElementById('focalClient').value = '';
   renderClientsView();
@@ -1990,8 +2219,23 @@ document.getElementById('completeSearch').addEventListener('input', debounce(() 
 document.getElementById('printComplete').addEventListener('click', printCompleteClientList);
 document.getElementById('csvComplete').addEventListener('click', csvCompleteClientList);
 
-function applyPreset(preset) {
+// Collect billing dates from Sheet1 + Mes_corrente (if loaded). Used by the
+// date-range presets so "Mês atual" reflects the truly-latest month even when
+// Sheet1 hasn't been consolidated yet with the in-progress current month.
+function getAllBillingDates() {
   const dates = state.rows.map(r => r.data_faturamento).filter(Boolean);
+  if (state.monthData && state.monthData.osRows) {
+    for (const r of state.monthData.osRows) {
+      if (r.faturamentoPecas)     dates.push(r.faturamentoPecas);
+      if (r.faturamentoServicos)  dates.push(r.faturamentoServicos);
+      if (r.fechamentoFinanceiro) dates.push(r.fechamentoFinanceiro);
+    }
+  }
+  return dates;
+}
+
+function applyPreset(preset) {
+  const dates = getAllBillingDates();
   if (!dates.length) return;
   const max = new Date(Math.max(...dates));
   let from, to = max;
@@ -2140,8 +2384,13 @@ function renderKpis() {
   const tt = billingTypes();
   let totalRev = 0, totalLeadDays = 0, leadCount = 0, totalDiscPct = 0, discCount = 0;
   let totalDiscValue = 0;
+  // Breakdown by tipo de faturamento — shown as small lines under the main "Faturamento (filtro)" KPI.
+  let revPecas = 0, revServicos = 0, revTerceiros = 0;
   for (const r of rows) {
     totalRev += rowRevenue(r, tt);
+    if (tt.pecas)    revPecas    += r.venda_pecas    || 0;
+    if (tt.servicos) revServicos += r.venda_servicos || 0;
+    if (tt.terceiros)revTerceiros += r.venda_terceiros || 0;
     if (r.data_abertura && r.data_faturamento) {
       const days = (r.data_faturamento - r.data_abertura) / 86400000;
       if (days >= 0 && days < 365) { totalLeadDays += days; leadCount++; }
@@ -2158,8 +2407,19 @@ function renderKpis() {
   // confirm the parsed numbers match their pivot table totals.
   const baseTotal = state.rows.reduce((s, r) => s + (r.total_os || 0), 0);
 
+  // Breakdown by tipo — small multi-line sub showing Peças / Serviços / Terceiros
+  // with absolute value and % of total. Respects the Tipo de Faturamento checkboxes.
+  const pctOfTotal = (v) => totalRev > 0 ? ' <span style="color:var(--muted-2)">(' + ((v / totalRev) * 100).toFixed(1) + '%)</span>' : '';
+  const breakdownLines = [];
+  if (tt.pecas)     breakdownLines.push(`Peças <b>${FORMATTERS.brl.format(revPecas)}</b>${pctOfTotal(revPecas)}`);
+  if (tt.servicos)  breakdownLines.push(`Serviços <b>${FORMATTERS.brl.format(revServicos)}</b>${pctOfTotal(revServicos)}`);
+  if (tt.terceiros) breakdownLines.push(`Terceiros <b>${FORMATTERS.brl.format(revTerceiros)}</b>${pctOfTotal(revTerceiros)}`);
+  const breakdownHtml = breakdownLines.length
+    ? `<div style="line-height:1.55; font-size:11px; margin-top:2px">${breakdownLines.join('<br>')}</div>`
+    : tipoLabel(tt);
+
   const kpis = [
-    { label:'Faturamento (filtro)', value: FORMATTERS.brl.format(totalRev), sub: tipoLabel(tt) },
+    { label:'Faturamento (filtro)', value: FORMATTERS.brl.format(totalRev), sub: breakdownHtml },
     { label:'Total de OSs',          value: FORMATTERS.int.format(osCount),  sub: '&nbsp;' },
     { label:'Ticket Médio',          value: FORMATTERS.brl.format(ticket),   sub: 'Faturamento / OS' },
     { label:'Lead time médio',       value: leadAvg.toFixed(1) + ' dias',    sub: 'Abertura → Faturamento' },
@@ -2420,6 +2680,79 @@ function renderOSChart() {
         tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${FORMATTERS.int.format(ctx.parsed.y)}` } }
       }
     })
+  });
+}
+
+// Evolução do faturamento por tipo (Peças / Serviços / Terceiros) ao longo do tempo.
+// Granularidade: mês / trimestre / semestre / ano. Cada tipo é uma linha; legenda
+// do Chart.js permite ocultar/mostrar individualmente. Respeita o checkbox de Tipo.
+function renderTipoEvolutionChart() {
+  const rows = state.filtered;
+  const tt = billingTypes();
+  const granEl = document.getElementById('tipoEvolGran');
+  const gran = granEl ? granEl.value : 'month';
+
+  const mapPecas = new Map(), mapServicos = new Map(), mapTerceiros = new Map();
+  for (const r of rows) {
+    if (!r.data_faturamento) continue;
+    const d = r.data_faturamento;
+    let key;
+    if      (gran === 'quarter')  key = `${d.getUTCFullYear()}-Q${Math.floor(d.getUTCMonth()/3)+1}`;
+    else if (gran === 'semester') key = `${d.getUTCFullYear()}-S${d.getUTCMonth() < 6 ? 1 : 2}`;
+    else if (gran === 'year')     key = String(d.getUTCFullYear());
+    else                          key = ym(d);
+    if (tt.pecas)    mapPecas.set(key,    (mapPecas.get(key)    || 0) + (r.venda_pecas    || 0));
+    if (tt.servicos) mapServicos.set(key, (mapServicos.get(key) || 0) + (r.venda_servicos || 0));
+    if (tt.terceiros)mapTerceiros.set(key,(mapTerceiros.get(key)|| 0) + (r.venda_terceiros|| 0));
+  }
+  const allKeys = new Set([...mapPecas.keys(), ...mapServicos.keys(), ...mapTerceiros.keys()]);
+  const keys = [...allKeys].sort();
+  const labels = keys.map(k => {
+    if (gran === 'month') {
+      const [y, m] = k.split('-'); return `${MONTH_NAMES_PT[+m-1]}/${y.slice(-2)}`;
+    }
+    return k;
+  });
+
+  // When there are very few buckets (1–2), a line chart is hard to read
+  // (single-point series have nothing to draw between). Switch to grouped
+  // bars in that case — it visualises the breakdown by tipo much better.
+  const useBar = keys.length <= 2;
+
+  const datasets = [];
+  if (tt.pecas) datasets.push({
+    label: 'Peças',
+    data: keys.map(k => mapPecas.get(k) || 0),
+    borderColor: COLORS.primaryBorder,
+    backgroundColor: useBar ? COLORS.primary : 'rgba(79,70,229,0.10)',
+    borderWidth: 2, tension: 0.25,
+    pointRadius: 3, pointHoverRadius: 5,
+    fill: false,
+  });
+  if (tt.servicos) datasets.push({
+    label: 'Serviços',
+    data: keys.map(k => mapServicos.get(k) || 0),
+    borderColor: COLORS.secondaryBorder,
+    backgroundColor: useBar ? COLORS.secondary : 'rgba(14,165,233,0.10)',
+    borderWidth: 2, tension: 0.25,
+    pointRadius: 3, pointHoverRadius: 5,
+    fill: false,
+  });
+  if (tt.terceiros) datasets.push({
+    label: 'Terceiros',
+    data: keys.map(k => mapTerceiros.get(k) || 0),
+    borderColor: 'rgba(168,85,247,1)',
+    backgroundColor: useBar ? 'rgba(168,85,247,0.85)' : 'rgba(168,85,247,0.10)',
+    borderWidth: 2, tension: 0.25,
+    pointRadius: 3, pointHoverRadius: 5,
+    fill: false,
+  });
+
+  destroy('tipoEvol');
+  state.charts.tipoEvol = new Chart(document.getElementById('tipoEvolChart'), {
+    type: useBar ? 'bar' : 'line',
+    data: { labels, datasets },
+    options: baseOptions()
   });
 }
 
@@ -2864,6 +3197,7 @@ function renderComparativo() {
 document.getElementById('cmpApply').addEventListener('click', renderComparativo);
 document.getElementById('cmpGranularity').addEventListener('change', renderComparativo);
 document.getElementById('periodGran').addEventListener('change', renderPeriodChart);
+document.getElementById('tipoEvolGran').addEventListener('change', renderTipoEvolutionChart);
 
 // ---------- sugestões ----------
 function renderSuggestions() {
@@ -3111,6 +3445,8 @@ function renderSellersView() {
 
   // Annual ranking — sempre visível, independente de seleção focal
   renderSellersAnnualRanking();
+  renderSellerAcquisition();
+  renderClientMovement();
 
   const focal   = document.getElementById('focalSeller').value;
   const empty   = document.getElementById('sellerEmptyState');
@@ -3326,6 +3662,562 @@ function renderSellerBrandChart(focalRows, tt) {
     },
     options: doughnutOptions()
   });
+}
+
+// =====================================================================
+// Aquisição e Reativação de Clientes (Análise por Vendedor)
+// Usa o histórico do Sheet1 (state.rows). Mês de referência = último mês
+// com qualquer Data Faturamento na base. Pode filtrar para um vendedor focal.
+// =====================================================================
+function computeSellerAcquisition(monthsCutoff, focalSeller) {
+  if (!state.rows || !state.rows.length) return null;
+
+  // 1. Detectar o último mês com faturamento na base
+  let latest = null;
+  for (const r of state.rows) {
+    if (!r.data_faturamento) continue;
+    if (!latest || r.data_faturamento > latest) latest = r.data_faturamento;
+  }
+  if (!latest) return null;
+  const refMonthStart  = new Date(Date.UTC(latest.getUTCFullYear(), latest.getUTCMonth(),     1));
+  const nextMonthStart = new Date(Date.UTC(latest.getUTCFullYear(), latest.getUTCMonth() + 1, 1));
+  const reactivationCutoff = new Date(refMonthStart.getTime() - monthsCutoff * 30.4375 * 86400000);
+
+  // 2. Filtros laterais (exceto Período e Vendedor — vendedor é tratado abaixo).
+  const base = (typeof sellerViewBaseAllTime === 'function')
+    ? sellerViewBaseAllTime()
+    : state.rows;
+
+  // 3. Clientes faturados no mês de referência (agregados por cliente)
+  const currentMonthClients = new Map();
+  for (const r of base) {
+    if (!r.data_faturamento) continue;
+    if (r.data_faturamento < refMonthStart || r.data_faturamento >= nextMonthStart) continue;
+    const key = normClient(r.cliente);
+    if (!key) continue;
+    if (!currentMonthClients.has(key)) {
+      currentMonthClients.set(key, {
+        cliente: (r.cliente || '').trim(),
+        vendedor: r.vendedor || '',
+        firstBilledDate: r.data_faturamento,
+        totalBilled: 0,
+        osCount: 0,
+      });
+    }
+    const c = currentMonthClients.get(key);
+    // Use vendedor from the EARLIEST billing in the reference month
+    if (r.data_faturamento < c.firstBilledDate) {
+      c.firstBilledDate = r.data_faturamento;
+      c.vendedor = r.vendedor || c.vendedor;
+    }
+    c.totalBilled += r.total_os || 0;
+    c.osCount++;
+  }
+
+  // 4. Último faturamento ANTES do mês de referência (cross-seller)
+  const historicalLastBilled = new Map();
+  for (const r of base) {
+    if (!r.data_faturamento) continue;
+    if (r.data_faturamento >= refMonthStart) continue;
+    const key = normClient(r.cliente);
+    if (!key) continue;
+    const existing = historicalLastBilled.get(key);
+    if (!existing || r.data_faturamento > existing.date) {
+      historicalLastBilled.set(key, { date: r.data_faturamento, vendedor: r.vendedor || '' });
+    }
+  }
+
+  // 5. Classificar
+  const novos = [], reativados = [];
+  for (const [key, info] of currentMonthClients) {
+    if (focalSeller && info.vendedor !== focalSeller) continue;
+    const lastPrior = historicalLastBilled.get(key);
+    if (!lastPrior) {
+      novos.push({ ...info });
+    } else if (lastPrior.date < reactivationCutoff) {
+      const daysInactive = Math.floor((refMonthStart - lastPrior.date) / 86400000);
+      reativados.push({ ...info,
+        lastBilled: lastPrior.date,
+        daysInactive,
+        previousVendedor: lastPrior.vendedor,
+      });
+    }
+  }
+  return { novos, reativados, monthsCutoff, refMonthStart, focalSeller };
+}
+
+function renderSellerAcquisition() {
+  if (!state.rows.length) return;
+  const monthsSel = document.getElementById('sellerReactivationMonths');
+  if (!monthsSel) return; // card not rendered (e.g., view-month edge case)
+  const months = parseInt(monthsSel.value, 10) || 12;
+  const focal  = document.getElementById('focalSeller').value || '';
+  const result = computeSellerAcquisition(months, focal);
+  if (!result) return;
+
+  const novosRev      = result.novos.reduce((s, c) => s + c.totalBilled, 0);
+  const reativadosRev = result.reativados.reduce((s, c) => s + c.totalBilled, 0);
+  const monthLabel = `${String(result.refMonthStart.getUTCMonth() + 1).padStart(2,'0')}/${result.refMonthStart.getUTCFullYear()}`;
+  document.getElementById('sellerAcqMonthBadge').textContent = monthLabel;
+  document.getElementById('sellerAcqContext').innerHTML = focal
+    ? `Mostrando apenas clientes atribuídos a <b>${escapeHtml(focal)}</b>. Para ver a equipe inteira, limpe a seleção de vendedor focal.`
+    : `Mostrando <b>toda a equipe</b>. Selecione um vendedor focal acima para filtrar por vendedor.`;
+
+  const showVendedorCol = !focal;
+  const kpis = [
+    { label: 'Clientes Novos',
+      value: FORMATTERS.int.format(result.novos.length),
+      sub: novosRev > 0 ? FORMATTERS.brl.format(novosRev) + ' faturado' : 'Sem novos no mês' },
+    { label: 'Clientes Reativados',
+      value: FORMATTERS.int.format(result.reativados.length),
+      sub: `Sem comprar há mais de ${months} ${months === 1 ? 'mês' : 'meses'}` },
+    { label: 'Faturamento Reativados',
+      value: FORMATTERS.brl.format(reativadosRev),
+      sub: `${result.reativados.length} cliente(s)` },
+    { label: 'Total Conquistado',
+      value: FORMATTERS.brl.format(novosRev + reativadosRev),
+      sub: `${result.novos.length + result.reativados.length} cliente(s) · Novos + Reativados` },
+  ];
+  document.getElementById('sellerAcquisitionKpis').innerHTML = kpis.map(k => `
+    <div class="kpi">
+      <div class="label">${k.label}</div>
+      <div class="value">${k.value}</div>
+      <div class="sub">${k.sub}</div>
+    </div>`).join('');
+
+  document.getElementById('sellerNovosCount').textContent      = result.novos.length;
+  document.getElementById('sellerReativadosCount').textContent = result.reativados.length;
+
+  // Novos table
+  document.getElementById('sellerNovosTable').innerHTML = result.novos.length ? `
+    <table>
+      <thead><tr>
+        <th>#</th><th>Cliente</th>
+        ${showVendedorCol ? '<th>Vendedor</th>' : ''}
+        <th class="num">1ª compra</th>
+        <th class="num">OSs</th>
+        <th class="num">Faturado</th>
+      </tr></thead>
+      <tbody>
+        ${result.novos
+          .slice()
+          .sort((a, b) => b.totalBilled - a.totalBilled)
+          .map((c, i) => `
+          <tr>
+            <td>${i + 1}</td>
+            <td>${escapeHtml(c.cliente)}</td>
+            ${showVendedorCol ? `<td>${escapeHtml(c.vendedor)}</td>` : ''}
+            <td class="num">${FORMATTERS.date.format(c.firstBilledDate)}</td>
+            <td class="num">${FORMATTERS.int.format(c.osCount)}</td>
+            <td class="num">${FORMATTERS.brl.format(c.totalBilled)}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`
+    : '<p class="small" style="padding:12px">Nenhum cliente novo no mês de referência.</p>';
+
+  // Reativados table
+  document.getElementById('sellerReativadosTable').innerHTML = result.reativados.length ? `
+    <table>
+      <thead><tr>
+        <th>#</th><th>Cliente</th>
+        ${showVendedorCol ? '<th>Vendedor</th>' : ''}
+        <th class="num">Última compra</th>
+        <th class="num">Dias inativo</th>
+        <th class="num">Faturado</th>
+      </tr></thead>
+      <tbody>
+        ${result.reativados
+          .slice()
+          .sort((a, b) => b.daysInactive - a.daysInactive)
+          .map((c, i) => `
+          <tr>
+            <td>${i + 1}</td>
+            <td>${escapeHtml(c.cliente)}</td>
+            ${showVendedorCol ? `<td>${escapeHtml(c.vendedor)}</td>` : ''}
+            <td class="num">${FORMATTERS.date.format(c.lastBilled)}</td>
+            <td class="num">${FORMATTERS.int.format(c.daysInactive)}</td>
+            <td class="num">${FORMATTERS.brl.format(c.totalBilled)}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`
+    : `<p class="small" style="padding:12px">Nenhum cliente reativado com o critério atual (${months} mês${months === 1 ? '' : 'es'}).</p>`;
+}
+
+function printSellerAcquisition() {
+  if (!state.rows.length) return;
+  const monthsSel = document.getElementById('sellerReactivationMonths');
+  if (!monthsSel) return;
+  const months = parseInt(monthsSel.value, 10) || 12;
+  const focal  = document.getElementById('focalSeller').value || '';
+  const result = computeSellerAcquisition(months, focal);
+  if (!result) return;
+
+  const novosRev      = result.novos.reduce((s, c) => s + c.totalBilled, 0);
+  const reativadosRev = result.reativados.reduce((s, c) => s + c.totalBilled, 0);
+  const novosSorted      = result.novos.slice().sort((a, b) => b.totalBilled - a.totalBilled);
+  const reativadosSorted = result.reativados.slice().sort((a, b) => b.daysInactive - a.daysInactive);
+  const monthLabel = `${String(result.refMonthStart.getUTCMonth() + 1).padStart(2,'0')}/${result.refMonthStart.getUTCFullYear()}`;
+  const showVend = !focal;
+  const now = new Date();
+
+  const html = `
+    <h1>Clientes Novos &amp; Reativados — ${monthLabel}</h1>
+    <p class="meta">
+      Gerado em ${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })}
+      ${state.fileName ? ' · Fonte: ' + escapeHtml(state.fileName) : ''}<br>
+      ${focal ? 'Vendedor focal: <b>' + escapeHtml(focal) + '</b>' : 'Equipe inteira'}<br>
+      Critério "Reativado": sem comprar há mais de <b>${months} mês${months === 1 ? '' : 'es'}</b>
+    </p>
+
+    <h2 style="font-size:11pt">Resumo</h2>
+    <table style="width:auto; margin-bottom:6pt">
+      <tbody>
+        <tr><td><b>Clientes Novos</b></td><td class="num">${result.novos.length}</td><td class="num">${FORMATTERS.brl.format(novosRev)}</td></tr>
+        <tr><td><b>Clientes Reativados</b></td><td class="num">${result.reativados.length}</td><td class="num">${FORMATTERS.brl.format(reativadosRev)}</td></tr>
+        <tr><td><b>Total Conquistado</b></td><td class="num">${result.novos.length + result.reativados.length}</td><td class="num">${FORMATTERS.brl.format(novosRev + reativadosRev)}</td></tr>
+      </tbody>
+    </table>
+
+    <h2 style="font-size:11pt; margin-top:14pt">Clientes Novos (${result.novos.length})</h2>
+    <table>
+      <thead><tr>
+        <th>#</th>
+        <th>Cliente</th>
+        ${showVend ? '<th>Vendedor</th>' : ''}
+        <th class="num">1ª compra</th>
+        <th class="num">OSs no mês</th>
+        <th class="num">Faturado</th>
+      </tr></thead>
+      <tbody>
+        ${novosSorted.map((c, i) => `
+          <tr>
+            <td>${i + 1}</td>
+            <td>${escapeHtml(c.cliente)}</td>
+            ${showVend ? `<td>${escapeHtml(c.vendedor)}</td>` : ''}
+            <td class="num">${FORMATTERS.date.format(c.firstBilledDate)}</td>
+            <td class="num">${c.osCount}</td>
+            <td class="num">${FORMATTERS.brl.format(c.totalBilled)}</td>
+          </tr>`).join('') || `<tr><td colspan="${showVend?6:5}" class="small">Nenhum cliente novo.</td></tr>`}
+      </tbody>
+    </table>
+
+    <h2 style="font-size:11pt; margin-top:14pt">Clientes Reativados (${result.reativados.length})</h2>
+    <table>
+      <thead><tr>
+        <th>#</th>
+        <th>Cliente</th>
+        ${showVend ? '<th>Vendedor</th>' : ''}
+        <th class="num">Última compra</th>
+        <th class="num">Dias inativo</th>
+        <th class="num">OSs no mês</th>
+        <th class="num">Faturado</th>
+      </tr></thead>
+      <tbody>
+        ${reativadosSorted.map((c, i) => `
+          <tr>
+            <td>${i + 1}</td>
+            <td>${escapeHtml(c.cliente)}</td>
+            ${showVend ? `<td>${escapeHtml(c.vendedor)}</td>` : ''}
+            <td class="num">${FORMATTERS.date.format(c.lastBilled)}</td>
+            <td class="num">${c.daysInactive}</td>
+            <td class="num">${c.osCount}</td>
+            <td class="num">${FORMATTERS.brl.format(c.totalBilled)}</td>
+          </tr>`).join('') || `<tr><td colspan="${showVend?7:6}" class="small">Nenhum cliente reativado.</td></tr>`}
+      </tbody>
+    </table>
+  `;
+  openPrintWindow(`Clientes Novos e Reativados — ${monthLabel}`, html, { orientation: 'portrait' });
+}
+
+// =====================================================================
+// Movimento da Base de Clientes — Novos × Perdidos no período
+// Diferente da "Aquisição e Reativação" (mês de referência fechado),
+// esta análise opera sobre uma JANELA configurável (3/6/12/24/36 meses)
+// terminando na última data com faturamento na base. Útil para churn analysis.
+// =====================================================================
+function computeClientMovement(months, focalSeller) {
+  if (!state.rows || !state.rows.length) return null;
+
+  // 1. Detect period end = latest billing date across Sheet1 + Mes_corrente
+  let latest = null;
+  for (const r of state.rows) {
+    if (r.data_faturamento && (!latest || r.data_faturamento > latest)) {
+      latest = r.data_faturamento;
+    }
+  }
+  if (state.monthData && state.monthData.osRows) {
+    for (const r of state.monthData.osRows) {
+      if (r.faturamentoPecas    && (!latest || r.faturamentoPecas    > latest)) latest = r.faturamentoPecas;
+      if (r.faturamentoServicos && (!latest || r.faturamentoServicos > latest)) latest = r.faturamentoServicos;
+    }
+  }
+  if (!latest) return null;
+
+  const periodEnd       = latest;
+  const periodStart     = new Date(periodEnd.getTime() - months * 30.4375 * 86400000);
+  // Symmetric "comparison" window: same length, immediately before the analysis period.
+  // A "Perdido" must have at least one billing in this prior window — otherwise the
+  // comparison is unfair (a client gone 3 years ago doesn't count as just-now-perdido).
+  const comparisonStart = new Date(periodStart.getTime() - months * 30.4375 * 86400000);
+
+  // 2. Apply sidebar filters (except Período / Vendedor)
+  const base = (typeof sellerViewBaseAllTime === 'function')
+    ? sellerViewBaseAllTime()
+    : state.rows;
+
+  // 3. Aggregate first/last billing per client (across Sheet1 + Mes_corrente)
+  const clientStats = new Map();
+  const accumulate = (cliente, vendedor, billed, valor) => {
+    if (!cliente || !billed) return;
+    const key = normClient(cliente);
+    if (!key) return;
+    if (!clientStats.has(key)) {
+      clientStats.set(key, {
+        cliente: cliente.trim(),
+        first: billed, last: billed,
+        firstVendedor: vendedor || '',
+        lastVendedor:  vendedor || '',
+        totalBilled: 0, osCount: 0,
+      });
+    }
+    const c = clientStats.get(key);
+    if (billed < c.first) { c.first = billed; c.firstVendedor = vendedor || c.firstVendedor; }
+    if (billed > c.last)  { c.last  = billed; c.lastVendedor  = vendedor || c.lastVendedor;  }
+    c.totalBilled += valor || 0;
+    c.osCount++;
+  };
+
+  for (const r of base) {
+    if (!r.data_faturamento) continue;
+    accumulate(r.cliente, r.vendedor, r.data_faturamento, r.total_os);
+  }
+  if (state.monthData && state.monthData.osRows) {
+    for (const r of state.monthData.osRows) {
+      const fp = r.faturamentoPecas, fs = r.faturamentoServicos;
+      const billed = (fp && fs) ? (fp > fs ? fp : fs) : (fp || fs);
+      if (!billed) continue;
+      accumulate(r.cliente, r.vendedor, billed, osBilledValue(r));
+    }
+  }
+
+  // 4. Classify
+  //    Novo:     1ª compra dentro do período atual                       (info.first ≥ periodStart)
+  //    Perdido:  comprava no período de comparação imediatamente anterior
+  //              MAS não voltou dentro do período atual                  (info.last em [comparisonStart, periodStart))
+  //    (else):   ainda ativo (compra no período atual)
+  //              ou perdido há muito tempo (last < comparisonStart) — não conta neste recorte
+  const novos = [], perdidos = [];
+  for (const [, info] of clientStats) {
+    if (info.first >= periodStart) {
+      // Novo (atribuído a quem fez a 1ª venda)
+      if (!focalSeller || info.firstVendedor === focalSeller) {
+        novos.push({
+          cliente: info.cliente, vendedor: info.firstVendedor,
+          firstBilled: info.first, totalBilled: info.totalBilled, osCount: info.osCount,
+        });
+      }
+    } else if (info.last < periodStart && info.last >= comparisonStart) {
+      // Perdido NESTE recorte — comprava na janela anterior simétrica
+      if (!focalSeller || info.lastVendedor === focalSeller) {
+        const daysInactive = Math.floor((periodEnd - info.last) / 86400000);
+        perdidos.push({
+          cliente: info.cliente, vendedor: info.lastVendedor,
+          lastBilled: info.last, daysInactive,
+          totalBilled: info.totalBilled, osCount: info.osCount,
+        });
+      }
+    }
+  }
+  return { periodStart, periodEnd, comparisonStart, months, novos, perdidos };
+}
+
+function renderClientMovement() {
+  if (!state.rows.length) return;
+  const monthsSel = document.getElementById('movPeriodMonths');
+  if (!monthsSel) return;
+  const months = parseInt(monthsSel.value, 10) || 12;
+  const focal  = document.getElementById('focalSeller').value || '';
+  const result = computeClientMovement(months, focal);
+  if (!result) return;
+
+  const novosRev    = result.novos.reduce((s, c) => s + c.totalBilled, 0);
+  const perdidosRev = result.perdidos.reduce((s, c) => s + c.totalBilled, 0);
+  const saldo       = result.novos.length - result.perdidos.length;
+  const showVendCol = !focal;
+
+  document.getElementById('movPeriodBadge').textContent =
+    `${FORMATTERS.date.format(result.periodStart)} → ${FORMATTERS.date.format(result.periodEnd)}`;
+  const compDayEnd = new Date(result.periodStart.getTime() - 86400000);
+  document.getElementById('movContext').innerHTML =
+    `Comparação simétrica com o período anterior <b>${FORMATTERS.date.format(result.comparisonStart)} → ${FORMATTERS.date.format(compDayEnd)}</b>: o cliente conta como <b>Perdido</b> só se comprava naquela janela. `
+    + (focal
+      ? `Filtrado por vendedor <b>${escapeHtml(focal)}</b>.`
+      : `Mostrando equipe inteira.`);
+
+  const kpis = [
+    { label: 'Clientes Novos',           value: FORMATTERS.int.format(result.novos.length),
+      sub: novosRev > 0 ? FORMATTERS.brl.format(novosRev) + ' faturado' : '&nbsp;' },
+    { label: 'Clientes Perdidos',        value: FORMATTERS.int.format(result.perdidos.length),
+      sub: result.perdidos.length > 0
+        ? `<span class="${result.perdidos.length > result.novos.length ? 'danger-text' : ''}">&nbsp;</span>`
+        : 'Nenhum no período' },
+    { label: 'Saldo da Base',            value: (saldo > 0 ? '+' : '') + FORMATTERS.int.format(saldo),
+      sub: `<span class="pill ${saldo > 0 ? 'good' : saldo < 0 ? 'bad' : ''}">${saldo > 0 ? '✓ crescimento' : saldo < 0 ? '⚠ retração' : 'estável'}</span>` },
+    { label: 'R$ Perdidos (histórico)',  value: FORMATTERS.brl.format(perdidosRev),
+      sub: 'Faturamento histórico dos perdidos' },
+  ];
+  document.getElementById('movementKpis').innerHTML = kpis.map(k => `
+    <div class="kpi">
+      <div class="label">${k.label}</div>
+      <div class="value">${k.value}</div>
+      <div class="sub">${k.sub}</div>
+    </div>`).join('');
+
+  document.getElementById('movNovosCount').textContent    = result.novos.length;
+  document.getElementById('movPerdidosCount').textContent = result.perdidos.length;
+
+  document.getElementById('movNovosTable').innerHTML = result.novos.length ? `
+    <table>
+      <thead><tr>
+        <th>#</th><th>Cliente</th>
+        ${showVendCol ? '<th>Vendedor</th>' : ''}
+        <th class="num">1ª compra</th>
+        <th class="num">OSs</th>
+        <th class="num">Faturado</th>
+      </tr></thead>
+      <tbody>
+        ${result.novos
+          .slice()
+          .sort((a, b) => b.totalBilled - a.totalBilled)
+          .map((c, i) => `
+          <tr>
+            <td>${i + 1}</td>
+            <td>${escapeHtml(c.cliente)}</td>
+            ${showVendCol ? `<td>${escapeHtml(c.vendedor)}</td>` : ''}
+            <td class="num">${FORMATTERS.date.format(c.firstBilled)}</td>
+            <td class="num">${FORMATTERS.int.format(c.osCount)}</td>
+            <td class="num">${FORMATTERS.brl.format(c.totalBilled)}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`
+    : `<p class="small" style="padding:12px">Nenhum cliente novo no período.</p>`;
+
+  document.getElementById('movPerdidosTable').innerHTML = result.perdidos.length ? `
+    <table>
+      <thead><tr>
+        <th>#</th><th>Cliente</th>
+        ${showVendCol ? '<th>Vendedor</th>' : ''}
+        <th class="num">Última compra</th>
+        <th class="num">Dias inativo</th>
+        <th class="num">Histórico</th>
+      </tr></thead>
+      <tbody>
+        ${result.perdidos
+          .slice()
+          .sort((a, b) => b.totalBilled - a.totalBilled)
+          .map((c, i) => `
+          <tr>
+            <td>${i + 1}</td>
+            <td>${escapeHtml(c.cliente)}</td>
+            ${showVendCol ? `<td>${escapeHtml(c.vendedor)}</td>` : ''}
+            <td class="num">${FORMATTERS.date.format(c.lastBilled)}</td>
+            <td class="num">${FORMATTERS.int.format(c.daysInactive)}</td>
+            <td class="num">${FORMATTERS.brl.format(c.totalBilled)}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`
+    : `<p class="small" style="padding:12px">Nenhum cliente perdido no período.</p>`;
+}
+
+function printClientMovement() {
+  if (!state.rows.length) return;
+  const monthsSel = document.getElementById('movPeriodMonths');
+  if (!monthsSel) return;
+  const months = parseInt(monthsSel.value, 10) || 12;
+  const focal  = document.getElementById('focalSeller').value || '';
+  const result = computeClientMovement(months, focal);
+  if (!result) return;
+
+  const novosRev    = result.novos.reduce((s, c) => s + c.totalBilled, 0);
+  const perdidosRev = result.perdidos.reduce((s, c) => s + c.totalBilled, 0);
+  const novosSorted    = result.novos.slice().sort((a, b) => b.totalBilled - a.totalBilled);
+  const perdidosSorted = result.perdidos.slice().sort((a, b) => b.totalBilled - a.totalBilled);
+  const saldo = result.novos.length - result.perdidos.length;
+  const showVend = !focal;
+  const now = new Date();
+
+  const compDayEnd = new Date(result.periodStart.getTime() - 86400000);
+  const html = `
+    <h1>Movimento da Base de Clientes — ${months} meses</h1>
+    <p class="meta">
+      Gerado em ${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })}
+      ${state.fileName ? ' · Fonte: ' + escapeHtml(state.fileName) : ''}<br>
+      Período analisado: <b>${FORMATTERS.date.format(result.periodStart)} → ${FORMATTERS.date.format(result.periodEnd)}</b><br>
+      Período de comparação (anterior simétrico): <b>${FORMATTERS.date.format(result.comparisonStart)} → ${FORMATTERS.date.format(compDayEnd)}</b><br>
+      ${focal ? 'Vendedor focal: <b>' + escapeHtml(focal) + '</b>' : 'Equipe inteira'}<br>
+      <b>Novo</b>: 1ª compra dentro do período analisado.
+      <b>Perdido</b>: comprava no período de comparação anterior mas não voltou no período analisado.
+      Clientes inativos há mais de ${months * 2} meses não entram neste recorte.
+    </p>
+
+    <h2 style="font-size:11pt">Resumo</h2>
+    <table style="width:auto; margin-bottom:6pt">
+      <tbody>
+        <tr><td><b>Clientes Novos</b></td><td class="num">${result.novos.length}</td><td class="num">${FORMATTERS.brl.format(novosRev)}</td></tr>
+        <tr><td><b>Clientes Perdidos</b></td><td class="num">${result.perdidos.length}</td><td class="num">${FORMATTERS.brl.format(perdidosRev)}</td></tr>
+        <tr><td><b>Saldo da Base</b></td><td class="num">${saldo > 0 ? '+' : ''}${saldo}</td><td>${saldo > 0 ? 'crescimento' : saldo < 0 ? 'retração' : 'estável'}</td></tr>
+      </tbody>
+    </table>
+
+    <h2 style="font-size:11pt; margin-top:14pt">Clientes Novos (${result.novos.length})</h2>
+    <table>
+      <thead><tr>
+        <th>#</th>
+        <th>Cliente</th>
+        ${showVend ? '<th>Vendedor</th>' : ''}
+        <th class="num">1ª compra</th>
+        <th class="num">OSs</th>
+        <th class="num">Faturado</th>
+      </tr></thead>
+      <tbody>
+        ${novosSorted.map((c, i) => `
+          <tr>
+            <td>${i + 1}</td>
+            <td>${escapeHtml(c.cliente)}</td>
+            ${showVend ? `<td>${escapeHtml(c.vendedor)}</td>` : ''}
+            <td class="num">${FORMATTERS.date.format(c.firstBilled)}</td>
+            <td class="num">${c.osCount}</td>
+            <td class="num">${FORMATTERS.brl.format(c.totalBilled)}</td>
+          </tr>`).join('') || `<tr><td colspan="${showVend?6:5}" class="small">Nenhum cliente novo no período.</td></tr>`}
+      </tbody>
+    </table>
+
+    <h2 style="font-size:11pt; margin-top:14pt">Clientes Perdidos (${result.perdidos.length})</h2>
+    <table>
+      <thead><tr>
+        <th>#</th>
+        <th>Cliente</th>
+        ${showVend ? '<th>Vendedor</th>' : ''}
+        <th class="num">Última compra</th>
+        <th class="num">Dias inativo</th>
+        <th class="num">OSs históricas</th>
+        <th class="num">Faturamento histórico</th>
+      </tr></thead>
+      <tbody>
+        ${perdidosSorted.map((c, i) => `
+          <tr>
+            <td>${i + 1}</td>
+            <td>${escapeHtml(c.cliente)}</td>
+            ${showVend ? `<td>${escapeHtml(c.vendedor)}</td>` : ''}
+            <td class="num">${FORMATTERS.date.format(c.lastBilled)}</td>
+            <td class="num">${c.daysInactive}</td>
+            <td class="num">${c.osCount}</td>
+            <td class="num">${FORMATTERS.brl.format(c.totalBilled)}</td>
+          </tr>`).join('') || `<tr><td colspan="${showVend?7:6}" class="small">Nenhum cliente perdido no período.</td></tr>`}
+      </tbody>
+    </table>
+  `;
+  openPrintWindow(`Movimento da Base de Clientes — ${months}m`, html, { orientation: 'portrait' });
 }
 
 function renderSellerComparativo(focal) {
@@ -3581,8 +4473,9 @@ window.addEventListener('afterprint', () => {
 function addCardPrintButtons() {
   document.querySelectorAll('#dashboard .card').forEach(card => {
     if (card.classList.contains('no-print')) return;
-    if (card.querySelector(':scope > .card-print-btn')) return; // already added
-    if (card.querySelector(':scope .toolbar-flex .card-print-btn')) return;
+    // Single existence check — descendant selector catches buttons in h3, toolbar, controls, or anywhere inside.
+    // Previous code had two scoped checks that missed buttons inside h3, causing duplicate insertions.
+    if (card.querySelector('.card-print-btn')) return;
     // Skip cards that are just focal selectors (no real printable content)
     if (card.querySelector('#focalClient') || card.querySelector('#focalSeller')) return;
 
@@ -3865,14 +4758,16 @@ function exportCSV(filename, headers, rows) {
 }
 
 // Open a popup window with print-friendly HTML and trigger native print.
-function openPrintWindow(title, htmlContent) {
+// opts.orientation = 'portrait' (default) | 'landscape' — A4 page setup.
+function openPrintWindow(title, htmlContent, opts = {}) {
+  const orientation = opts.orientation || 'portrait';
   const w = window.open('', '_blank', 'width=1100,height=800');
   if (!w) {
     alert('Permita pop-ups deste site para gerar o relatório.');
     return;
   }
   const css = `
-    @page { size: A4 portrait; margin: 14mm; }
+    @page { size: A4 ${orientation}; margin: 14mm; }
     * { box-sizing: border-box; }
     body { margin: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; color: #111; font-size: 10pt; line-height: 1.4; padding: 4mm; }
     h1 { font-size: 16pt; margin: 0 0 4pt; letter-spacing: -0.01em; }
@@ -5171,7 +6066,9 @@ function renderClientHistory(focalRows) {
 //  Cada linha de Tj do PDF é uma OS completa, identificável por padrão.
 // =====================================================================
 
-const MONTH_META_KEY_PREFIX = 'fat-v2-month-meta-';
+const MONTH_META_KEY_PREFIX  = 'fat-v2-month-meta-';
+const OS_PROJECTIONS_KEY     = 'fat-v2-os-projections';   // { osKey: 'YYYY-MM' | 'unsure' | 'no' }
+const OS_NOTES_KEY           = 'fat-v2-os-notes';         // { osKey: 'comentário…' }
 
 function getMonthMetaKey(period) {
   if (!period) return null;
@@ -5182,12 +6079,95 @@ function getMonthMetaKey(period) {
 function loadMonthMeta(period) {
   const key = getMonthMetaKey(period);
   if (!key) return {};
-  try { return JSON.parse(localStorage.getItem(key)) || {}; }
-  catch { return {}; }
+  try {
+    const raw = JSON.parse(localStorage.getItem(key)) || {};
+    // Backwards-compat: previous schema stored just `metaMensal`. Promote it to Total.
+    if (raw.metaMensal != null && raw.metaTotal == null) raw.metaTotal = raw.metaMensal;
+    return raw;
+  } catch { return {}; }
 }
 function saveMonthMetaToStorage(period, meta) {
   const key = getMonthMetaKey(period);
   if (key) localStorage.setItem(key, JSON.stringify(meta));
+}
+
+// Per-OS projection: which month the user expects this OS to be billed.
+// Persists across reloads but is reset by user action.
+function loadOSProjections() {
+  try { return JSON.parse(localStorage.getItem(OS_PROJECTIONS_KEY)) || {}; }
+  catch { return {}; }
+}
+function saveOSProjection(osKey, value) {
+  const all = loadOSProjections();
+  if (!value || value === 'unsure') delete all[osKey];
+  else                              all[osKey] = value;
+  localStorage.setItem(OS_PROJECTIONS_KEY, JSON.stringify(all));
+}
+function loadOSNotes() {
+  try { return JSON.parse(localStorage.getItem(OS_NOTES_KEY)) || {}; }
+  catch { return {}; }
+}
+function saveOSNote(osKey, text) {
+  const all = loadOSNotes();
+  if (!text || !text.trim()) delete all[osKey];
+  else                       all[osKey] = text.trim();
+  localStorage.setItem(OS_NOTES_KEY, JSON.stringify(all));
+}
+
+// Unique OS key — for projection/notes localStorage. Uses empresa+os for
+// safety in multi-empresa scenarios; falls back to os alone when no empresa.
+function osKey(r) {
+  return r.empresa ? `${r.empresa}-${r.os}` : r.os;
+}
+
+// Compute aggregate meta numbers: total = explicit total OR sum of parts.
+function getEffectiveMeta(meta) {
+  meta = meta || {};
+  const p = +meta.metaPecas    || 0;
+  const s = +meta.metaServicos || 0;
+  const t = +meta.metaTerceiros|| 0;
+  const explicitTotal = +meta.metaTotal || 0;
+  const total = explicitTotal > 0 ? explicitTotal : (p + s + t);
+  return { metaPecas: p, metaServicos: s, metaTerceiros: t, metaTotal: total };
+}
+
+// Sum the per-month projected value: OSs flagged for current ref-month that
+// haven't been fully billed yet contribute their REMAINING (unbilled) value.
+// Caller passes the desired subset (typically Cliente-only rows).
+function computeMonthProjection(osRows, refYM) {
+  const projections = loadOSProjections();
+  let projecaoEsteMes = 0, projecaoProxMes = 0;
+  let countEste = 0, countProx = 0;
+  for (const r of osRows) {
+    const status = getOSStatus(r);
+    if (status === 'faturada') continue; // already billed
+    const flag = projections[osKey(r)];
+    if (!flag || flag === 'unsure' || flag === 'no') continue;
+    // Remaining value = total minus already-billed portion
+    const remaining = (r.valorTotal || 0) - osBilledValue(r);
+    if (remaining <= 0) continue;
+    if (flag === refYM) { projecaoEsteMes += remaining; countEste++; }
+    else {
+      // Compute next-month YM string from refYM
+      const [y, m] = refYM.split('-').map(Number);
+      const nextM  = m === 12 ? 1 : m + 1;
+      const nextY  = m === 12 ? y + 1 : y;
+      const nextYM = `${nextY}-${String(nextM).padStart(2,'0')}`;
+      if (flag === nextYM) { projecaoProxMes += remaining; countProx++; }
+    }
+  }
+  return { projecaoEsteMes, projecaoProxMes, countEste, countProx };
+}
+
+// Compute ref-month YYYY-MM string from period.
+function refYM(period) {
+  return `${period.from.getUTCFullYear()}-${String(period.from.getUTCMonth()+1).padStart(2,'0')}`;
+}
+function nextYM(refYM) {
+  const [y, m] = refYM.split('-').map(Number);
+  const nm = m === 12 ? 1 : m + 1;
+  const ny = m === 12 ? y + 1 : y;
+  return `${ny}-${String(nm).padStart(2,'0')}`;
 }
 
 // Fuzzy column-name dictionary for the monthly OSs Excel.
@@ -5278,11 +6258,20 @@ function parseMonthExcelRow(row, cols) {
   let os = strVal(osRaw);
   if (/^\d+$/.test(os) && os.length < 6) os = os.padStart(6, '0');
 
-  const operacao = strVal(get('operacao'));
+  // The "Operação" column in the Mes_corrente sheet often comes as ONE cell
+  // containing both the numeric code and the description, e.g. "1107 OS MECANICA CLIENTE".
+  // Split into a clean { code, name } so that downstream comparisons against
+  // CLIENTE_OP_CODES work correctly.
+  const operacaoRaw  = strVal(get('operacao'));
   const operacaoNome = strVal(get('operacaoNome'));
   let operation = null;
-  if (operacao || operacaoNome) {
-    operation = { code: operacao, name: operacaoNome || '' };
+  if (operacaoRaw || operacaoNome) {
+    const m = operacaoRaw.match(/^\s*(\d+)\s*(.*)$/);
+    if (m) {
+      operation = { code: m[1], name: (m[2] || '').trim() || operacaoNome || '' };
+    } else {
+      operation = { code: operacaoRaw, name: operacaoNome || '' };
+    }
   }
 
   return {
@@ -5363,23 +6352,31 @@ function parseMonthlyFromWorkbook(wb, preferredSheet) {
   }
   if (!osRows.length) throw new Error('Cabeçalho encontrado mas nenhuma linha de OS válida foi lida.');
 
-  // Derive period from the data — earliest opening month to latest closing month.
-  let minDate = null, maxDate = null;
+  // Focal month detection: the "current month" is the month with the most recent
+  // billing activity. The Mes_corrente sheet often contains OSs opened in past
+  // months that are still active — using earliest opening date would point the
+  // chart at the wrong month (e.g. October 2025 when we're really in May 2026).
+  // Priority: latest faturamento date > latest fechamento > latest abertura.
+  let focalDate = null;
   for (const r of osRows) {
-    const candidates = [r.aberturaRecepcao, r.aberturaOrcamento, r.fechamentoFinanceiro, r.faturamentoPecas, r.faturamentoServicos];
+    const candidates = [r.faturamentoServicos, r.faturamentoPecas, r.fechamentoFinanceiro];
     for (const d of candidates) {
-      if (d) {
-        if (!minDate || d < minDate) minDate = d;
-        if (!maxDate || d > maxDate) maxDate = d;
+      if (d && (!focalDate || d > focalDate)) focalDate = d;
+    }
+  }
+  if (!focalDate) {
+    // No billing yet — fall back to latest opening date.
+    for (const r of osRows) {
+      if (r.aberturaRecepcao && (!focalDate || r.aberturaRecepcao > focalDate)) {
+        focalDate = r.aberturaRecepcao;
       }
     }
   }
   let period = null;
-  if (minDate && maxDate) {
-    // Snap to whole-month for meta / chart purposes
+  if (focalDate) {
     period = {
-      from: new Date(Date.UTC(minDate.getUTCFullYear(), minDate.getUTCMonth(), 1)),
-      to:   new Date(Date.UTC(maxDate.getUTCFullYear(), maxDate.getUTCMonth() + 1, 0)),
+      from: new Date(Date.UTC(focalDate.getUTCFullYear(), focalDate.getUTCMonth(), 1)),
+      to:   new Date(Date.UTC(focalDate.getUTCFullYear(), focalDate.getUTCMonth() + 1, 0)),
     };
   }
 
@@ -5403,12 +6400,38 @@ function parseMonthlyFromWorkbook(wb, preferredSheet) {
 //   • For 'faturada parcial'→ Total OS minus the unbilled component
 //   • Otherwise             → 0
 // =====================================================================
-function getOSStatus(r) {
+// Status threshold: an OS that's been open for more than this many days
+// without being billed is considered abandoned.
+const ABANDONED_DAYS_THRESHOLD = 60;
+
+// Operation codes that represent REVENUE-GENERATING customer work.
+// Everything else is internal (warranty, retrabalho, internal maintenance, etc.).
+// The user's workshop uses:
+//   1100 — OS Retífica Cliente   → revenue
+//   1107 — OS Mecânica Cliente   → revenue
+//   1102 — OS Garantia           → internal
+//   1103 — OS Interna Manutenção → internal
+//   1104 — OS Interna Remanufatura → internal
+//   1105 — OS Interna Manutenção → internal
+//   1106 — OS Retrabalho         → internal
+const CLIENTE_OP_CODES = new Set(['1100', '1107']);
+function isOpCliente(r) {
+  if (!r.operation || !r.operation.code) return true; // missing → treat as cliente (forgiving)
+  const raw = String(r.operation.code).trim();
+  // Extract leading digits in case the code field still contains the name appended
+  // (e.g. "1107 OS MECANICA CLIENTE" instead of just "1107")
+  const m = raw.match(/^(\d+)/);
+  const code = m ? m[1] : raw;
+  return CLIENTE_OP_CODES.has(code);
+}
+
+function getOSStatus(r, referenceDate) {
   const vP = r.valorPecas    || 0;
   const vS = r.valorServicos || 0;
   const fP = !!r.faturamentoPecas;
   const fS = !!r.faturamentoServicos;
 
+  // Billed (full or partial) takes precedence — never abandoned if billed
   if (vP > 0 && vS > 0) {
     if (fP && fS)        return 'faturada';
     if (fP || fS)        return 'faturadaParcial';
@@ -5419,20 +6442,38 @@ function getOSStatus(r) {
   } else if ((r.valorTerceiros || 0) > 0 && (fP || fS)) {
     return 'faturada';
   }
+
+  // Abandonada — opened > 60 days ago, not yet billed.
+  if (r.aberturaRecepcao) {
+    const ref = referenceDate || todayUTC();
+    const daysOld = (ref - r.aberturaRecepcao) / 86400000;
+    if (daysOld > ABANDONED_DAYS_THRESHOLD) return 'abandonada';
+  }
+
   if (r.aberturaProducao || r.conferenciaProducao) return 'producao';
   return 'aberta';
 }
 
+// Today at UTC midnight — for stable day-based comparisons.
+function todayUTC() {
+  const t = new Date();
+  return new Date(Date.UTC(t.getFullYear(), t.getMonth(), t.getDate()));
+}
+
+// Realized revenue per OS — sums the COMPONENTS that have a faturamento date.
+// (Previously returned valorTotal for 'faturada' status, but valorTotal can
+// differ from the sum of components due to rounding, manual adjustments or
+// discounts. Aligning with the component-based meta breakdown so the KPI
+// "Faturamento Realizado" matches the Meta "Total" exactly.)
 function osBilledValue(r) {
   const status = getOSStatus(r);
-  if (status === 'faturada') return r.valorTotal || 0;
-  if (status === 'faturadaParcial') {
-    const total = r.valorTotal || 0;
-    if (!r.faturamentoPecas)    return total - (r.valorPecas    || 0);
-    if (!r.faturamentoServicos) return total - (r.valorServicos || 0);
-    return total;
-  }
-  return 0;
+  if (status !== 'faturada' && status !== 'faturadaParcial') return 0;
+  let v = 0;
+  if (r.faturamentoPecas)    v += r.valorPecas    || 0;
+  if (r.faturamentoServicos) v += r.valorServicos || 0;
+  // Terceiros are tied to the OS as a whole — count when any billing happened.
+  if (r.faturamentoPecas || r.faturamentoServicos) v += r.valorTerceiros || 0;
+  return v;
 }
 
 function osBilledDate(r) {
@@ -5449,12 +6490,14 @@ const STATUS_LABEL = {
   producao:         'Em produção',
   faturadaParcial:  'Faturada Parcial',
   faturada:         'Faturada',
+  abandonada:       'Abandonada',
 };
 const STATUS_PILL = {
   aberta:           '',
   producao:         'warn',
   faturadaParcial:  'warn',
   faturada:         'good',
+  abandonada:       'bad',
 };
 
 async function loadMonthExcelFromFile(file) {
@@ -5532,6 +6575,20 @@ function updateMonthEmptyState(sheetNames, foundSheet, errorMsg) {
   }
 }
 
+// After Mes_corrente loads, refresh the sidebar date-range bounds so the
+// inputs (min/max, dataRange label) include the in-progress month too.
+function refreshDateRangeBounds() {
+  const dates = getAllBillingDates().sort((a,b) => a - b);
+  if (!dates.length) return;
+  const lo = dates[0], hi = dates[dates.length - 1];
+  if (filterEls.dateFrom) {
+    filterEls.dateFrom.min = ymd(lo); filterEls.dateFrom.max = ymd(hi);
+    filterEls.dateTo.min   = ymd(lo); filterEls.dateTo.max   = ymd(hi);
+  }
+  const dataRangeEl = document.getElementById('dataRange');
+  if (dataRangeEl) dataRangeEl.textContent = `${FORMATTERS.date.format(lo)} → ${FORMATTERS.date.format(hi)}`;
+}
+
 // Shared post-parse routine — updates state, UI and triggers rendering.
 function finalizeMonthLoad(result, sourceLabel) {
   if (!result.period || !result.osRows.length) {
@@ -5550,10 +6607,17 @@ function finalizeMonthLoad(result, sourceLabel) {
   document.getElementById('monthContent').style.display = 'block';
 
   state.monthMeta = loadMonthMeta(result.period);
-  document.getElementById('monthMetaInput').value = state.monthMeta.metaMensal || '';
+  // Populate 4 meta inputs from saved values
+  document.getElementById('monthMetaPecas').value     = state.monthMeta.metaPecas     || '';
+  document.getElementById('monthMetaServicos').value  = state.monthMeta.metaServicos  || '';
+  document.getElementById('monthMetaTerceiros').value = state.monthMeta.metaTerceiros || '';
+  document.getElementById('monthMetaTotal').value     = state.monthMeta.metaTotal     || '';
 
   renderMonthView();
   addCardPrintButtons();
+  // Now that Mes_corrente dates are available, refresh the sidebar date bounds
+  // so "Mês atual" etc. consider the in-progress month, not just Sheet1.
+  refreshDateRangeBounds();
 }
 
 // =====================================================================
@@ -5562,19 +6626,29 @@ function finalizeMonthLoad(result, sourceLabel) {
 
 function renderMonthView() {
   if (!state.monthData) return;
+  // Split into Cliente (1100 / 1107 = revenue-generating) and Interna (others).
+  // All revenue-focused renders use _clienteRows; the dedicated Internas card
+  // at the bottom uses _internaRows. The Detalhamento de OSs shows all, with
+  // a Tipo column to distinguish.
+  state.monthData._clienteRows = state.monthData.osRows.filter(isOpCliente);
+  state.monthData._internaRows = state.monthData.osRows.filter(r => !isOpCliente(r));
+
+  renderMonthSummaryHeader();
   renderMonthKpis();
   renderMonthDailyChart();
   renderMonthMetaSection();
-  renderMonthOperationChart();
   renderMonthTopClients();
+  renderMonthAcquisition();
+  renderMonthProjections();
+  renderMonthInternas();
   renderMonthOSTable();
 }
 
 function renderMonthKpis() {
-  const { osRows, period } = state.monthData;
-  let realizadoFat = 0;       // R$ realizado em OSs totalmente faturadas
-  let realizadoParcial = 0;   // R$ realizado em OSs parcialmente faturadas
-  let osFaturadas = 0, osParciais = 0, osProducao = 0, osAbertas = 0;
+  const { period } = state.monthData;
+  const osRows = state.monthData._clienteRows; // Cliente-only for revenue KPIs
+  let realizadoFat = 0, realizadoParcial = 0;
+  let osFaturadas = 0, osParciais = 0, osProducao = 0, osAbertas = 0, osAbandonadas = 0;
   let leadSum = 0, leadCnt = 0;
 
   for (const r of osRows) {
@@ -5590,25 +6664,27 @@ function renderMonthKpis() {
     } else if (status === 'faturadaParcial') {
       osParciais++;
       realizadoParcial += osBilledValue(r);
-    } else if (status === 'producao') osProducao++;
-    else                              osAbertas++;
+    } else if (status === 'producao')   osProducao++;
+    else if (status === 'abandonada')   osAbandonadas++;
+    else                                osAbertas++;
   }
-  const realizado = realizadoFat + realizadoParcial;
+  const realizado  = realizadoFat + realizadoParcial;
   const osFatTotal = osFaturadas + osParciais;
-  const ticket = osFatTotal ? realizado / osFatTotal : 0;
+  const ticket     = osFatTotal ? realizado / osFatTotal : 0;
   const periodDays = Math.max(1, Math.round((period.to - period.from) / 86400000) + 1);
-  const dailyAvg = realizado / periodDays;
-  const leadAvg = leadCnt ? leadSum / leadCnt : 0;
+  const dailyAvg   = realizado / periodDays;
+  const leadAvg    = leadCnt ? leadSum / leadCnt : 0;
 
   const kpis = [
-    { label: 'Faturamento realizado',  value: FORMATTERS.brl.format(realizado),     sub: `Inclui R$ ${FORMATTERS.int.format(realizadoParcial)} de parciais` },
+    { label: 'Faturamento realizado',  value: FORMATTERS.brl.format(realizado),
+      sub: realizadoParcial > 0 ? `Inclui R$ ${FORMATTERS.int.format(realizadoParcial)} de parciais` : 'OSs faturadas + parciais' },
     { label: 'Total de OSs',           value: FORMATTERS.int.format(osRows.length), sub: '&nbsp;' },
     { label: 'OSs Faturadas',          value: FORMATTERS.int.format(osFaturadas),
       sub: `${osRows.length ? ((osFaturadas/osRows.length)*100).toFixed(1) : 0}% do total` },
-    { label: 'OSs Faturadas Parcial',  value: FORMATTERS.int.format(osParciais),
-      sub: 'Peças e Serviços, falta 1' },
     { label: 'OSs Em Produção',        value: FORMATTERS.int.format(osProducao),    sub: 'Conf. ou Produção iniciada' },
     { label: 'OSs Abertas',            value: FORMATTERS.int.format(osAbertas),     sub: 'Sem início de produção' },
+    { label: 'OSs Abandonadas',        value: FORMATTERS.int.format(osAbandonadas),
+      sub: `<span class="${osAbandonadas > 0 ? 'danger-text' : ''}">&gt; 60 dias sem faturar</span>` },
     { label: 'Ticket Médio',           value: FORMATTERS.brl.format(ticket),        sub: 'Realizado / OSs faturadas' },
     { label: 'Lead time médio',        value: leadAvg.toFixed(1) + ' dias',         sub: 'Abertura → último faturamento' },
   ];
@@ -5620,50 +6696,118 @@ function renderMonthKpis() {
     </div>`).join('');
 }
 
-function renderMonthMetaSection() {
-  const { osRows, period } = state.monthData;
-  const meta = state.monthMeta || {};
-  const metaMensal = +meta.metaMensal || 0;
-
+// New: header summary (Meta / Realizado / Projetado).
+function renderMonthSummaryHeader() {
+  const { period } = state.monthData;
+  const osRows = state.monthData._clienteRows; // Cliente-only
+  const meta = getEffectiveMeta(state.monthMeta);
   let realizado = 0;
   for (const r of osRows) realizado += osBilledValue(r);
+  const proj = computeMonthProjection(osRows, refYM(period));
+  const projetado = realizado + proj.projecaoEsteMes;
+
+  const pctReal = meta.metaTotal ? (realizado / meta.metaTotal) * 100 : 0;
+  const pctProj = meta.metaTotal ? (projetado / meta.metaTotal) * 100 : 0;
+  const cardPill = (p) => p >= 100 ? 'good' : p >= 80 ? 'warn' : 'bad';
+
+  const cards = [
+    {
+      label: 'META TOTAL',
+      value: FORMATTERS.brl.format(meta.metaTotal),
+      sub: meta.metaTotal > 0
+        ? `Peças ${FORMATTERS.brl.format(meta.metaPecas)} · Serviços ${FORMATTERS.brl.format(meta.metaServicos)} · Terceiros ${FORMATTERS.brl.format(meta.metaTerceiros)}`
+        : '<i>Defina a meta abaixo</i>',
+    },
+    {
+      label: 'REALIZADO',
+      value: FORMATTERS.brl.format(realizado),
+      sub: meta.metaTotal
+        ? `<span class="pill ${cardPill(pctReal)}">${pctReal.toFixed(1)}% da meta</span>`
+        : '&nbsp;',
+    },
+    {
+      label: 'PROJETADO (fim do mês)',
+      value: FORMATTERS.brl.format(projetado),
+      sub: proj.projecaoEsteMes > 0
+        ? `+ R$ ${FORMATTERS.int.format(proj.projecaoEsteMes)} de ${proj.countEste} OS(s) marcada(s) "Este mês"`
+        + (meta.metaTotal ? ` · <span class="pill ${cardPill(pctProj)}">${pctProj.toFixed(1)}% da meta</span>` : '')
+        : '<i>Marque OSs como "Este mês" na Projeção</i>',
+    },
+  ];
+  document.getElementById('monthSummaryKpis').innerHTML = cards.map(k => `
+    <div class="kpi suggestion">
+      <div class="label">${k.label}</div>
+      <div class="value">${k.value}</div>
+      <div class="sub">${k.sub}</div>
+    </div>`).join('');
+}
+
+function renderMonthMetaSection() {
+  const { period } = state.monthData;
+  const osRows = state.monthData._clienteRows; // Cliente-only
+  const meta = getEffectiveMeta(state.monthMeta);
+
+  // Realizado, broken down by tipo — use SAME logic as osBilledValue so totals match.
+  let realPecas = 0, realServicos = 0, realTerceiros = 0;
+  for (const r of osRows) {
+    const status = getOSStatus(r);
+    if (status === 'faturada' || status === 'faturadaParcial') {
+      if (r.faturamentoPecas)    realPecas    += r.valorPecas    || 0;
+      if (r.faturamentoServicos) realServicos += r.valorServicos || 0;
+      // Terceiros: count when at least one component has a faturamento date
+      if (r.faturamentoPecas || r.faturamentoServicos) {
+        realTerceiros += r.valorTerceiros || 0;
+      }
+    }
+  }
+  const realTotal = realPecas + realServicos + realTerceiros;
 
   const year  = period.from.getUTCFullYear();
   const month = period.from.getUTCMonth() + 1;
   const totalBizDays = countBusinessDays(year, month);
+  const monthStart   = new Date(Date.UTC(year, month - 1, 1));
+  const monthEnd     = new Date(Date.UTC(year, month, 0));
 
-  // Days elapsed: from start of month to today or period.to, whichever is earlier
-  const now = new Date();
-  const monthStart = new Date(Date.UTC(year, month - 1, 1));
-  const monthEnd   = new Date(Date.UTC(year, month, 0));
-  const refToday   = (now < monthEnd) ? now : monthEnd;
+  const now      = new Date();
+  const refToday = (now < monthEnd) ? now : monthEnd;
   let bizElapsed = 0;
   for (let d = new Date(monthStart); d <= refToday; d = new Date(d.getTime() + 86400000)) {
     const dow = d.getUTCDay();
     if (dow !== 0 && dow !== 6) bizElapsed++;
   }
 
-  const metaDiaria = totalBizDays ? metaMensal / totalBizDays : 0;
+  const metaDiaria = totalBizDays ? meta.metaTotal / totalBizDays : 0;
   const metaProRata = metaDiaria * bizElapsed;
-  const projecao = bizElapsed > 0 ? (realizado / bizElapsed) * totalBizDays : 0;
-  const pctMensal  = metaMensal  ? (realizado / metaMensal)  * 100 : 0;
-  const pctProRata = metaProRata ? (realizado / metaProRata) * 100 : 0;
+  const pctReal     = meta.metaTotal ? (realTotal / meta.metaTotal)  * 100 : 0;
+  const pctProRata  = metaProRata    ? (realTotal / metaProRata)     * 100 : 0;
 
-  const pillProRata = pctProRata >= 100 ? 'good' : pctProRata >= 80 ? 'warn' : 'bad';
-  const pillProjecao = (metaMensal && projecao >= metaMensal) ? 'good'
-                     : (metaMensal && projecao >= metaMensal*0.9) ? 'warn' : 'bad';
+  const proj = computeMonthProjection(osRows, refYM(period));
+  const projetadoFinal = realTotal + proj.projecaoEsteMes;
+  const pctProj = meta.metaTotal ? (projetadoFinal / meta.metaTotal) * 100 : 0;
+
+  // Per-tipo breakdown
+  const tipoCard = (label, real, target) => {
+    const p = target ? (real/target)*100 : 0;
+    return {
+      label,
+      value: FORMATTERS.brl.format(real),
+      sub: target
+        ? `Meta ${FORMATTERS.brl.format(target)} · <span class="pill ${p>=100?'good':p>=80?'warn':'bad'}">${p.toFixed(1)}%</span>`
+        : '<i>Sem meta</i>',
+    };
+  };
 
   const kpis = [
-    { label: 'Meta Mensal',          value: FORMATTERS.brl.format(metaMensal),  sub: `${totalBizDays} dias úteis no mês` },
-    { label: 'Meta Diária',          value: FORMATTERS.brl.format(metaDiaria),  sub: 'Mensal ÷ dias úteis' },
-    { label: 'Meta acumulada',       value: FORMATTERS.brl.format(metaProRata), sub: `${bizElapsed} dia(s) útil(eis) decorridos` },
-    { label: 'Realizado',            value: FORMATTERS.brl.format(realizado),   sub: 'OSs faturadas' },
-    { label: '% da meta mensal',     value: pctMensal.toFixed(1) + '%',
-      sub: `<span class="pill ${pctMensal>=100?'good':pctMensal>=80?'warn':'bad'}">${pctMensal>=100?'✓ atingida':pctMensal>=80?'próximo':'em construção'}</span>` },
-    { label: '% pro-rata',           value: pctProRata.toFixed(1) + '%',
-      sub: `<span class="pill ${pillProRata}">${pctProRata>=100?'✓ acima do esperado':pctProRata>=80?'no ritmo':'abaixo do ritmo'}</span>` },
-    { label: 'Projeção fim do mês',  value: FORMATTERS.brl.format(projecao),
-      sub: metaMensal ? `<span class="pill ${pillProjecao}">${((projecao/metaMensal)*100).toFixed(1)}% da meta</span>` : '&nbsp;' },
+    tipoCard('Peças',     realPecas,     meta.metaPecas),
+    tipoCard('Serviços',  realServicos,  meta.metaServicos),
+    tipoCard('Terceiros', realTerceiros, meta.metaTerceiros),
+    tipoCard('Total',     realTotal,     meta.metaTotal),
+    { label: 'Meta Diária',          value: FORMATTERS.brl.format(metaDiaria),
+      sub: `${totalBizDays} dias úteis · ${bizElapsed} decorridos` },
+    { label: '% Acumulado (pro-rata)', value: pctProRata.toFixed(1) + '%',
+      sub: `<span class="pill ${pctProRata>=100?'good':pctProRata>=80?'warn':'bad'}">${pctProRata>=100?'no ritmo':'abaixo do ritmo'}</span>` },
+    { label: 'Projeção fim do mês',    value: FORMATTERS.brl.format(projetadoFinal),
+      sub: meta.metaTotal ? `<span class="pill ${pctProj>=100?'good':pctProj>=80?'warn':'bad'}">${pctProj.toFixed(1)}% da meta</span>` : '&nbsp;' },
   ];
   document.getElementById('monthMetaKpis').innerHTML = kpis.map(k => `
     <div class="kpi suggestion">
@@ -5672,12 +6816,12 @@ function renderMonthMetaSection() {
       <div class="sub">${k.sub}</div>
     </div>`).join('');
 
-  renderMonthMetaChart(metaMensal, totalBizDays, monthStart, monthEnd);
+  renderMonthMetaChart(meta.metaTotal, totalBizDays, monthStart, monthEnd, proj.projecaoEsteMes);
 }
 
-function renderMonthMetaChart(metaMensal, totalBizDays, monthStart, monthEnd) {
-  const { osRows } = state.monthData;
-  const metaPerBizDay = totalBizDays ? metaMensal / totalBizDays : 0;
+function renderMonthMetaChart(metaTotal, totalBizDays, monthStart, monthEnd, projecaoEsteMes) {
+  const osRows = state.monthData._clienteRows; // Cliente-only
+  const metaPerBizDay = totalBizDays ? metaTotal / totalBizDays : 0;
   const dailyRealized = new Map();
   for (const r of osRows) {
     const d = osBilledDate(r);
@@ -5687,9 +6831,29 @@ function renderMonthMetaChart(metaMensal, totalBizDays, monthStart, monthEnd) {
       dailyRealized.set(k, (dailyRealized.get(k) || 0) + v);
     }
   }
-  const labels = [], realized = [], meta = [];
+  const labels = [], realized = [], meta = [], projetado = [];
   let cumR = 0, cumM = 0;
+  // For projection line: extends from the LAST day with real billing
+  // up to month-end, growing linearly toward (realized + projecaoEsteMes).
+  // We compute lastBilledDayIdx first so we can fill projected[i] = cumR
+  // until that day, then linear interpolate from cumR up to cumR + projecaoEsteMes by month-end.
+  const today = todayUTC();
+  const days = [];
   for (let d = new Date(monthStart); d <= monthEnd; d = new Date(d.getTime() + 86400000)) {
+    days.push(new Date(d));
+  }
+  let lastActivityIdx = -1;
+  days.forEach((d, i) => {
+    const k = ymd(d);
+    if (dailyRealized.has(k)) lastActivityIdx = i;
+  });
+  // Use the later of last activity day and today, so projection starts "from now"
+  const startProjIdx = Math.max(lastActivityIdx, days.findIndex(d => d.getTime() >= today.getTime()));
+  const projStart = startProjIdx >= 0 ? startProjIdx : 0;
+  const projDaysRemaining = Math.max(1, (days.length - 1) - projStart);
+  const projPerDay = projecaoEsteMes / projDaysRemaining;
+
+  days.forEach((d, i) => {
     const k = ymd(d);
     labels.push(`${String(d.getUTCDate()).padStart(2,'0')}/${String(d.getUTCMonth()+1).padStart(2,'0')}`);
     cumR += (dailyRealized.get(k) || 0);
@@ -5697,15 +6861,20 @@ function renderMonthMetaChart(metaMensal, totalBizDays, monthStart, monthEnd) {
     if (dow !== 0 && dow !== 6) cumM += metaPerBizDay;
     realized.push(cumR);
     meta.push(cumM);
-  }
+    // Projected line: equals realized up to projection start, then grows linearly
+    if (i <= projStart) projetado.push(cumR);
+    else                projetado.push(cumR + projPerDay * (i - projStart));
+  });
+
   destroy('monthMeta');
   state.charts.monthMeta = new Chart(document.getElementById('monthMetaChart'), {
     type: 'line',
     data: {
       labels,
       datasets: [
-        { label: 'Meta acumulada',      data: meta,     borderColor: 'rgba(220,38,38,0.9)', backgroundColor: 'transparent', borderWidth: 2, borderDash: [6,5], pointRadius: 0, tension: 0 },
-        { label: 'Realizado acumulado', data: realized, borderColor: COLORS.primaryBorder,  backgroundColor: 'rgba(79,70,229,0.12)', borderWidth: 2, fill: true, tension: 0.25, pointRadius: 0 },
+        { label: 'Meta acumulada',      data: meta,      borderColor: 'rgba(220,38,38,0.9)', backgroundColor: 'transparent', borderWidth: 2, borderDash: [6,5], pointRadius: 0, tension: 0 },
+        { label: 'Realizado acumulado', data: realized,  borderColor: COLORS.primaryBorder,  backgroundColor: 'rgba(79,70,229,0.12)', borderWidth: 2, fill: true, tension: 0.25, pointRadius: 0 },
+        { label: 'Projetado (Este mês)',data: projetado, borderColor: 'rgba(5,150,105,0.9)', backgroundColor: 'transparent', borderWidth: 2, borderDash: [3,3], pointRadius: 0, tension: 0 },
       ]
     },
     options: baseOptions()
@@ -5713,7 +6882,8 @@ function renderMonthMetaChart(metaMensal, totalBizDays, monthStart, monthEnd) {
 }
 
 function renderMonthDailyChart() {
-  const { osRows, period } = state.monthData;
+  const { period } = state.monthData;
+  const osRows = state.monthData._clienteRows; // Cliente-only
   const monthStart = new Date(Date.UTC(period.from.getUTCFullYear(), period.from.getUTCMonth(), 1));
   const monthEnd   = new Date(Date.UTC(period.from.getUTCFullYear(), period.from.getUTCMonth() + 1, 0));
   const abertas = new Map(), faturadas = new Map(), parciais = new Map();
@@ -5766,7 +6936,11 @@ function renderMonthDailyChart() {
   });
 }
 
-function renderMonthOperationChart() {
+// (renderMonthOperationChart was removed — per user request the "Faturamento
+// por Operação" card is no longer shown. Kept stub below in case it's wired
+// elsewhere; it's harmless to call but does nothing useful.)
+function renderMonthOperationChart() { /* removed */ }
+function _renderMonthOperationChartOLD_unused() {
   const map = new Map();
   for (const r of state.monthData.osRows) {
     const k = r.operation ? `${r.operation.code} ${r.operation.name}` : '— sem operação —';
@@ -5793,7 +6967,7 @@ function renderMonthOperationChart() {
 
 function renderMonthTopClients() {
   const agg = new Map();
-  for (const r of state.monthData.osRows) {
+  for (const r of state.monthData._clienteRows) { // Cliente-only
     if (!r.cliente) continue;
     if (!agg.has(r.cliente)) agg.set(r.cliente, { rev: 0, count: 0 });
     const a = agg.get(r.cliente);
@@ -5821,9 +6995,730 @@ function renderMonthTopClients() {
     </table>`;
 }
 
+// =====================================================================
+// Projeção do Mês: lista de OSs em aberto com dropdown para sinalizar
+// previsão de faturamento (este mês / próximo / sem previsão) + campo
+// de comentário livre. Persistido em localStorage por OS.
+// =====================================================================
+function renderMonthProjections() {
+  const { period } = state.monthData;
+  const osRows = state.monthData._clienteRows; // Cliente-only for projection
+  const filter = document.getElementById('monthProjFilter').value;
+  const refMonth = refYM(period);
+  const nextMonth = nextYM(refMonth);
+
+  // Open OSs only (não faturadas — incluindo abandonadas)
+  let openRows = osRows.filter(r => {
+    const status = getOSStatus(r);
+    return status !== 'faturada';
+  });
+  if (filter && filter !== 'all') {
+    openRows = openRows.filter(r => getOSStatus(r) === filter);
+  }
+  // Also filter by projection flag, if user selected one
+  const flagFilter = document.getElementById('monthProjFlagFilter').value;
+  if (flagFilter && flagFilter !== 'all') {
+    const proj = loadOSProjections();
+    openRows = openRows.filter(r => {
+      const f = proj[osKey(r)];
+      if (flagFilter === 'este')   return f === refMonth;
+      if (flagFilter === 'prox')   return f === nextMonth;
+      if (flagFilter === 'no')     return f === 'no';
+      if (flagFilter === 'unsure') return !f || f === 'unsure';
+      return true;
+    });
+  }
+
+  // Dynamic sort driven by clickable column headers. Default: status order
+  // (abandonadas first → parciais → produção → abertas), ties broken by oldest.
+  const projections = loadOSProjections();
+  const notes       = loadOSNotes();
+  const today       = todayUTC();
+  const STATUS_ORDER = { abandonada: 0, faturadaParcial: 1, producao: 2, aberta: 3 };
+  const PROJ_ORDER   = { este: 0, prox: 1, sem: 2, no: 3 };
+  const sortKey = state.monthProjSort.by;
+  const sortDir = state.monthProjSort.dir;
+  const getProjVal = (r) => {
+    switch (sortKey) {
+      case 'os':         return parseInt(r.os, 10) || 0;
+      case 'cliente':    return (r.cliente || '').toLowerCase();
+      case 'cidade':     return `${r.placa || ''} ${r.modelo || ''}`.toLowerCase();
+      case 'recepcao':   return r.aberturaRecepcao ? r.aberturaRecepcao.getTime() : 0;
+      case 'dias':       return r.aberturaRecepcao ? (today - r.aberturaRecepcao) : 0;
+      case 'status':     return STATUS_ORDER[getOSStatus(r)] ?? 99;
+      case 'valor':      return (r.valorTotal || 0) - osBilledValue(r);
+      case 'previsao': {
+        const flag = projections[osKey(r)];
+        if (flag === refMonth)        return PROJ_ORDER.este;
+        if (flag === nextMonth)       return PROJ_ORDER.prox;
+        if (flag === 'no')            return PROJ_ORDER.no;
+        return PROJ_ORDER.sem;
+      }
+      case 'comentario': return (notes[osKey(r)] || '').toLowerCase();
+      default:           return 0;
+    }
+  };
+  openRows.sort((a, b) => {
+    const va = getProjVal(a);
+    const vb = getProjVal(b);
+    let cmp = 0;
+    if (typeof va === 'number' && typeof vb === 'number') cmp = va - vb;
+    else cmp = String(va).localeCompare(String(vb), 'pt-BR');
+    if (cmp === 0) {
+      // Secondary sort: oldest first by recepção
+      const da = a.aberturaRecepcao ? a.aberturaRecepcao.getTime() : Infinity;
+      const db = b.aberturaRecepcao ? b.aberturaRecepcao.getTime() : Infinity;
+      cmp = da - db;
+    }
+    return sortDir === 'asc' ? cmp : -cmp;
+  });
+
+  // Summary cards
+  // — first row: financial picture (Faturado / Previsto / Faturado + Previsto)
+  // — second row: breakdown of OPEN OSs by projection flag
+  let valEste = 0, valProx = 0, valSem = 0;
+  let cEste = 0, cProx = 0, cSem = 0;
+  for (const r of openRows) {
+    const remaining = (r.valorTotal || 0) - osBilledValue(r);
+    const flag = projections[osKey(r)];
+    if (flag === refMonth)        { valEste += remaining; cEste++; }
+    else if (flag === nextMonth)  { valProx += remaining; cProx++; }
+    else                          { valSem  += remaining; cSem++; }
+  }
+  // "Faturado" = sum of osBilledValue over ALL Cliente OSs of this month
+  // (includes the already-billed portions of Parciais). This mirrors the
+  // Realized in the Resumo do mês header — but shown here for convenience.
+  let faturado = 0;
+  for (const r of state.monthData._clienteRows) {
+    faturado += osBilledValue(r);
+  }
+  const faturadoMaisPrevisto = faturado + valEste;
+
+  document.getElementById('monthProjSummary').innerHTML = [
+    // Top row — financial picture
+    { label: 'Faturado',              value: FORMATTERS.brl.format(faturado),                sub: 'Realizado no mês (OSs faturadas + parciais)' },
+    { label: 'Previsto',              value: FORMATTERS.brl.format(valEste),                 sub: `${cEste} OS(s) sinalizadas "Este mês"` },
+    { label: 'Faturado + Previsto',   value: FORMATTERS.brl.format(faturadoMaisPrevisto),    sub: 'Projeção total para fim do mês' },
+    // Bottom row — open-OS projection breakdown
+    { label: 'Previsão Próximo mês',  value: FORMATTERS.brl.format(valProx), sub: `${cProx} OS(s)` },
+    { label: 'Sem previsão',          value: FORMATTERS.brl.format(valSem),  sub: `${cSem} OS(s)` },
+  ].map(k => `
+    <div class="kpi suggestion">
+      <div class="label">${k.label}</div>
+      <div class="value">${k.value}</div>
+      <div class="sub">${k.sub}</div>
+    </div>`).join('');
+
+  document.getElementById('monthProjCount').textContent = `${openRows.length} OS(s) em aberto`;
+
+  // Table
+  const refLabel  = `Este mês (${refMonth})`;
+  const nextLabel = `Próximo mês (${nextMonth})`;
+  const visible = openRows.slice(0, 500);
+  // Helper: arrow indicator for the active sort column
+  const arrow = (field) => {
+    if (sortKey !== field) return '';
+    return sortDir === 'asc' ? ' <span style="font-size:9px">▲</span>' : ' <span style="font-size:9px">▼</span>';
+  };
+  document.getElementById('monthProjTable').innerHTML = `
+    <table>
+      <thead><tr>
+        <th class="sortable" data-proj-sort="os">OS${arrow('os')}</th>
+        <th class="sortable" data-proj-sort="cliente">Cliente${arrow('cliente')}</th>
+        <th class="sortable" data-proj-sort="cidade">Cidade/Placa${arrow('cidade')}</th>
+        <th class="num sortable" data-proj-sort="recepcao">Recepção${arrow('recepcao')}</th>
+        <th class="num sortable" data-proj-sort="dias">Dias${arrow('dias')}</th>
+        <th class="sortable" data-proj-sort="status">Status${arrow('status')}</th>
+        <th class="num sortable" data-proj-sort="valor">Valor restante${arrow('valor')}</th>
+        <th class="sortable" data-proj-sort="previsao">Previsão de faturamento${arrow('previsao')}</th>
+        <th class="sortable" data-proj-sort="comentario">Comentário${arrow('comentario')}</th>
+      </tr></thead>
+      <tbody>
+        ${visible.map(r => {
+          const status = getOSStatus(r);
+          const k = osKey(r);
+          const flag = projections[k] || 'unsure';
+          const note = notes[k] || '';
+          const remaining = (r.valorTotal || 0) - osBilledValue(r);
+          const days = r.aberturaRecepcao ? Math.round((today - r.aberturaRecepcao)/86400000) : 0;
+          const daysClass = days > 60 ? 'danger-text' : days > 30 ? 'warn-text' : '';
+          return `<tr>
+            <td><b>${escapeHtml(r.os)}</b></td>
+            <td>${escapeHtml(r.cliente)}</td>
+            <td class="nowrap">${escapeHtml(r.placa || '')} ${escapeHtml(r.modelo || '')}</td>
+            <td class="num">${r.aberturaRecepcao ? FORMATTERS.date.format(r.aberturaRecepcao) : '—'}</td>
+            <td class="num ${daysClass}">${days} d</td>
+            <td><span class="pill ${STATUS_PILL[status]}">${STATUS_LABEL[status]}</span></td>
+            <td class="num">${FORMATTERS.brlF.format(remaining)}</td>
+            <td>
+              <select class="proj-flag" data-os-key="${escapeHtml(k)}"
+                      style="padding:3px 7px; font-size:11px; border:1px solid var(--border); border-radius:5px; font-family:inherit; max-width:140px">
+                <option value="unsure" ${flag==='unsure'?'selected':''}>Sem previsão</option>
+                <option value="${refMonth}" ${flag===refMonth?'selected':''}>${escapeHtml(refLabel)}</option>
+                <option value="${nextMonth}" ${flag===nextMonth?'selected':''}>${escapeHtml(nextLabel)}</option>
+                <option value="no" ${flag==='no'?'selected':''}>Não fechará</option>
+              </select>
+            </td>
+            <td>
+              <input class="proj-note" data-os-key="${escapeHtml(k)}" type="text" value="${escapeHtml(note)}"
+                     placeholder="Comentário…"
+                     style="width:100%; min-width:160px; padding:3px 7px; font-size:11px; border:1px solid var(--border); border-radius:5px; font-family:inherit">
+            </td>
+          </tr>`;
+        }).join('') || '<tr><td colspan="9" class="small">Sem OSs em aberto.</td></tr>'}
+      </tbody>
+    </table>
+    ${openRows.length > visible.length ? `<p class="small" style="padding:8px">Mostrando 500 de ${FORMATTERS.int.format(openRows.length)}.</p>` : ''}
+  `;
+
+  // Wire the per-row inputs
+  document.querySelectorAll('#monthProjTable .proj-flag').forEach(sel => {
+    sel.addEventListener('change', (e) => {
+      saveOSProjection(e.target.dataset.osKey, e.target.value);
+      // Re-render summary + meta chart (projected line) + header
+      renderMonthSummaryHeader();
+      renderMonthMetaSection();
+      renderMonthProjections();
+    });
+  });
+  document.querySelectorAll('#monthProjTable .proj-note').forEach(inp => {
+    inp.addEventListener('change', (e) => saveOSNote(e.target.dataset.osKey, e.target.value));
+    inp.addEventListener('blur',   (e) => saveOSNote(e.target.dataset.osKey, e.target.value));
+  });
+
+  // Sortable column headers (Excel-style click to sort, click again to invert).
+  document.querySelectorAll('#monthProjTable th.sortable').forEach(th => {
+    th.addEventListener('click', () => {
+      const field = th.dataset.projSort;
+      if (state.monthProjSort.by === field) {
+        state.monthProjSort.dir = state.monthProjSort.dir === 'asc' ? 'desc' : 'asc';
+      } else {
+        state.monthProjSort.by = field;
+        // Sensible defaults: text columns asc, number/date desc
+        const isNumOrDate = ['os','recepcao','dias','valor','status'].includes(field);
+        state.monthProjSort.dir = isNumOrDate ? 'desc' : 'asc';
+        // Exception: status default is asc (abandonadas first)
+        if (field === 'status') state.monthProjSort.dir = 'asc';
+      }
+      renderMonthProjections();
+    });
+  });
+}
+
+// =====================================================================
+// Aquisição e Reativação de Clientes — cruza Mes_corrente com histórico
+// (state.rows, da aba principal do Faturamento_Geral_V2) para identificar:
+//   • Novos: clientes que NUNCA tiveram faturamento antes do mês atual
+//   • Reativados: clientes cuja última compra foi há > N meses
+// =====================================================================
+function normClient(s) {
+  return (s || '').trim().toUpperCase();
+}
+
+function computeNewAndReactivatedClients(months) {
+  if (!state.monthData) return null;
+  const refMonthStart = state.monthData.period.from;
+  const reactivationCutoff = new Date(refMonthStart.getTime() - months * 30.4375 * 86400000);
+  const noHistorical = !state.rows || !state.rows.length;
+
+  // Step 1: collect clients billed in the current month (Cliente-only).
+  // Map keyed by normalized name; keeps display name from first occurrence.
+  const currentMonthClients = new Map();
+  for (const r of state.monthData._clienteRows || []) {
+    const status = getOSStatus(r);
+    if (status !== 'faturada' && status !== 'faturadaParcial') continue;
+    const billed = osBilledDate(r);
+    if (!billed) continue;
+    if (billed < refMonthStart) continue; // sanity: only this month's billings
+    const key = normClient(r.cliente);
+    if (!key) continue;
+    if (!currentMonthClients.has(key)) {
+      currentMonthClients.set(key, {
+        cliente: r.cliente.trim(),
+        firstBilledDate: billed,
+        totalBilled: 0,
+        osCount: 0,
+      });
+    }
+    const c = currentMonthClients.get(key);
+    if (billed < c.firstBilledDate) c.firstBilledDate = billed;
+    c.totalBilled += osBilledValue(r);
+    c.osCount++;
+  }
+
+  // Step 2: build historical "last billed before this month" map from state.rows.
+  // state.rows = main sheet of Faturamento_Geral_V2 (column AB = Data Faturamento).
+  const historicalLastBilled = new Map();
+  for (const r of state.rows || []) {
+    if (!r.data_faturamento) continue;
+    if (r.data_faturamento >= refMonthStart) continue;
+    const key = normClient(r.cliente);
+    if (!key) continue;
+    const existing = historicalLastBilled.get(key);
+    if (!existing || r.data_faturamento > existing) {
+      historicalLastBilled.set(key, r.data_faturamento);
+    }
+  }
+
+  // Step 3: classify each current-month client
+  const novos = [], reativados = [];
+  for (const [key, info] of currentMonthClients) {
+    const lastPrior = historicalLastBilled.get(key);
+    if (!lastPrior) {
+      novos.push({ ...info });
+    } else if (lastPrior < reactivationCutoff) {
+      const daysInactive = Math.floor((refMonthStart - lastPrior) / 86400000);
+      reativados.push({ ...info, lastBilled: lastPrior, daysInactive });
+    }
+  }
+  return { novos, reativados, monthsCutoff: months, noHistorical };
+}
+
+function renderMonthAcquisition() {
+  if (!state.monthData) return;
+  const months = parseInt(document.getElementById('monthReactivationMonths').value, 10) || 12;
+  const result = computeNewAndReactivatedClients(months);
+  if (!result) return;
+
+  const novosRev      = result.novos.reduce((s, c) => s + c.totalBilled, 0);
+  const reativadosRev = result.reativados.reduce((s, c) => s + c.totalBilled, 0);
+
+  const kpis = [
+    { label: 'Clientes Novos',
+      value: FORMATTERS.int.format(result.novos.length),
+      sub: result.noHistorical
+        ? '<span class="warn-text">⚠ histórico não carregado</span>'
+        : (novosRev > 0 ? FORMATTERS.brl.format(novosRev) + ' faturado' : 'Sem novos no mês'),
+    },
+    { label: 'Clientes Reativados',
+      value: FORMATTERS.int.format(result.reativados.length),
+      sub: `Sem comprar há mais de ${months} ${months === 1 ? 'mês' : 'meses'}`,
+    },
+    { label: 'Faturamento Reativados',
+      value: FORMATTERS.brl.format(reativadosRev),
+      sub: `${result.reativados.length} cliente(s)`,
+    },
+    { label: 'Total Conquistado',
+      value: FORMATTERS.brl.format(novosRev + reativadosRev),
+      sub: `${result.novos.length + result.reativados.length} cliente(s) · Novos + Reativados`,
+    },
+  ];
+  document.getElementById('monthAcquisitionKpis').innerHTML = kpis.map(k => `
+    <div class="kpi">
+      <div class="label">${k.label}</div>
+      <div class="value">${k.value}</div>
+      <div class="sub">${k.sub}</div>
+    </div>`).join('');
+
+  document.getElementById('monthNovosCount').textContent      = result.novos.length;
+  document.getElementById('monthReativadosCount').textContent = result.reativados.length;
+
+  document.getElementById('monthNovosTable').innerHTML = result.novos.length ? `
+    <table>
+      <thead><tr>
+        <th>#</th><th>Cliente</th>
+        <th class="num">1ª compra</th>
+        <th class="num">OSs</th>
+        <th class="num">Faturado</th>
+      </tr></thead>
+      <tbody>
+        ${result.novos
+          .sort((a, b) => b.totalBilled - a.totalBilled)
+          .map((c, i) => `
+          <tr>
+            <td>${i + 1}</td>
+            <td>${escapeHtml(c.cliente)}</td>
+            <td class="num">${FORMATTERS.date.format(c.firstBilledDate)}</td>
+            <td class="num">${FORMATTERS.int.format(c.osCount)}</td>
+            <td class="num">${FORMATTERS.brl.format(c.totalBilled)}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`
+    : `<p class="small" style="padding:12px">${result.noHistorical
+        ? 'Carregue o Faturamento_Geral_V2 completo (histórico) para detectar clientes novos.'
+        : 'Nenhum cliente novo neste mês.'}</p>`;
+
+  document.getElementById('monthReativadosTable').innerHTML = result.reativados.length ? `
+    <table>
+      <thead><tr>
+        <th>#</th><th>Cliente</th>
+        <th class="num">Última compra</th>
+        <th class="num">Dias inativo</th>
+        <th class="num">Faturado</th>
+      </tr></thead>
+      <tbody>
+        ${result.reativados
+          .sort((a, b) => b.daysInactive - a.daysInactive)
+          .map((c, i) => `
+          <tr>
+            <td>${i + 1}</td>
+            <td>${escapeHtml(c.cliente)}</td>
+            <td class="num">${FORMATTERS.date.format(c.lastBilled)}</td>
+            <td class="num">${FORMATTERS.int.format(c.daysInactive)}</td>
+            <td class="num">${FORMATTERS.brl.format(c.totalBilled)}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`
+    : `<p class="small" style="padding:12px">${result.noHistorical
+        ? 'Histórico necessário para identificar reativações.'
+        : `Nenhum cliente reativado com o critério atual (${months} mês${months === 1 ? '' : 'es'}).`}</p>`;
+}
+
+function printMonthAcquisition() {
+  if (!state.monthData) return;
+  const months = parseInt(document.getElementById('monthReactivationMonths').value, 10) || 12;
+  const result = computeNewAndReactivatedClients(months);
+  if (!result) return;
+
+  const novosRev      = result.novos.reduce((s, c) => s + c.totalBilled, 0);
+  const reativadosRev = result.reativados.reduce((s, c) => s + c.totalBilled, 0);
+  const novosSorted      = result.novos.slice().sort((a, b) => b.totalBilled - a.totalBilled);
+  const reativadosSorted = result.reativados.slice().sort((a, b) => b.daysInactive - a.daysInactive);
+  const monthLabel = `${String(state.monthData.period.from.getUTCMonth() + 1).padStart(2,'0')}/${state.monthData.period.from.getUTCFullYear()}`;
+  const now = new Date();
+
+  const html = `
+    <h1>Clientes Novos &amp; Reativados — ${monthLabel}</h1>
+    <p class="meta">
+      Gerado em ${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })}
+      ${state.fileName ? ' · Fonte: ' + escapeHtml(state.fileName) : ''}<br>
+      Critério "Reativado": cliente sem comprar há mais de <b>${months} mês${months === 1 ? '' : 'es'}</b><br>
+      ${result.noHistorical ? '<b style="color:#a00">⚠ Histórico não carregado — resultado pode estar incompleto.</b>' : 'Histórico: ' + FORMATTERS.int.format(state.rows.length) + ' OSs consideradas.'}
+    </p>
+
+    <h2 style="font-size:11pt">Resumo</h2>
+    <table style="width:auto; margin-bottom:6pt">
+      <tbody>
+        <tr><td><b>Clientes Novos</b></td><td class="num">${result.novos.length}</td><td class="num">${FORMATTERS.brl.format(novosRev)}</td></tr>
+        <tr><td><b>Clientes Reativados</b></td><td class="num">${result.reativados.length}</td><td class="num">${FORMATTERS.brl.format(reativadosRev)}</td></tr>
+        <tr><td><b>Total Conquistado</b></td><td class="num">${result.novos.length + result.reativados.length}</td><td class="num">${FORMATTERS.brl.format(novosRev + reativadosRev)}</td></tr>
+      </tbody>
+    </table>
+
+    <h2 style="font-size:11pt; margin-top:14pt">Clientes Novos (${result.novos.length})</h2>
+    <table>
+      <thead><tr>
+        <th>#</th>
+        <th>Cliente</th>
+        <th class="num">1ª compra</th>
+        <th class="num">OSs no mês</th>
+        <th class="num">Faturado</th>
+      </tr></thead>
+      <tbody>
+        ${novosSorted.map((c, i) => `
+          <tr>
+            <td>${i + 1}</td>
+            <td>${escapeHtml(c.cliente)}</td>
+            <td class="num">${FORMATTERS.date.format(c.firstBilledDate)}</td>
+            <td class="num">${c.osCount}</td>
+            <td class="num">${FORMATTERS.brl.format(c.totalBilled)}</td>
+          </tr>`).join('') || '<tr><td colspan="5" class="small">Nenhum cliente novo.</td></tr>'}
+      </tbody>
+    </table>
+
+    <h2 style="font-size:11pt; margin-top:14pt">Clientes Reativados (${result.reativados.length})</h2>
+    <table>
+      <thead><tr>
+        <th>#</th>
+        <th>Cliente</th>
+        <th class="num">Última compra</th>
+        <th class="num">Dias inativo</th>
+        <th class="num">OSs no mês</th>
+        <th class="num">Faturado</th>
+      </tr></thead>
+      <tbody>
+        ${reativadosSorted.map((c, i) => `
+          <tr>
+            <td>${i + 1}</td>
+            <td>${escapeHtml(c.cliente)}</td>
+            <td class="num">${FORMATTERS.date.format(c.lastBilled)}</td>
+            <td class="num">${c.daysInactive}</td>
+            <td class="num">${c.osCount}</td>
+            <td class="num">${FORMATTERS.brl.format(c.totalBilled)}</td>
+          </tr>`).join('') || '<tr><td colspan="6" class="small">Nenhum cliente reativado.</td></tr>'}
+      </tbody>
+    </table>
+  `;
+  openPrintWindow(`Clientes Novos e Reativados — ${monthLabel}`, html, { orientation: 'portrait' });
+}
+
+// =====================================================================
+// Print "Projeção do Mês" — respeita filtros (status + previsão) e ordenação
+// atualmente aplicados. Layout A4 landscape; tabela com resumo financeiro
+// no topo e detalhamento das OSs filtradas embaixo.
+// =====================================================================
+function printMonthProjections() {
+  if (!state.monthData) return;
+  const { period } = state.monthData;
+  const osRows = state.monthData._clienteRows;
+  const refMonth = refYM(period);
+  const nextMonth = nextYM(refMonth);
+
+  const statusFilter = document.getElementById('monthProjFilter').value;
+  const flagFilter   = document.getElementById('monthProjFlagFilter').value;
+  const projections = loadOSProjections();
+  const notes       = loadOSNotes();
+  const today       = todayUTC();
+
+  // Same filtering as renderMonthProjections
+  let rows = osRows.filter(r => getOSStatus(r) !== 'faturada');
+  if (statusFilter && statusFilter !== 'all') {
+    rows = rows.filter(r => getOSStatus(r) === statusFilter);
+  }
+  if (flagFilter && flagFilter !== 'all') {
+    rows = rows.filter(r => {
+      const f = projections[osKey(r)];
+      if (flagFilter === 'este')   return f === refMonth;
+      if (flagFilter === 'prox')   return f === nextMonth;
+      if (flagFilter === 'no')     return f === 'no';
+      if (flagFilter === 'unsure') return !f || f === 'unsure';
+      return true;
+    });
+  }
+
+  // Same sort as renderMonthProjections
+  const STATUS_ORDER = { abandonada: 0, faturadaParcial: 1, producao: 2, aberta: 3 };
+  const PROJ_ORDER   = { este: 0, prox: 1, sem: 2, no: 3 };
+  const sortKey = state.monthProjSort.by;
+  const sortDir = state.monthProjSort.dir;
+  const getVal = (r) => {
+    switch (sortKey) {
+      case 'os':         return parseInt(r.os, 10) || 0;
+      case 'cliente':    return (r.cliente || '').toLowerCase();
+      case 'cidade':     return `${r.placa || ''} ${r.modelo || ''}`.toLowerCase();
+      case 'recepcao':   return r.aberturaRecepcao ? r.aberturaRecepcao.getTime() : 0;
+      case 'dias':       return r.aberturaRecepcao ? (today - r.aberturaRecepcao) : 0;
+      case 'status':     return STATUS_ORDER[getOSStatus(r)] ?? 99;
+      case 'valor':      return (r.valorTotal || 0) - osBilledValue(r);
+      case 'previsao': {
+        const f = projections[osKey(r)];
+        if (f === refMonth)  return PROJ_ORDER.este;
+        if (f === nextMonth) return PROJ_ORDER.prox;
+        if (f === 'no')      return PROJ_ORDER.no;
+        return PROJ_ORDER.sem;
+      }
+      case 'comentario': return (notes[osKey(r)] || '').toLowerCase();
+      default:           return 0;
+    }
+  };
+  rows.sort((a, b) => {
+    const va = getVal(a), vb = getVal(b);
+    let cmp = (typeof va === 'number' && typeof vb === 'number')
+      ? va - vb
+      : String(va).localeCompare(String(vb), 'pt-BR');
+    if (cmp === 0) {
+      const da = a.aberturaRecepcao ? a.aberturaRecepcao.getTime() : Infinity;
+      const db = b.aberturaRecepcao ? b.aberturaRecepcao.getTime() : Infinity;
+      cmp = da - db;
+    }
+    return sortDir === 'asc' ? cmp : -cmp;
+  });
+
+  // Financial summary
+  let valEste = 0, valProx = 0, valSem = 0, valNo = 0;
+  let cEste = 0, cProx = 0, cSem = 0, cNo = 0;
+  for (const r of rows) {
+    const remaining = (r.valorTotal || 0) - osBilledValue(r);
+    const f = projections[osKey(r)];
+    if (f === refMonth)        { valEste += remaining; cEste++; }
+    else if (f === nextMonth)  { valProx += remaining; cProx++; }
+    else if (f === 'no')       { valNo  += remaining; cNo++;  }
+    else                       { valSem += remaining; cSem++; }
+  }
+  let faturado = 0;
+  for (const r of osRows) faturado += osBilledValue(r);
+
+  // Labels for header
+  const statusLabel = {
+    all: 'Todas em aberto', aberta: 'Apenas Abertas', producao: 'Apenas Em Produção',
+    faturadaParcial: 'Apenas Faturadas Parcial', abandonada: 'Apenas Abandonadas',
+  }[statusFilter] || 'Todas em aberto';
+  const flagLabel = {
+    all: 'Todas',
+    este: `Este mês (${refMonth})`,
+    prox: `Próximo mês (${nextMonth})`,
+    unsure: 'Sem previsão',
+    no: 'Não fechará',
+  }[flagFilter] || 'Todas';
+  const monthLabel = `${String(period.from.getUTCMonth()+1).padStart(2,'0')}/${period.from.getUTCFullYear()}`;
+  const sortLabels = {
+    os:'OS', cliente:'Cliente', cidade:'Cidade/Placa', recepcao:'Recepção', dias:'Dias',
+    status:'Status', valor:'Valor restante', previsao:'Previsão', comentario:'Comentário'
+  };
+
+  const now = new Date();
+  const flagToText = (f) => f === refMonth ? `Este mês (${refMonth})`
+                          : f === nextMonth ? `Próximo mês (${nextMonth})`
+                          : f === 'no' ? 'Não fechará'
+                          : 'Sem previsão';
+
+  const html = `
+    <h1>Projeção do Mês — ${monthLabel}</h1>
+    <p class="meta">
+      Gerado em ${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })}
+      ${state.fileName ? ' · Fonte: ' + escapeHtml(state.fileName) : ''}<br>
+      Filtros: Status = <b>${statusLabel}</b> · Previsão = <b>${flagLabel}</b>
+      · Ordenado por <b>${sortLabels[sortKey] || sortKey}</b> (${sortDir === 'asc' ? 'asc' : 'desc'})
+      · Total: <b>${FORMATTERS.int.format(rows.length)}</b> OS(s)
+    </p>
+
+    <h2 style="font-size:11pt">Resumo financeiro do mês</h2>
+    <table style="width:auto; margin-bottom:6pt">
+      <tbody>
+        <tr><td><b>Faturado</b></td><td class="num">${FORMATTERS.brl.format(faturado)}</td></tr>
+        <tr><td><b>Previsto (Este mês)</b></td><td class="num">${FORMATTERS.brl.format(valEste)} <span style="color:#666">(${cEste} OS)</span></td></tr>
+        <tr><td><b>Faturado + Previsto</b></td><td class="num">${FORMATTERS.brl.format(faturado + valEste)}</td></tr>
+        <tr><td>Próximo mês</td><td class="num">${FORMATTERS.brl.format(valProx)} <span style="color:#666">(${cProx} OS)</span></td></tr>
+        <tr><td>Sem previsão</td><td class="num">${FORMATTERS.brl.format(valSem)} <span style="color:#666">(${cSem} OS)</span></td></tr>
+        ${cNo > 0 ? `<tr><td>Não fechará</td><td class="num">${FORMATTERS.brl.format(valNo)} <span style="color:#666">(${cNo} OS)</span></td></tr>` : ''}
+      </tbody>
+    </table>
+
+    <h2 style="font-size:11pt; margin-top:14pt">Detalhamento (${FORMATTERS.int.format(rows.length)} OS${rows.length===1?'':'s'})</h2>
+    <table>
+      <thead><tr>
+        <th>#</th>
+        <th>OS</th>
+        <th>Cliente</th>
+        <th>Cidade/Placa</th>
+        <th class="num">Recepção</th>
+        <th class="num">Dias</th>
+        <th>Status</th>
+        <th class="num">Valor restante</th>
+        <th>Previsão</th>
+        <th>Comentário</th>
+      </tr></thead>
+      <tbody>
+        ${rows.map((r, i) => {
+          const status = getOSStatus(r);
+          const k = osKey(r);
+          const note = notes[k] || '';
+          const flag = projections[k];
+          const remaining = (r.valorTotal || 0) - osBilledValue(r);
+          const days = r.aberturaRecepcao ? Math.round((today - r.aberturaRecepcao)/86400000) : 0;
+          return `<tr>
+            <td>${i+1}</td>
+            <td>${escapeHtml(r.os)}</td>
+            <td>${escapeHtml(r.cliente)}</td>
+            <td>${escapeHtml(r.placa || '')} ${escapeHtml(r.modelo || '')}</td>
+            <td class="num">${r.aberturaRecepcao ? FORMATTERS.date.format(r.aberturaRecepcao) : '—'}</td>
+            <td class="num">${days}</td>
+            <td>${STATUS_LABEL[status] || status}</td>
+            <td class="num">${FORMATTERS.brl.format(remaining)}</td>
+            <td>${flagToText(flag)}</td>
+            <td>${escapeHtml(note)}</td>
+          </tr>`;
+        }).join('') || '<tr><td colspan="10" class="small">Nenhuma OS para os filtros selecionados.</td></tr>'}
+      </tbody>
+    </table>
+  `;
+  openPrintWindow(`Projeção do Mês — ${monthLabel}`, html, { orientation: 'landscape' });
+}
+
+// =====================================================================
+// OS Internas — operações que não geram faturamento direto a cliente.
+// Mostra apenas contagens e top operações; não entra no Realizado/Meta.
+// =====================================================================
+function renderMonthInternas() {
+  const osRows = state.monthData._internaRows || [];
+  document.getElementById('monthInternaCount').textContent = `${FORMATTERS.int.format(osRows.length)} OS(s)`;
+
+  if (!osRows.length) {
+    document.getElementById('monthInternaKpis').innerHTML =
+      '<div class="kpi" style="grid-column:1/-1; text-align:center; color:var(--muted)">Nenhuma OS interna no período</div>';
+    document.getElementById('monthInternaOps').innerHTML = '';
+    document.getElementById('monthInternaTable').innerHTML = '';
+    return;
+  }
+
+  // Status counters
+  let faturadas = 0, parciais = 0, producao = 0, abertas = 0, abandonadas = 0;
+  let valorTotalInterno = 0;
+  for (const r of osRows) {
+    const st = getOSStatus(r);
+    if (st === 'faturada')        faturadas++;
+    else if (st === 'faturadaParcial') parciais++;
+    else if (st === 'producao')   producao++;
+    else if (st === 'abandonada') abandonadas++;
+    else                          abertas++;
+    valorTotalInterno += r.valorTotal || 0;
+  }
+
+  document.getElementById('monthInternaKpis').innerHTML = [
+    { label: 'Total internas',  value: FORMATTERS.int.format(osRows.length),       sub: '&nbsp;' },
+    { label: 'Faturadas',       value: FORMATTERS.int.format(faturadas + parciais),sub: parciais ? `${parciais} parciais` : '&nbsp;' },
+    { label: 'Em produção',     value: FORMATTERS.int.format(producao),            sub: '&nbsp;' },
+    { label: 'Abertas',         value: FORMATTERS.int.format(abertas),             sub: '&nbsp;' },
+    { label: 'Abandonadas',     value: FORMATTERS.int.format(abandonadas),
+      sub: `<span class="${abandonadas > 0 ? 'danger-text' : ''}">&gt; 60 dias</span>` },
+    { label: 'Valor total',     value: FORMATTERS.brl.format(valorTotalInterno),   sub: 'Não conta no Realizado/Meta' },
+  ].map(k => `
+    <div class="kpi">
+      <div class="label">${k.label}</div>
+      <div class="value">${k.value}</div>
+      <div class="sub">${k.sub}</div>
+    </div>`).join('');
+
+  // Top operações by count + revenue
+  const opAgg = new Map();
+  for (const r of osRows) {
+    const key = r.operation ? `${r.operation.code} · ${r.operation.name}` : '— sem operação —';
+    if (!opAgg.has(key)) opAgg.set(key, { count: 0, valor: 0 });
+    const a = opAgg.get(key);
+    a.count++;
+    a.valor += r.valorTotal || 0;
+  }
+  const sortedOps = [...opAgg.entries()].sort((a, b) => b[1].count - a[1].count);
+  document.getElementById('monthInternaOps').innerHTML = `
+    <table>
+      <thead><tr><th>Operação</th><th class="num">OSs</th><th class="num">Valor total</th></tr></thead>
+      <tbody>
+        ${sortedOps.map(([op, m]) => `
+          <tr>
+            <td>${escapeHtml(op)}</td>
+            <td class="num">${FORMATTERS.int.format(m.count)}</td>
+            <td class="num">${FORMATTERS.brl.format(m.valor)}</td>
+          </tr>`).join('') || '<tr><td colspan="3" class="small">Sem dados.</td></tr>'}
+      </tbody>
+    </table>`;
+
+  // Detail table (cap 150)
+  const visible = osRows.slice(0, 150);
+  const today = todayUTC();
+  document.getElementById('monthInternaTable').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>OS</th><th>Operação</th><th>Cliente</th>
+        <th class="num">Recepção</th>
+        <th>Status</th>
+        <th class="num">Total</th>
+      </tr></thead>
+      <tbody>
+        ${visible.map(r => {
+          const st = getOSStatus(r);
+          const days = r.aberturaRecepcao ? Math.round((today - r.aberturaRecepcao)/86400000) : 0;
+          return `<tr>
+            <td><b>${escapeHtml(r.os)}</b></td>
+            <td class="nowrap">${r.operation ? escapeHtml(r.operation.code) : ''}</td>
+            <td>${escapeHtml(r.cliente)}</td>
+            <td class="num">${r.aberturaRecepcao ? FORMATTERS.date.format(r.aberturaRecepcao) : '—'} <span class="small ${days > 60 ? 'danger-text' : ''}">${r.aberturaRecepcao ? '(' + days + 'd)' : ''}</span></td>
+            <td><span class="pill ${STATUS_PILL[st]}">${STATUS_LABEL[st]}</span></td>
+            <td class="num">${FORMATTERS.brlF.format(r.valorTotal || 0)}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+    ${osRows.length > visible.length ? `<p class="small" style="padding:8px">Mostrando 150 de ${FORMATTERS.int.format(osRows.length)}.</p>` : ''}`;
+}
+
 function renderMonthOSTable() {
   const status = document.getElementById('monthFilterStatus').value;
   const search = (document.getElementById('monthFilterSearch').value || '').trim().toLowerCase();
+  const sortBy = state.monthSort.by;
+  const sortDir = state.monthSort.dir;
+  const notes = loadOSNotes();
+  const today = todayUTC();
+
   let rows = state.monthData.osRows;
   if (status) rows = rows.filter(r => getOSStatus(r) === status);
   if (search) rows = rows.filter(r =>
@@ -5833,34 +7728,69 @@ function renderMonthOSTable() {
     (r.modelo || '').toLowerCase().includes(search) ||
     (r.veiculo || '').toLowerCase().includes(search));
 
-  document.getElementById('monthOSCount').textContent =
-    `${FORMATTERS.int.format(rows.length)} OSs`;
+  // Sort
+  const getSortValue = (r) => {
+    switch (sortBy) {
+      case 'cliente':         return r.cliente || '';
+      case 'osNum':           return parseInt(r.os, 10) || 0;
+      case 'aberturaRecepcao':return r.aberturaRecepcao ? r.aberturaRecepcao.getTime() : 0;
+      case 'billedDate':      { const d = osBilledDate(r); return d ? d.getTime() : 0; }
+      case 'valorTotal':      return r.valorTotal || 0;
+      case 'status':          return getOSStatus(r);
+      case 'daysOld':         return r.aberturaRecepcao ? (today - r.aberturaRecepcao) : 0;
+      default:                return 0;
+    }
+  };
+  rows = [...rows].sort((a, b) => {
+    const va = getSortValue(a), vb = getSortValue(b);
+    if (va == null && vb == null) return 0;
+    if (va == null) return 1;
+    if (vb == null) return -1;
+    if (typeof va === 'number') return sortDir === 'asc' ? va - vb : vb - va;
+    return sortDir === 'asc'
+      ? String(va).localeCompare(String(vb), 'pt-BR')
+      : String(vb).localeCompare(String(va), 'pt-BR');
+  });
+
+  document.getElementById('monthOSCount').textContent = `${FORMATTERS.int.format(rows.length)} OSs`;
 
   const visible = rows.slice(0, 300);
   document.getElementById('monthOSTable').innerHTML = `
     <table>
       <thead><tr>
-        <th>OS</th><th>Cliente</th><th>Operação</th><th>Modelo/Veículo</th><th>Placa</th>
-        <th class="num">Abertura</th><th class="num">Faturamento</th>
+        <th>OS</th><th>Tipo</th><th>Cliente</th><th>Operação</th><th>Modelo/Veículo</th><th>Placa</th>
+        <th class="num">Abertura</th><th class="num">Dias</th><th class="num">Faturamento</th>
         <th>Status</th>
         <th class="num">Peças</th><th class="num">Serv.</th><th class="num">Terc.</th>
         <th class="num">Total</th><th class="num">Realizado</th>
+        <th>Comentário</th>
       </tr></thead>
       <tbody>
         ${visible.map(r => {
           const st = getOSStatus(r);
           const billedDate = osBilledDate(r);
           const billedValue = osBilledValue(r);
-          // Indicators ✓/× per component when partial
+          const days = r.aberturaRecepcao ? Math.round((today - r.aberturaRecepcao)/86400000) : 0;
+          const daysClass = days > 60 ? 'danger-text' : days > 30 ? 'warn-text' : '';
           const pIcon = (r.valorPecas    > 0) ? (r.faturamentoPecas    ? ' <span class="good-text" title="Faturada">✓</span>' : ' <span class="danger-text" title="Não faturada">×</span>') : '';
           const sIcon = (r.valorServicos > 0) ? (r.faturamentoServicos ? ' <span class="good-text" title="Faturada">✓</span>' : ' <span class="danger-text" title="Não faturada">×</span>') : '';
+          const k = osKey(r);
+          const note = notes[k] || '';
+          const tipo = isOpCliente(r) ? 'Cliente' : 'Interna';
+          const tipoPill = isOpCliente(r) ? 'good' : 'warn';
+          // Open OSs allow inline comment editing; closed OSs are read-only
+          const commentCell = (st !== 'faturada')
+            ? `<input class="proj-note" data-os-key="${escapeHtml(k)}" type="text" value="${escapeHtml(note)}" placeholder="Comentário…" style="width:100%; min-width:140px; padding:3px 7px; font-size:11px; border:1px solid var(--border); border-radius:5px; font-family:inherit">`
+            : (note ? escapeHtml(note) : '<span class="small">—</span>');
           return `<tr>
             <td><b>${escapeHtml(r.os)}</b></td>
+            <td><span class="pill ${tipoPill}">${tipo}</span></td>
             <td>${escapeHtml(r.cliente)}</td>
             <td class="nowrap">${r.operation ? escapeHtml(r.operation.code) : ''}</td>
             <td>${escapeHtml(r.modelo)} ${escapeHtml(r.veiculo)}</td>
             <td>${escapeHtml(r.placa)}</td>
             <td class="num">${r.aberturaRecepcao ? FORMATTERS.date.format(r.aberturaRecepcao) : '—'}</td>
+            <td class="num ${daysClass}">${days}</td>
             <td class="num">${billedDate ? FORMATTERS.date.format(billedDate) : '—'}</td>
             <td><span class="pill ${STATUS_PILL[st]}">${STATUS_LABEL[st] || st}</span></td>
             <td class="num">${FORMATTERS.brlF.format(r.valorPecas)}${pIcon}</td>
@@ -5868,12 +7798,19 @@ function renderMonthOSTable() {
             <td class="num">${FORMATTERS.brlF.format(r.valorTerceiros)}</td>
             <td class="num"><b>${FORMATTERS.brlF.format(r.valorTotal)}</b></td>
             <td class="num ${billedValue > 0 ? 'good-text' : ''}">${FORMATTERS.brlF.format(billedValue)}</td>
+            <td>${commentCell}</td>
           </tr>`;
         }).join('')}
       </tbody>
     </table>
     ${rows.length > visible.length ? `<p class="small" style="padding:8px">Mostrando 300 de ${FORMATTERS.int.format(rows.length)}. Refine a busca para filtrar.</p>` : ''}
   `;
+
+  // Wire inline comment editing
+  document.querySelectorAll('#monthOSTable .proj-note').forEach(inp => {
+    inp.addEventListener('change', (e) => saveOSNote(e.target.dataset.osKey, e.target.value));
+    inp.addEventListener('blur',   (e) => saveOSNote(e.target.dataset.osKey, e.target.value));
+  });
 }
 
 // ---------- master render ----------
@@ -5883,6 +7820,7 @@ function renderAll() {
   renderMonthlyChart();
   renderPeriodChart();
   renderOSChart();
+  renderTipoEvolutionChart();
   renderCityChart();
   renderSellerChart();
   renderVehicleChart();

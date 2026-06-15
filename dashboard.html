@@ -1198,6 +1198,19 @@
           </div>
         </div>
 
+        <div class="card">
+          <h3>Faturamento por Tipo de Pessoa <span class="badge">PF × PJ</span></h3>
+          <p class="small" style="margin:0 0 10px">Classificação automática pelo documento (<b>CNPJ/CPF</b>): 14 dígitos = <b>Pessoa Jurídica</b>, 11 dígitos = <b>Pessoa Física</b>. Respeita todos os filtros laterais (Período, Empresa, Operação, Negócio, Cidade, Vendedor, Tipo de Faturamento).</p>
+          <div class="kpis" id="personTypeKpis"></div>
+          <div class="grid two" style="margin-top:4px">
+            <div class="card" style="box-shadow:none;border:1px solid #e5e7eb">
+              <div class="chart-wrap" style="height:300px"><canvas id="personTypeRevChart"></canvas></div>
+            </div>
+            <div id="personTypeTable" class="scroll-x"></div>
+          </div>
+          <p class="small" id="personTypeNote" style="margin:8px 0 0"></p>
+        </div>
+
         <div class="grid two">
           <div class="card">
             <h3>Top 20 — Faturamento</h3>
@@ -1274,7 +1287,7 @@
             </div>
           </div>
           <div class="compact-filters">
-            <input type="text" id="completeSearch" placeholder="Buscar cliente, cidade, vendedor ou marca…" style="flex:1; min-width:260px; max-width:480px">
+            <input type="text" id="completeSearch" placeholder="Buscar cliente, código, CNPJ/CPF, cidade, vendedor ou marca…" style="flex:1; min-width:260px; max-width:480px">
             <span class="small" id="completeCount"></span>
           </div>
           <div id="completeList" class="scroll-x"></div>
@@ -1551,6 +1564,25 @@ function num(v) {
   return isNaN(n) ? 0 : n;
 }
 function nz(v) { return v == null ? '' : String(v); }
+// ---- Pessoa Física (CPF) × Jurídica (CNPJ) ----
+// Classifica um documento pelo nº de dígitos: 11 = CPF (PF), 14 = CNPJ (PJ).
+function digitsOnly(v) { return String(v == null ? '' : v).replace(/\D/g, ''); }
+function personType(doc) {
+  const d = digitsOnly(doc);
+  if (d.length === 11) return 'PF';
+  if (d.length === 14) return 'PJ';
+  return 'ND'; // não identificado (vazio ou tamanho inválido)
+}
+function personTypeLabel(t) {
+  return t === 'PF' ? 'Pessoa Física' : t === 'PJ' ? 'Pessoa Jurídica' : 'Não identificado';
+}
+// Formata CPF (000.000.000-00) ou CNPJ (00.000.000/0000-00); demais retornam como veio.
+function formatDoc(doc) {
+  const d = digitsOnly(doc);
+  if (d.length === 11) return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+  if (d.length === 14) return d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+  return doc ? String(doc) : '';
+}
 function excelSerialToDate(n) {
   if (typeof n !== 'number' || !isFinite(n)) return null;
   // Excel date system (Windows). Account for the 1900 leap year bug (serials < 60).
@@ -1600,7 +1632,9 @@ const COLUMN_MAP = {
   empresa:           ['empresa'],
   operacao:          ['operacao', 'operação'],
   os:                ['os'],
+  codc:              ['codc','cod c','cod. c','codigo c','cod cliente','cod. cliente','codigo cliente','codigo do cliente','cod cli','codcli'],
   cliente:           ['cliente'],
+  cnpj_cpf:          ['cnpj / cpf','cnpj/cpf','cnpj cpf','cpf / cnpj','cpf/cnpj','cpf cnpj','cnpj','cpf','documento','doc','cnpj cpf cliente','cnpj ou cpf'],
   vendedor:          ['vendedor'],
   nf_pecas:          ['nota fiscal pecas','nota fiscal peças','nf pecas','nf peças'],
   qty_pecas:         ['quantidade pecas','quantidade peças','qtd pecas','qtd peças'],
@@ -1958,7 +1992,9 @@ async function loadWorkbookFromBuffer(buf, sourceName, opts = {}) {
         empresa:     nz(get('empresa')).trim(),
         operacao:    nz(get('operacao')).trim(),
         os:          nz(get('os')).trim(),
+        codc:        nz(get('codc')).trim(),
         cliente:     cliente.trim(),
+        cnpj_cpf:    nz(get('cnpj_cpf')).trim(),
         vendedor:    nz(get('vendedor')).trim(),
         cidade:      nz(get('cidade')).trim(),
         negocio:     nz(get('negocio')).trim(),
@@ -5009,10 +5045,13 @@ function aggregateClientPerformance(rows) {
       revPecas: 0, revServicos: 0, revTerceiros: 0,
       first: null, last: null,
       sellers: new Map(), cities: new Map(), brands: new Map(),
+      docs: new Map(), codcs: new Map(),
       dSum: 0, dCnt: 0,
     });
     const a = agg.get(r.cliente);
     a.count++;
+    if (r.cnpj_cpf) a.docs.set(r.cnpj_cpf,  (a.docs.get(r.cnpj_cpf)||0) + 1);
+    if (r.codc)     a.codcs.set(r.codc,     (a.codcs.get(r.codc)||0)    + 1);
     a.revenue += rowRevenue(r, tt);
     a.revPecas += r.venda_pecas || 0;
     a.revServicos += r.venda_servicos || 0;
@@ -5031,12 +5070,19 @@ function aggregateClientPerformance(rows) {
     const sortedSellers = [...a.sellers.entries()].sort((x,y) => y[1]-x[1]);
     const sortedCities  = [...a.cities.entries()].sort((x,y) => y[1]-x[1]);
     const sortedBrands  = [...a.brands.entries()].sort((x,y) => y[1]-x[1]);
+    const sortedDocs    = [...a.docs.entries()].sort((x,y) => y[1]-x[1]);
+    const sortedCodcs   = [...a.codcs.entries()].sort((x,y) => y[1]-x[1]);
+    const cnpj_cpf      = sortedDocs[0]?.[0]  || '';
     return {
       ...a,
       ticket: a.count ? a.revenue/a.count : 0,
       mainSeller: sortedSellers[0]?.[0] || '',
       mainCity:   sortedCities[0]?.[0]  || '',
       mainBrand:  sortedBrands[0]?.[0]  || '',
+      codc:       sortedCodcs[0]?.[0]   || '',
+      cnpj_cpf,
+      docFmt:     formatDoc(cnpj_cpf),
+      personType: personType(cnpj_cpf),
       descMedio:  a.dCnt ? a.dSum/a.dCnt : 0,
     };
   });
@@ -5107,7 +5153,10 @@ function renderInactiveClients() {
     <table>
       <thead><tr>
         <th>#</th>
+        <th>Cód.</th>
         <th>Cliente</th>
+        <th>CNPJ/CPF</th>
+        <th>Tipo</th>
         <th>Cidade</th>
         <th>Vendedor princ.</th>
         <th>Marca freq.</th>
@@ -5122,7 +5171,10 @@ function renderInactiveClients() {
         ${visible.map((c, i) => `
           <tr>
             <td>${i+1}</td>
+            <td>${escapeHtml(c.codc||'')}</td>
             <td><a href="#" data-pick-client="${escapeHtml(c.cliente)}">${escapeHtml(c.cliente)}</a></td>
+            <td>${escapeHtml(c.docFmt||'')}</td>
+            <td>${c.personType==='ND' ? '—' : `<span class="pill ${c.personType==='PJ'?'good':'warn'}">${c.personType}</span>`}</td>
             <td>${escapeHtml(c.mainCity)}</td>
             <td>${escapeHtml(c.mainSeller)}</td>
             <td>${escapeHtml(c.mainBrand)}</td>
@@ -5176,7 +5228,10 @@ function printInactiveClients() {
           <thead>
             <tr>
               <th>#</th>
+              <th>Cód.</th>
               <th>Cliente</th>
+              <th>CNPJ/CPF</th>
+              <th>Tipo</th>
               <th>Cidade</th>
               <th>Marca</th>
               <th class="num">OSs</th>
@@ -5191,7 +5246,10 @@ function printInactiveClients() {
             ${list.map((c, i) => `
               <tr>
                 <td>${i+1}</td>
+                <td>${escapeHtml(c.codc||'')}</td>
                 <td>${escapeHtml(c.cliente)}</td>
+                <td>${escapeHtml(c.docFmt||'')}</td>
+                <td>${c.personType==='ND' ? '—' : c.personType}</td>
                 <td>${escapeHtml(c.mainCity)}</td>
                 <td>${escapeHtml(c.mainBrand)}</td>
                 <td class="num">${FORMATTERS.int.format(c.count)}</td>
@@ -5227,7 +5285,10 @@ function printInactiveClientsFlat() {
       <thead>
         <tr>
           <th>#</th>
+          <th>Cód.</th>
           <th>Cliente</th>
+          <th>CNPJ/CPF</th>
+          <th>Tipo</th>
           <th>Cidade</th>
           <th>Vendedor</th>
           <th>Marca</th>
@@ -5243,7 +5304,10 @@ function printInactiveClientsFlat() {
         ${list.map((c, i) => `
           <tr>
             <td>${i+1}</td>
+            <td>${escapeHtml(c.codc||'')}</td>
             <td>${escapeHtml(c.cliente)}</td>
+            <td>${escapeHtml(c.docFmt||'')}</td>
+            <td>${c.personType==='ND' ? '—' : c.personType}</td>
             <td>${escapeHtml(c.mainCity)}</td>
             <td>${escapeHtml(c.mainSeller)}</td>
             <td>${escapeHtml(c.mainBrand)}</td>
@@ -5263,9 +5327,9 @@ function printInactiveClientsFlat() {
 
 function csvInactiveClients() {
   const { days, windowYears, seller: vendedorFilter, list } = getInactivesView();
-  const headers = ['Cliente','Cidade','Vendedor principal','Marca freq.','OSs','Faturamento','Ticket','Desc. médio %','1ª passagem','Última passagem','Dias inativo'];
+  const headers = ['Cód. Cliente','Cliente','CNPJ/CPF','Tipo Pessoa','Cidade','Vendedor principal','Marca freq.','OSs','Faturamento','Ticket','Desc. médio %','1ª passagem','Última passagem','Dias inativo'];
   const rows = list.map(c => [
-    c.cliente, c.mainCity, c.mainSeller, c.mainBrand,
+    c.codc, c.cliente, c.docFmt, personTypeLabel(c.personType), c.mainCity, c.mainSeller, c.mainBrand,
     c.count,
     c.revenue.toFixed(2).replace('.', ','),
     c.ticket.toFixed(2).replace('.', ','),
@@ -5298,8 +5362,12 @@ function computeCompleteClientList() {
 }
 
 const COMPLETE_COLS = [
+  { key:'codc',         label:'Cód.',            align:'left',  format: v => escapeHtml(v||'') },
   { key:'cliente',      label:'Cliente',         align:'left',
     format: (v, r) => `<a href="#" data-pick-client="${escapeHtml(r.cliente)}">${escapeHtml(v)}</a>` },
+  { key:'docFmt',       label:'CNPJ/CPF',        align:'left',  format: v => escapeHtml(v||'') },
+  { key:'personType',   label:'Tipo',            align:'left',
+    format: v => v==='ND' ? '—' : `<span class="pill ${v==='PJ'?'good':'warn'}">${v}</span>` },
   { key:'mainCity',     label:'Cidade',          align:'left',  format: v => escapeHtml(v||'') },
   { key:'mainSeller',   label:'Vendedor princ.', align:'left',  format: v => escapeHtml(v||'') },
   { key:'mainBrand',    label:'Marca freq.',     align:'left',  format: v => escapeHtml(v||'') },
@@ -5332,8 +5400,11 @@ function sortClientList(list) {
 function filterClientList(all) {
   const search = (state.completeListSearch || '').trim().toLowerCase();
   if (!search) return all;
+  const searchDigits = search.replace(/\D/g, '');
   return all.filter(c =>
     (c.cliente||'').toLowerCase().includes(search) ||
+    (c.codc||'').toLowerCase().includes(search) ||
+    (searchDigits && digitsOnly(c.cnpj_cpf).includes(searchDigits)) ||
     (c.mainCity||'').toLowerCase().includes(search) ||
     (c.mainSeller||'').toLowerCase().includes(search) ||
     (c.mainBrand||'').toLowerCase().includes(search));
@@ -5415,6 +5486,7 @@ function printCompleteClientList() {
               else if (c.key === 'descMedio') txt = (v||0).toFixed(2)+'%';
               else if (c.key === 'count') txt = FORMATTERS.int.format(v||0);
               else if (c.key === 'daysInactive') txt = v != null ? Math.round(v) : '—';
+              else if (c.key === 'personType') txt = v === 'ND' ? '—' : v;
               else txt = String(v ?? '');
               return `<td class="${c.align==='num'?'num':''}">${escapeHtml(String(txt))}</td>`;
             }).join('')}
@@ -5427,9 +5499,9 @@ function printCompleteClientList() {
 
 function csvCompleteClientList() {
   const all = computeCompleteClientList();
-  const headers = ['Cliente','Cidade','Vendedor principal','Marca freq.','OSs','Faturamento','Vendas Peças','Vendas Serviços','Vendas Terceiros','Ticket','Desc. médio %','1ª passagem','Última passagem','Dias inativo','Status'];
+  const headers = ['Cód. Cliente','Cliente','CNPJ/CPF','Tipo Pessoa','Cidade','Vendedor principal','Marca freq.','OSs','Faturamento','Vendas Peças','Vendas Serviços','Vendas Terceiros','Ticket','Desc. médio %','1ª passagem','Última passagem','Dias inativo','Status'];
   const rows = sortClientList(filterClientList(all)).map(c => [
-    c.cliente, c.mainCity, c.mainSeller, c.mainBrand,
+    c.codc, c.cliente, c.docFmt, personTypeLabel(c.personType), c.mainCity, c.mainSeller, c.mainBrand,
     c.count,
     c.revenue.toFixed(2).replace('.', ','),
     (c.revPecas||0).toFixed(2).replace('.', ','),
@@ -5455,6 +5527,7 @@ function renderClientsView() {
 
   // Top section — sempre visível
   renderClientOverallKpis();
+  renderPersonTypeReport();
   renderParetoChart();
   renderFreqDistChart();
   renderTopClientsByRevenue();
@@ -5549,6 +5622,113 @@ function renderClientOverallKpis() {
       <div class="sub">${k.sub}</div>
     </div>`).join('');
 }
+
+// =====================================================================
+//  FATURAMENTO POR TIPO DE PESSOA (Física × Jurídica)
+//  Agrega a carteira filtrada por tipo de pessoa do cliente (classificado
+//  pelo documento predominante) e apresenta KPIs, donut e tabela detalhada.
+// =====================================================================
+function renderPersonTypeReport() {
+  const clients = aggregateClientPerformance(state.filtered);
+  const order = ['PJ', 'PF', 'ND'];
+  const g = { PJ: blankPT(), PF: blankPT(), ND: blankPT() };
+  for (const c of clients) {
+    const t = g[c.personType] ? c.personType : 'ND';
+    g[t].clients++; g[t].oss += c.count; g[t].rev += c.revenue;
+  }
+  const totalRev   = order.reduce((s, t) => s + g[t].rev, 0);
+  const totalOss   = order.reduce((s, t) => s + g[t].oss, 0);
+  const totalCli   = order.reduce((s, t) => s + g[t].clients, 0);
+  const pct        = v => totalRev > 0 ? (v / totalRev * 100) : 0;
+  const ticket     = t => g[t].oss ? g[t].rev / g[t].oss : 0;
+  const revPerCli  = t => g[t].clients ? g[t].rev / g[t].clients : 0;
+
+  // ---- KPIs ----
+  const kpis = [
+    { label:'Faturamento — Pessoa Jurídica', value: FORMATTERS.brl.format(g.PJ.rev),
+      sub:`${pct(g.PJ.rev).toFixed(1)}% do total · ${FORMATTERS.int.format(g.PJ.clients)} cliente(s)` },
+    { label:'Faturamento — Pessoa Física', value: FORMATTERS.brl.format(g.PF.rev),
+      sub:`${pct(g.PF.rev).toFixed(1)}% do total · ${FORMATTERS.int.format(g.PF.clients)} cliente(s)` },
+    { label:'Ticket Médio — PJ', value: FORMATTERS.brl.format(ticket('PJ')),
+      sub:`${FORMATTERS.int.format(g.PJ.oss)} OS(s)` },
+    { label:'Ticket Médio — PF', value: FORMATTERS.brl.format(ticket('PF')),
+      sub:`${FORMATTERS.int.format(g.PF.oss)} OS(s)` },
+    { label:'Fat. médio por cliente', value: FORMATTERS.brl.format(revPerCli('PJ')),
+      sub:`PJ · PF ${FORMATTERS.brl.format(revPerCli('PF'))}` },
+  ];
+  if (g.ND.rev > 0 || g.ND.clients > 0) {
+    kpis.push({ label:'Não identificado', value: FORMATTERS.brl.format(g.ND.rev),
+      sub:`${pct(g.ND.rev).toFixed(1)}% · ${FORMATTERS.int.format(g.ND.clients)} cliente(s) sem documento` });
+  }
+  document.getElementById('personTypeKpis').innerHTML = kpis.map(k => `
+    <div class="kpi">
+      <div class="label">${k.label}</div>
+      <div class="value" style="font-size:18px;line-height:1.2">${k.value}</div>
+      <div class="sub">${k.sub}</div>
+    </div>`).join('');
+
+  // ---- Donut (faturamento por tipo) ----
+  const present = order.filter(t => g[t].rev > 0 || g[t].clients > 0);
+  const labels  = present.map(personTypeLabel);
+  const data    = present.map(t => g[t].rev);
+  const colorOf = { PJ: COLORS.primary, PF: COLORS.secondary, ND: COLORS.greyBorder };
+  destroy('personTypeRev');
+  state.charts.personTypeRev = new Chart(document.getElementById('personTypeRevChart'), {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data, backgroundColor: present.map(t => colorOf[t]), borderColor:'#fff', borderWidth:2 }] },
+    options: doughnutOptions(),
+  });
+
+  // ---- Tabela detalhada ----
+  const row = t => `
+    <tr>
+      <td>${personTypeLabel(t)}${t==='ND'?'':` <span class="pill ${t==='PJ'?'good':'warn'}">${t}</span>`}</td>
+      <td class="num">${FORMATTERS.int.format(g[t].clients)}</td>
+      <td class="num">${FORMATTERS.int.format(g[t].oss)}</td>
+      <td class="num">${FORMATTERS.brl.format(g[t].rev)}</td>
+      <td class="num">${pct(g[t].rev).toFixed(1)}%</td>
+      <td class="num">${FORMATTERS.brl.format(ticket(t))}</td>
+      <td class="num">${FORMATTERS.brl.format(revPerCli(t))}</td>
+    </tr>`;
+  document.getElementById('personTypeTable').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>Tipo de Pessoa</th>
+        <th class="num">Clientes</th>
+        <th class="num">OSs</th>
+        <th class="num">Faturamento</th>
+        <th class="num">% Fat.</th>
+        <th class="num">Ticket médio</th>
+        <th class="num">Fat./cliente</th>
+      </tr></thead>
+      <tbody>
+        ${present.map(row).join('')}
+        <tr style="font-weight:600;border-top:2px solid #e5e7eb">
+          <td>Total</td>
+          <td class="num">${FORMATTERS.int.format(totalCli)}</td>
+          <td class="num">${FORMATTERS.int.format(totalOss)}</td>
+          <td class="num">${FORMATTERS.brl.format(totalRev)}</td>
+          <td class="num">100%</td>
+          <td class="num">${FORMATTERS.brl.format(totalOss ? totalRev/totalOss : 0)}</td>
+          <td class="num">${FORMATTERS.brl.format(totalCli ? totalRev/totalCli : 0)}</td>
+        </tr>
+      </tbody>
+    </table>`;
+
+  // ---- Nota interpretativa ----
+  const note = document.getElementById('personTypeNote');
+  if (totalCli === 0) {
+    note.innerHTML = 'Sem clientes no filtro atual.';
+  } else {
+    const dom = g.PJ.rev >= g.PF.rev ? 'PJ' : 'PF';
+    let txt = `Pessoa ${dom==='PJ'?'Jurídica':'Física'} concentra <b>${pct(g[dom].rev).toFixed(1)}%</b> do faturamento filtrado.`;
+    if (g.ND.clients > 0) {
+      txt += ` <span class="pill warn">${FORMATTERS.int.format(g.ND.clients)}</span> cliente(s) sem CNPJ/CPF cadastrado — preencha a coluna na base para classificá-los.`;
+    }
+    note.innerHTML = txt;
+  }
+}
+function blankPT() { return { clients: 0, oss: 0, rev: 0 }; }
 
 function renderParetoChart() {
   const rows = state.filtered;
@@ -5821,8 +6001,22 @@ function renderClientFocalKpis(focal, focalRows) {
                 : 'Inativo';
   const statusClass = status === 'Ativo' ? 'good' : status === 'Atenção' ? 'warn' : status === 'Inativo' ? 'bad' : '';
 
+  // Documento/código predominantes deste cliente (entre as OSs do filtro)
+  const docCount = new Map(), codcCount = new Map();
+  for (const r of focalRows) {
+    if (r.cnpj_cpf) docCount.set(r.cnpj_cpf, (docCount.get(r.cnpj_cpf)||0)+1);
+    if (r.codc)     codcCount.set(r.codc,    (codcCount.get(r.codc)||0)+1);
+  }
+  const focalDoc  = [...docCount.entries()].sort((a,b)=>b[1]-a[1])[0]?.[0] || '';
+  const focalCodc = [...codcCount.entries()].sort((a,b)=>b[1]-a[1])[0]?.[0] || '';
+  const focalPT   = personType(focalDoc);
+  const idParts   = [];
+  if (focalCodc) idParts.push('Cód. ' + escapeHtml(focalCodc));
+  if (focalDoc)  idParts.push(escapeHtml(formatDoc(focalDoc)) + (focalPT!=='ND' ? ` (${focalPT})` : ''));
+  const idLine = idParts.length ? idParts.join(' · ') : `Posição #${rank} de ${sorted.length}`;
+
   const kpis = [
-    { label:'Cliente', value: focal, big:false, sub:`Posição #${rank} de ${sorted.length}` },
+    { label:'Cliente', value: focal, big:false, sub: idLine },
     { label:'Faturamento', value: FORMATTERS.brl.format(revenue), sub:`${FORMATTERS.int.format(osCount)} OSs no filtro` },
     { label:'Ticket Médio', value: FORMATTERS.brl.format(ticket), sub:'&nbsp;' },
     { label:'Desconto médio', value: discAvg.toFixed(2)+'%', sub:'&nbsp;' },

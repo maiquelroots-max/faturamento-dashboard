@@ -689,6 +689,191 @@
     padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 500;
   }
   .source-pill .dot { width: 6px; height: 6px; border-radius: 999px; background: var(--accent); }
+
+  /* =====================================================================
+     CRM COMERCIAL
+  ===================================================================== */
+  .crm-board {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(180px, 1fr));
+    gap: 12px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  @media (max-width: 1600px) {
+    .crm-board { grid-template-columns: repeat(4, minmax(200px, 1fr)); }
+  }
+  @media (max-width: 900px) {
+    .crm-board { grid-template-columns: repeat(2, minmax(200px, 1fr)); }
+  }
+  .crm-stage {
+    background: var(--surface-3);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius);
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    min-height: 180px;
+  }
+  .crm-stage-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .crm-stage-title { font-size: 12px; font-weight: 600; color: var(--text-2); letter-spacing: .01em; }
+  .crm-stage-count { font-size: 11px; color: var(--muted); background: var(--surface); padding: 1px 8px; border-radius: 999px; border: 1px solid var(--border-soft); }
+  .crm-stage-body { display: flex; flex-direction: column; gap: 6px; min-height: 0; }
+  .crm-stage-more { font-size: 11px; color: var(--muted); text-align: center; padding: 4px; }
+
+  .crm-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--muted-2);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    cursor: pointer;
+    transition: all .12s ease;
+  }
+  .crm-card:hover { border-color: var(--accent); box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+  .crm-card.hot   { border-left-color: var(--bad); }
+  .crm-card.warm  { border-left-color: var(--warn); }
+  .crm-card.cold  { border-left-color: #64748b; }
+  .crm-card.unassigned {
+    background: var(--warn-soft);
+    border-color: var(--warn-bd);
+  }
+  .crm-card.unassigned .name::before { content: '🚫 '; }
+  .crm-card .name { font-size: 12px; font-weight: 600; color: var(--text); line-height: 1.25; margin-bottom: 4px; word-break: break-word; }
+  .crm-card .meta { font-size: 10.5px; color: var(--muted); display: flex; justify-content: space-between; gap: 4px; }
+  .crm-card .meta b { color: var(--text-2); font-weight: 500; }
+  .crm-card .next  { font-size: 10.5px; margin-top: 4px; padding-top: 4px; border-top: 1px dashed var(--border-soft); color: var(--accent-h); }
+  .crm-card .next.overdue { color: var(--bad); font-weight: 500; }
+  .crm-card .next.today   { color: var(--warn); font-weight: 500; }
+
+  /* Colored borders for stages */
+  .crm-stage[data-stage="chave"]    { border-top: 3px solid var(--accent); }
+  .crm-stage[data-stage="ativo"]    { border-top: 3px solid var(--good); }
+  .crm-stage[data-stage="atencao"]  { border-top: 3px solid var(--warn); }
+  .crm-stage[data-stage="reativar"] { border-top: 3px solid #f97316; }
+  .crm-stage[data-stage="dormente"] { border-top: 3px solid #64748b; }
+  .crm-stage[data-stage="perdido"]  { border-top: 3px solid var(--bad); }
+  .crm-stage[data-stage="prospect"] { border-top: 3px solid #06b6d4; }
+
+  /* Modal */
+  .crm-modal { max-width: 1100px; width: 96vw; max-height: 92vh; overflow-y: auto; }
+  .crm-modal-head {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--border-soft);
+  }
+  .crm-modal-head button { padding: 4px 10px; font-size: 14px; line-height: 1; }
+  .crm-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 10px;
+  }
+  .crm-fields label { display: flex; flex-direction: column; gap: 3px; color: var(--text-2); }
+  .crm-fields input,
+  .crm-fields select,
+  .crm-fields textarea {
+    padding: 6px 9px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    resize: vertical;
+  }
+  .crm-fields input:focus,
+  .crm-fields select:focus,
+  .crm-fields textarea:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
+  .crm-history { display: flex; flex-direction: column; gap: 6px; max-height: 260px; overflow-y: auto; padding-right: 4px; }
+  .crm-history-item {
+    background: var(--surface-3);
+    border: 1px solid var(--border-soft);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    font-size: 12.5px;
+  }
+  .crm-history-item.positivo   { border-left-color: var(--good); }
+  .crm-history-item.negativo   { border-left-color: var(--bad); }
+  .crm-history-item.sem_resposta { border-left-color: #64748b; }
+  .crm-history-item .head {
+    display: flex; justify-content: space-between; gap: 8px;
+    font-size: 11.5px; color: var(--muted); margin-bottom: 4px;
+  }
+  .crm-history-item .head b { color: var(--text-2); font-weight: 500; }
+  .crm-history-item .note { color: var(--text-2); white-space: pre-wrap; margin: 2px 0; }
+  .crm-history-item .next {
+    font-size: 11.5px; color: var(--accent-h); margin-top: 4px;
+    padding-top: 4px; border-top: 1px dashed var(--border-soft);
+  }
+  .crm-history-item .del {
+    background: transparent; border: 0; color: var(--muted-2);
+    cursor: pointer; font-size: 12px; padding: 0 4px;
+  }
+  .crm-history-item .del:hover { color: var(--bad); }
+
+  .crm-stage-badge { padding: 1px 8px; border-radius: 999px; font-size: 10.5px; font-weight: 500; border: 1px solid; display: inline-block; }
+  .crm-stage-badge.chave    { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-h); }
+  .crm-stage-badge.ativo    { background: var(--good-soft);   border-color: var(--good-bd); color: var(--good); }
+  .crm-stage-badge.atencao  { background: var(--warn-soft);   border-color: var(--warn-bd); color: var(--warn); }
+  .crm-stage-badge.reativar { background: #fff7ed; border-color: #fed7aa; color: #c2410c; }
+  .crm-stage-badge.dormente { background: #f1f5f9; border-color: #cbd5e1; color: #475569; }
+  .crm-stage-badge.perdido  { background: var(--bad-soft);    border-color: var(--bad-bd);  color: var(--bad); }
+  .crm-stage-badge.prospect { background: #ecfeff; border-color: #a5f3fc; color: #0e7490; }
+
+  .crm-empty { text-align: center; padding: 24px; color: var(--muted); font-size: 13px; }
+
+  .crm-seller-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; padding: 6px 10px; border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+  }
+  .crm-seller-row:hover { background: var(--surface-3); border-color: var(--border-soft); }
+  .crm-seller-row.inactive { opacity: .6; }
+  .crm-seller-row.inactive .name { text-decoration: line-through; color: var(--muted); }
+  .crm-seller-row .name { font-size: 13px; color: var(--text); flex: 1; }
+  .crm-seller-row .stats { font-size: 11px; color: var(--muted); }
+  .crm-seller-row label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-2); cursor: pointer; }
+  .crm-seller-row input[type=checkbox] { cursor: pointer; }
+
+  /* =====================================================================
+     OSs ABERTAS
+  ===================================================================== */
+  .abertas-inline-input {
+    padding: 3px 6px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 12px;
+    max-width: 130px;
+  }
+  .abertas-inline-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+  .abertas-inline-input:disabled { opacity: .4; cursor: not-allowed; }
+  .abertas-row-approved { background: var(--good-soft); }
+  .abertas-row-approved td { border-bottom-color: var(--good-bd); }
+  .abertas-check { transform: scale(1.15); cursor: pointer; }
+  .abertas-op-hdr {
+    background: var(--surface-3);
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text-2);
+    letter-spacing: .02em;
+  }
+  .abertas-op-hdr td { padding: 6px 8px !important; border-bottom: 1px solid var(--border-soft); }
+  .abertas-empty { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 13px; }
+
 </style>
 </head>
 <body>
@@ -843,6 +1028,8 @@
         <button class="active" data-view="overview">Visão Geral</button>
         <button data-view="sellers">Análise por Vendedor</button>
         <button data-view="clients">Análise por Cliente</button>
+        <button data-view="abertas">OSs Abertas</button>
+        <button data-view="crm">CRM Comercial</button>
         <!-- Tab "Visão Mês Atual" desativada — código preservado em view-month caso seja reativado depois -->
       </nav>
 
@@ -850,6 +1037,20 @@
 
       <!-- KPIs -->
       <div class="kpis" id="kpiRow"></div>
+
+      <!-- Comparativo entre Negócios (Mecânica × Retífica) — logo abaixo do cabeçalho de KPIs -->
+      <div class="card">
+        <h3>Comparativo entre Negócios — Mecânica × Retífica</h3>
+        <p class="small" style="margin:0 0 10px">Indicadores lado a lado por <b>Negócio</b>. Respeita todos os filtros laterais e o checkbox de Tipo de Faturamento, <b>exceto o filtro de Negócio</b> (a comparação sempre mostra os dois lados).</p>
+        <div class="kpis" id="negCmpKpis"></div>
+        <div class="grid two" style="margin-top:4px">
+          <div class="card" style="box-shadow:none;border:1px solid #e5e7eb">
+            <div class="chart-wrap" style="height:300px"><canvas id="negCmpChart"></canvas></div>
+          </div>
+          <div id="negCmpTable" class="scroll-x"></div>
+        </div>
+        <p class="small" id="negCmpNote" style="margin:8px 0 0"></p>
+      </div>
 
       <!-- Comparativos -->
       <div class="card">
@@ -904,6 +1105,24 @@
           <div class="chart-wrap"><canvas id="osChart"></canvas></div>
           <p class="small">Usa as datas de Abertura e Faturamento de cada OS no filtro.</p>
         </div>
+      </div>
+
+      <div class="card">
+        <div class="toolbar-flex">
+          <h3>Origem do Faturamento por Mês de Abertura da OS</h3>
+          <div class="controls">
+            <label class="small">Exibir</label>
+            <select id="billCohortMode">
+              <option value="value" selected>Valores (R$)</option>
+              <option value="pct">Percentual (100%)</option>
+            </select>
+          </div>
+        </div>
+        <p class="small" style="margin:0 0 10px">Para cada mês de <b>faturamento</b>, separa quanto veio de OSs <b>abertas no próprio mês</b> e quanto de OSs <b>abertas em meses anteriores</b> (compara Data de Abertura × Data de Faturamento de cada OS). Respeita todos os filtros laterais e o checkbox de Tipo de Faturamento.</p>
+        <div class="kpis" id="billCohortKpis"></div>
+        <div class="chart-wrap"><canvas id="billCohortChart"></canvas></div>
+        <div id="billCohortAging" class="scroll-x" style="margin-top:12px"></div>
+        <p class="small" id="billCohortNote" style="margin:8px 0 0"></p>
       </div>
 
       <div class="card">
@@ -1337,6 +1556,332 @@
         </div><!-- /clientFocalContent -->
 
       </div><!-- /view-clients -->
+
+      <!-- =====================================================================
+           OSs ABERTAS — Módulo de aprovação e projeção de faturamento
+           Lê o arquivo Abertas.XLS (abas MECANICA e RETIFICA) e permite, por OS,
+           registrar: Aprovado?, Data de Aprovação, Previsão de Faturamento (Mês
+           Corrente / Próximo Mês). O cabeçalho consolida "Aprovados Mês Corrente
+           + Próximo Mês" e "Faturados + Aprovados Mês Corrente" (Faturados vem
+           da base Faturamento_Geral_V2 já carregada).
+      ===================================================================== -->
+      <div id="view-abertas" class="view" style="display:none">
+
+        <div class="card">
+          <div class="toolbar-flex">
+            <h3>OSs Abertas <span class="badge" id="abertasCount"></span></h3>
+            <div class="actions-group">
+              <input type="file" id="abertasFileInput" accept=".xls,.xlsx,.xlsm,.xlsb" style="display:none">
+              <button class="btn" id="abertasLoadBtn">📂 Carregar Abertas.XLS</button>
+              <button class="btn secondary" id="abertasReloadBtn" disabled>Recarregar</button>
+              <button class="btn secondary" id="abertasCsvBtn" disabled title="Exportar OSs abertas + aprovações em CSV">Exportar CSV</button>
+              <button class="btn secondary" id="abertasClearBtn" disabled title="Limpar dados carregados (mantém aprovações salvas)">Limpar</button>
+            </div>
+          </div>
+          <p class="small" style="margin:0" id="abertasFileInfo">
+            Nenhum arquivo carregado. O arquivo <b>Abertas.XLS</b> deve conter duas abas: <b>MECANICA</b> (OSs do Negócio Mecânica) e <b>RETIFICA</b> (OSs do Negócio Retífica). Para cada OS aberta você pode marcar <b>Aprovado?</b>, informar <b>Data de Aprovação</b> e sinalizar <b>Previsão de Faturamento</b> (Mês Corrente / Próximo Mês). O KPI <b>Faturado + Aprovado Mês Corrente</b> soma o já faturado da base <code>Faturamento_Geral_V2</code> com os aprovados marcados para este mês — é sua projeção do mês.
+          </p>
+        </div>
+
+        <!-- KPIs do cabeçalho -->
+        <div class="kpis" id="abertasKpis"></div>
+
+        <!-- Filtros + tabela -->
+        <div class="card">
+          <div class="toolbar-flex">
+            <h3>Ordens de Serviço em Aberto</h3>
+            <div class="controls">
+              <input type="text" id="abertasSearch" class="search" placeholder="Buscar OS, cliente, modelo, placa…" style="min-width:260px">
+              <label class="small">Negócio</label>
+              <select id="abertasBusiness">
+                <option value="all" selected>Todos</option>
+                <option value="MECANICA">Mecânica</option>
+                <option value="RETIFICA">Retífica</option>
+              </select>
+              <label class="small">Operação</label>
+              <select id="abertasOperation">
+                <option value="all" selected>Todas</option>
+              </select>
+              <label class="small">Status</label>
+              <select id="abertasStatus">
+                <option value="all" selected>Todos</option>
+                <option value="pendente">Pendente</option>
+                <option value="aprovado">Aprovado</option>
+                <option value="mesCorrente">Aprovado — Mês Corrente</option>
+                <option value="proxMes">Aprovado — Próximo Mês</option>
+                <option value="semPrevisao">Aprovado — Sem previsão</option>
+              </select>
+              <label class="small">Ordenar</label>
+              <select id="abertasSort">
+                <option value="totalDesc" selected>Valor ↓</option>
+                <option value="totalAsc">Valor ↑</option>
+                <option value="recepcao">Data Recepção</option>
+                <option value="os">OS</option>
+                <option value="cliente">Cliente</option>
+              </select>
+            </div>
+          </div>
+          <p class="small" style="margin:8px 0 0" id="abertasListCount"></p>
+          <div id="abertasTable" class="scroll-x lookup-table-wrap" style="margin-top:8px"></div>
+        </div>
+
+      </div><!-- /view-abertas -->
+
+      <!-- =====================================================================
+           CRM COMERCIAL — Painel de acompanhamento de clientes
+           Combina os dados do Excel (histórico, RFV, vendedor principal) com
+           anotações comerciais persistidas em localStorage (estágio no funil,
+           temperatura, próxima ação, dono da conta, histórico de interações).
+           Nenhum dado é enviado para servidor — tudo fica no navegador.
+      ===================================================================== -->
+      <div id="view-crm" class="view" style="display:none">
+
+        <div class="card">
+          <div class="toolbar-flex">
+            <h3>CRM Comercial <span class="badge">beta</span></h3>
+            <div class="actions-group">
+              <label class="small">Vendedor</label>
+              <select id="crmSellerFilter" style="min-width:200px" title="Filtra toda a visão do CRM pelo vendedor principal do cliente">
+                <option value="">Todos os vendedores</option>
+              </select>
+              <button class="btn secondary" id="crmManageSellers" title="Marcar vendedores como Ativos/Inativos — os inativos somem dos filtros do CRM">⚙ Vendedores</button>
+              <button class="btn secondary" id="crmExportBtn" title="Baixar todos os dados do CRM em JSON (backup)">⤓ Exportar</button>
+              <input type="file" id="crmImportInput" accept=".json" style="display:none">
+              <button class="btn secondary" id="crmImportBtn" title="Restaurar backup de CRM em JSON">⤒ Importar</button>
+              <button class="btn secondary" id="crmClearBtn" title="Apagar todas as anotações do CRM">🗑 Limpar tudo</button>
+            </div>
+          </div>
+          <p class="small" style="margin:0">
+            Módulo comercial construído a partir do <b>histórico de faturamento</b> combinado com
+            <b>anotações persistidas neste navegador</b> (estágio no funil, temperatura, próxima
+            ação, dono da conta e histórico de interações). O <b>filtro de Vendedor</b> acima
+            afeta KPIs, funil, agenda e lista — respeita também os filtros laterais de
+            <b>Empresa · Operação · Negócio · Cidade</b> (ignora Período e Tipo de Faturamento).
+            <b>Todos os dados ficam no seu navegador</b>: exporte o JSON periodicamente para backup.
+          </p>
+        </div>
+
+        <!-- KPIs de pipeline -->
+        <div class="kpis" id="crmKpis"></div>
+
+        <!-- Funil comercial -->
+        <div class="card">
+          <div class="toolbar-flex">
+            <h3>Funil Comercial</h3>
+            <div class="controls">
+              <label class="small">Ordenar cards por</label>
+              <select id="crmFunnelSort">
+                <option value="revenue" selected>Faturamento (12m)</option>
+                <option value="lastPurchase">Última compra</option>
+                <option value="nextAction">Próxima ação</option>
+                <option value="alpha">Alfabética</option>
+              </select>
+              <label class="small">Cards por estágio</label>
+              <select id="crmFunnelLimit">
+                <option value="6">6</option>
+                <option value="10" selected>10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+              </select>
+            </div>
+          </div>
+          <p class="small" style="margin:0 0 12px">
+            Clique em um card para abrir a ficha do cliente e registrar uma interação. O estágio
+            é sugerido automaticamente pelo comportamento de compra (frequência × recência) e
+            pode ser sobrescrito manualmente.
+          </p>
+          <div id="crmFunnelBoard" class="crm-board"></div>
+        </div>
+
+        <!-- Agenda de follow-ups -->
+        <div class="card">
+          <div class="toolbar-flex">
+            <h3>Agenda Comercial <span class="badge" id="crmAgendaBadge"></span></h3>
+            <div class="controls">
+              <label class="small">Mostrar</label>
+              <select id="crmAgendaFilter">
+                <option value="week" selected>Próximos 7 dias</option>
+                <option value="today">Hoje</option>
+                <option value="overdue">Atrasados</option>
+                <option value="month">Próximos 30 dias</option>
+                <option value="all">Todas</option>
+              </select>
+              <button class="btn secondary" id="crmAgendaPrint">🖨 Imprimir</button>
+            </div>
+          </div>
+          <p class="small" style="margin:0 0 10px">Clientes com <b>Próxima ação</b> agendada. Marque como concluída após executar (fica no histórico da ficha).</p>
+          <div id="crmAgendaTable" class="scroll-x"></div>
+        </div>
+
+        <!-- Lista mestre de clientes CRM -->
+        <div class="card">
+          <div class="toolbar-flex">
+            <h3>Carteira CRM</h3>
+            <div class="controls">
+              <input type="text" id="crmSearch" class="search" placeholder="Buscar cliente, código, CNPJ/CPF, vendedor…" style="min-width:280px">
+              <label class="small">Estágio</label>
+              <select id="crmFilterStage">
+                <option value="all">Todos</option>
+                <option value="ativo">Ativo</option>
+                <option value="chave">Chave</option>
+                <option value="atencao">Atenção</option>
+                <option value="reativar">Reativar</option>
+                <option value="dormente">Dormente</option>
+                <option value="perdido">Perdido</option>
+                <option value="prospect">Prospect</option>
+              </select>
+              <label class="small">Temperatura</label>
+              <select id="crmFilterTemp">
+                <option value="all">Todas</option>
+                <option value="hot">🔥 Quente</option>
+                <option value="warm">🌡 Morno</option>
+                <option value="cold">❄ Frio</option>
+              </select>
+              <label class="small">Dono</label>
+              <select id="crmFilterOwner"></select>
+              <button class="btn secondary" id="crmCsvBtn">Exportar CSV</button>
+            </div>
+          </div>
+          <p class="small" style="margin:0 0 8px" id="crmListCount"></p>
+          <div id="crmList" class="scroll-x"></div>
+          <p class="small">Mostra até 300 linhas — refine a busca ou os filtros para ver mais.</p>
+        </div>
+
+        <!-- Modal de ficha do cliente -->
+        <div id="crmClientModal" class="modal-overlay" role="dialog" aria-modal="true">
+          <div class="modal crm-modal">
+            <div class="crm-modal-head">
+              <div>
+                <h3 id="crmModalTitle" style="margin:0"></h3>
+                <p class="small" id="crmModalSub" style="margin:2px 0 0"></p>
+              </div>
+              <button class="btn secondary" id="crmModalClose" title="Fechar (Esc)">✕</button>
+            </div>
+
+            <div class="kpis" id="crmModalKpis" style="margin:14px 0"></div>
+
+            <div class="grid two" style="gap:14px">
+              <div>
+                <h4 style="margin:0 0 8px">Painel Comercial</h4>
+                <div class="crm-fields">
+                  <label class="small">Estágio no funil
+                    <select id="crmFieldStage">
+                      <option value="">— automático —</option>
+                      <option value="prospect">Prospect</option>
+                      <option value="ativo">Ativo</option>
+                      <option value="chave">Chave (Key Account)</option>
+                      <option value="atencao">Em atenção</option>
+                      <option value="reativar">A reativar</option>
+                      <option value="dormente">Dormente</option>
+                      <option value="perdido">Perdido</option>
+                    </select>
+                  </label>
+                  <label class="small">Temperatura
+                    <select id="crmFieldTemp">
+                      <option value="">— automático —</option>
+                      <option value="hot">🔥 Quente</option>
+                      <option value="warm">🌡 Morno</option>
+                      <option value="cold">❄ Frio</option>
+                    </select>
+                  </label>
+                  <label class="small">Dono da conta
+                    <input type="text" id="crmFieldOwner" list="crmOwnerList" placeholder="Ex.: nome do vendedor">
+                    <datalist id="crmOwnerList"></datalist>
+                  </label>
+                  <label class="small">Telefone / WhatsApp
+                    <input type="text" id="crmFieldPhone" placeholder="(00) 00000-0000">
+                  </label>
+                  <label class="small">E-mail
+                    <input type="email" id="crmFieldEmail" placeholder="cliente@empresa.com">
+                  </label>
+                  <label class="small">Contato principal
+                    <input type="text" id="crmFieldContact" placeholder="Nome de quem decide">
+                  </label>
+                  <label class="small" style="grid-column:1/-1">Observações gerais
+                    <textarea id="crmFieldNotes" rows="3" placeholder="Perfil, preferências, particularidades desta conta…"></textarea>
+                  </label>
+                </div>
+              </div>
+              <div>
+                <h4 style="margin:0 0 8px">Nova Interação</h4>
+                <div class="crm-fields">
+                  <label class="small">Data
+                    <input type="date" id="crmIntDate">
+                  </label>
+                  <label class="small">Tipo
+                    <select id="crmIntType">
+                      <option value="ligacao">📞 Ligação</option>
+                      <option value="whatsapp">💬 WhatsApp</option>
+                      <option value="email">📧 E-mail</option>
+                      <option value="visita">🚗 Visita</option>
+                      <option value="reuniao">🤝 Reunião</option>
+                      <option value="orcamento">📄 Orçamento</option>
+                      <option value="outro">📌 Outro</option>
+                    </select>
+                  </label>
+                  <label class="small">Resultado
+                    <select id="crmIntOutcome">
+                      <option value="positivo">✅ Positivo</option>
+                      <option value="neutro">⚪ Neutro</option>
+                      <option value="negativo">❌ Negativo</option>
+                      <option value="sem_resposta">🔕 Sem resposta</option>
+                    </select>
+                  </label>
+                  <label class="small">Próxima ação em
+                    <input type="date" id="crmIntNext">
+                  </label>
+                  <label class="small" style="grid-column:1/-1">Descrição do próximo passo
+                    <input type="text" id="crmIntNextDesc" placeholder="Ex.: Enviar orçamento revisado / Confirmar visita técnica">
+                  </label>
+                  <label class="small" style="grid-column:1/-1">Anotação da interação
+                    <textarea id="crmIntNote" rows="3" placeholder="O que foi conversado, próximos passos, objeções…"></textarea>
+                  </label>
+                </div>
+                <div style="display:flex; gap:8px; margin-top:10px">
+                  <button class="btn" id="crmSaveInteraction">＋ Registrar interação</button>
+                  <button class="btn secondary" id="crmSaveOnly">Salvar painel</button>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top:18px">
+              <h4 style="margin:0 0 8px">Histórico de Interações <span class="badge" id="crmHistCount"></span></h4>
+              <div id="crmInteractionsList" class="crm-history"></div>
+            </div>
+
+            <div style="margin-top:18px">
+              <h4 style="margin:0 0 8px">Últimas OSs deste cliente</h4>
+              <div id="crmClientOsList" class="scroll-x"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal: gerenciar vendedores (marcar Ativo/Inativo) -->
+        <div id="crmSellersModal" class="modal-overlay" role="dialog" aria-modal="true">
+          <div class="modal" style="max-width:640px">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px">
+              <h3 style="margin:0">Gerenciar Vendedores</h3>
+              <button class="btn secondary" id="crmSellersModalClose" style="padding:4px 10px; font-size:14px">✕</button>
+            </div>
+            <p class="lead">
+              Marque como <b>Inativo</b> os vendedores que não devem aparecer nos filtros do CRM
+              (deixaram a empresa, foram transferidos, etc.). Isso <b>não altera</b> a base de
+              faturamento — apenas limpa os menus para facilitar o uso do dia-a-dia.
+            </p>
+            <div style="display:flex; gap:8px; align-items:center; margin:8px 0 12px">
+              <input type="text" id="crmSellersSearch" placeholder="Buscar vendedor…" style="flex:1; padding:7px 10px; border:1px solid var(--border); border-radius:6px; font-size:13px; font-family:inherit">
+              <span class="small" id="crmSellersCount" style="color:var(--muted)"></span>
+              <button class="btn secondary" id="crmSellersActivateAll" title="Reativar todos os vendedores">Ativar todos</button>
+            </div>
+            <div id="crmSellersList" style="max-height:50vh; overflow-y:auto; border:1px solid var(--border-soft); border-radius:6px; padding:6px"></div>
+            <p class="small" style="margin:12px 0 0; color:var(--muted)">
+              A lista é montada a partir dos <b>vendedores presentes na base de faturamento</b>.
+              Novos vendedores aparecem automaticamente. Salvo neste navegador.
+            </p>
+          </div>
+        </div>
+
+      </div><!-- /view-crm -->
 
       <div id="view-month" class="view" style="display:none">
 
@@ -1967,6 +2512,11 @@ async function loadWorkbookFromBuffer(buf, sourceName, opts = {}) {
     const header = matrix[headerIdx];
     const colIdx = detectColumns(header);
     if (colIdx.cliente == null) throw new Error('Não foi possível encontrar colunas obrigatórias (Cliente / Vendedor). Verifique o cabeçalho.');
+    // Flag whether the loaded source carries the (newer) CodC / CNPJ-CPF columns,
+    // so the Tipo de Pessoa report can tell "fonte antiga sem a coluna" apart
+    // from "coluna existe mas documentos em branco".
+    state.hasDocColumn  = colIdx.cnpj_cpf != null;
+    state.hasCodcColumn = colIdx.codc != null;
 
     const rows = [];
     for (let r = headerIdx + 1; r < matrix.length; r++) {
@@ -2126,6 +2676,8 @@ const VIEW_RENDERERS = {
   overview: null,            // already rendered by renderAll()
   sellers:  () => renderSellersView(),
   clients:  () => renderClientsView(),
+  abertas:  () => renderAbertasView(),
+  crm:      () => renderCrmView(),
   month:    () => { if (state.monthData) renderMonthView(); },
 };
 let currentView = 'overview';
@@ -2719,6 +3271,293 @@ function renderOSChart() {
   });
 }
 
+// =====================================================================
+//  ORIGEM DO FATURAMENTO POR MÊS DE ABERTURA DA OS
+//  Quanto do faturado em cada mês vem de OSs abertas no próprio mês × em
+//  meses anteriores (safra). Usa Data de Abertura × Data de Faturamento.
+// =====================================================================
+const AGING_LABELS = ['Mesmo mês','1 mês','2 meses','3 meses','4–6 meses','7–12 meses','+12 meses','Sem data de abertura'];
+function agingBucket(diff) {
+  if (diff < 0)   return 7; // sem data de abertura
+  if (diff === 0) return 0;
+  if (diff === 1) return 1;
+  if (diff === 2) return 2;
+  if (diff === 3) return 3;
+  if (diff <= 6)  return 4;
+  if (diff <= 12) return 5;
+  return 6;
+}
+function renderBillingCohortChart() {
+  const rows = state.filtered, tt = billingTypes();
+  const modeEl = document.getElementById('billCohortMode');
+  const mode = modeEl ? modeEl.value : 'value';
+
+  const byMonth = new Map();          // billKey -> { same, prior, indef }
+  const aging   = new Array(8).fill(0);
+  let tSame = 0, tPrior = 0, tIndef = 0, diffWsum = 0, diffWrev = 0;
+  const ensure = k => { if (!byMonth.has(k)) byMonth.set(k, { same:0, prior:0, indef:0 }); return byMonth.get(k); };
+
+  for (const r of rows) {
+    if (!r.data_faturamento) continue;
+    const rev = rowRevenue(r, tt);
+    if (rev <= 0) continue;
+    const slot = ensure(ym(r.data_faturamento));
+    if (!r.data_abertura) {
+      slot.indef += rev; tIndef += rev; aging[7] += rev; continue;
+    }
+    const md = (r.data_faturamento.getUTCFullYear()*12 + r.data_faturamento.getUTCMonth())
+             - (r.data_abertura.getUTCFullYear()*12   + r.data_abertura.getUTCMonth());
+    const diff = Math.max(0, md); // abertura posterior ao faturamento (anomalia) conta como "mesmo mês"
+    if (diff === 0) { slot.same  += rev; tSame  += rev; }
+    else            { slot.prior += rev; tPrior += rev; }
+    diffWsum += diff * rev; diffWrev += rev;
+    aging[agingBucket(diff)] += rev;
+  }
+
+  const total = tSame + tPrior + tIndef;
+  const pct = v => total > 0 ? (v / total * 100) : 0;
+
+  // ---- KPIs ----
+  const kpis = [
+    { label:'Faturado no filtro', value: FORMATTERS.brl.format(total), sub:'Total do período/filtro atual' },
+    { label:'Do próprio mês', value: FORMATTERS.brl.format(tSame),
+      sub:`${pct(tSame).toFixed(1)}% — OSs abertas e faturadas no mesmo mês` },
+    { label:'De meses anteriores', value: FORMATTERS.brl.format(tPrior),
+      sub:`${pct(tPrior).toFixed(1)}% — OSs abertas em meses anteriores` },
+    { label:'Defasagem média', value: (diffWrev ? (diffWsum/diffWrev) : 0).toFixed(1) + ' meses',
+      sub:'Abertura → Faturamento (ponderada por R$)' },
+  ];
+  if (tIndef > 0) kpis.push({ label:'Sem data de abertura', value: FORMATTERS.brl.format(tIndef),
+    sub:`${pct(tIndef).toFixed(1)}% — não classificável` });
+  document.getElementById('billCohortKpis').innerHTML = kpis.map(k => `
+    <div class="kpi">
+      <div class="label">${k.label}</div>
+      <div class="value" style="font-size:18px;line-height:1.2">${k.value}</div>
+      <div class="sub">${k.sub}</div>
+    </div>`).join('');
+
+  // ---- Gráfico empilhado por mês ----
+  const keys = [...byMonth.keys()].sort();
+  const labels = keys.map(k => { const [y,m] = k.split('-'); return `${MONTH_NAMES_PT[+m-1]}/${y.slice(-2)}`; });
+  const norm = (k, v) => {
+    if (mode !== 'pct') return v;
+    const s = byMonth.get(k); const t = s.same + s.prior + s.indef;
+    return t > 0 ? (v / t * 100) : 0;
+  };
+  const dsSame  = keys.map(k => norm(k, byMonth.get(k).same));
+  const dsPrior = keys.map(k => norm(k, byMonth.get(k).prior));
+  const dsIndef = keys.map(k => norm(k, byMonth.get(k).indef));
+  const datasets = [
+    { label:'Aberta no mês',            data: dsSame,  backgroundColor: COLORS.green,  stack:'s' },
+    { label:'Aberta em meses anteriores', data: dsPrior, backgroundColor: COLORS.primary, stack:'s' },
+  ];
+  if (tIndef > 0) datasets.push({ label:'Sem data de abertura', data: dsIndef, backgroundColor: COLORS.greyBorder, stack:'s' });
+  const fmtAxis = mode === 'pct' ? (v => v + '%') : (v => FORMATTERS.int.format(v));
+  destroy('billCohort');
+  state.charts.billCohort = new Chart(document.getElementById('billCohortChart'), {
+    type: 'bar',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { stacked: true, ticks: { color: CHART_TXT, font:{size:11} }, grid: { color:'transparent' }, border:{ color: CHART_GRID } },
+        y: { stacked: true, max: mode === 'pct' ? 100 : undefined, beginAtZero: true,
+             ticks: { color: CHART_TXT, font:{size:11}, callback: fmtAxis }, grid: { color: CHART_GRID }, border:{ display:false } }
+      },
+      plugins: {
+        legend: { labels: { color: CHART_TXT, font:{size:11, family:'Inter, system-ui, sans-serif'}, boxWidth:10, boxHeight:10, padding:14, usePointStyle:true } },
+        tooltip: {
+          backgroundColor:'#111827', titleColor:'#fff', bodyColor:'#f3f4f6', padding:10, cornerRadius:6,
+          callbacks: { label: ctx => {
+            const v = ctx.parsed.y || 0;
+            if (mode === 'pct') return `${ctx.dataset.label}: ${v.toFixed(1)}%`;
+            return `${ctx.dataset.label}: ${FORMATTERS.brl.format(v)}`;
+          } }
+        }
+      }
+    }
+  });
+
+  // ---- Tabela de envelhecimento (defasagem abertura → faturamento) ----
+  const agingRows = AGING_LABELS.map((lab, i) => ({ lab, rev: aging[i], i }))
+    .filter(x => x.rev > 0);
+  document.getElementById('billCohortAging').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>Defasagem (abertura → faturamento)</th>
+        <th class="num">Faturamento</th>
+        <th class="num">% do total</th>
+      </tr></thead>
+      <tbody>
+        ${agingRows.map(x => `
+          <tr>
+            <td>${x.i === 0 ? '<b>'+x.lab+'</b>' : x.lab}</td>
+            <td class="num">${FORMATTERS.brl.format(x.rev)}</td>
+            <td class="num">${pct(x.rev).toFixed(1)}%</td>
+          </tr>`).join('')}
+        <tr style="font-weight:600;border-top:2px solid #e5e7eb">
+          <td>Total</td>
+          <td class="num">${FORMATTERS.brl.format(total)}</td>
+          <td class="num">100%</td>
+        </tr>
+      </tbody>
+    </table>`;
+
+  // ---- Nota interpretativa ----
+  const note = document.getElementById('billCohortNote');
+  if (total === 0) {
+    note.innerHTML = 'Sem faturamento no filtro atual.';
+  } else {
+    note.innerHTML = `No filtro atual, <b>${pct(tSame).toFixed(1)}%</b> do faturamento vem de OSs abertas no <b>próprio mês</b> `
+      + `e <b>${pct(tPrior).toFixed(1)}%</b> de OSs abertas em <b>meses anteriores</b>`
+      + (tIndef > 0 ? ` (${pct(tIndef).toFixed(1)}% sem data de abertura)` : '') + '. '
+      + 'Alterne entre <b>Valores</b> e <b>Percentual</b> no seletor acima.';
+  }
+}
+
+// =====================================================================
+//  COMPARATIVO ENTRE NEGÓCIOS (Mecânica × Retífica)
+//  Indicadores lado a lado por Negócio. Respeita todos os filtros laterais
+//  e o checkbox de Tipo, EXCETO o filtro de Negócio (sempre mostra ambos).
+// =====================================================================
+function rowsRespectingFiltersExceptNegocio() {
+  const fEmp = new Set(selectedValues(filterEls.empresa));
+  const fOp  = new Set(selectedValues(filterEls.operacao));
+  const fCid = new Set(selectedValues(filterEls.cidade));
+  const fVen = new Set(selectedValues(filterEls.vendedor));
+  const fAno = new Set(selectedValues(filterEls.ano).map(Number));
+  const dFrom = state.filterDate.from, dTo = state.filterDate.to;
+  return state.rows.filter(r => {
+    if (fEmp.size && !fEmp.has(r.empresa)) return false;
+    if (fOp.size  && !fOp.has(r.operacao)) return false;
+    if (fCid.size && !fCid.has(r.cidade))  return false;
+    if (fVen.size && !fVen.has(r.vendedor))return false;
+    if (fAno.size) { if (!r.data_faturamento) return false; if (!fAno.has(r.data_faturamento.getUTCFullYear())) return false; }
+    if (dFrom && (!r.data_faturamento || r.data_faturamento < dFrom)) return false;
+    if (dTo   && (!r.data_faturamento || r.data_faturamento > dTo))   return false;
+    return true;
+  });
+}
+
+function renderBusinessComparison() {
+  const rows = rowsRespectingFiltersExceptNegocio();
+  const tt = billingTypes();
+  const agg = new Map(); // negocio -> aggregate
+  const ensure = k => {
+    if (!agg.has(k)) agg.set(k, { neg:k, rev:0, oss:0, clientes:new Set(),
+      pecas:0, servicos:0, terceiros:0, dSum:0, dCnt:0, leadSum:0, leadCnt:0, byMonth:new Map() });
+    return agg.get(k);
+  };
+  for (const r of rows) {
+    const neg = (r.negocio || '(Sem negócio)').trim() || '(Sem negócio)';
+    const a = ensure(neg);
+    const rev = rowRevenue(r, tt);
+    a.rev += rev; a.oss++;
+    if (r.cliente) a.clientes.add(r.cliente);
+    if (tt.pecas)    a.pecas     += r.venda_pecas    || 0;
+    if (tt.servicos) a.servicos  += r.venda_servicos || 0;
+    if (tt.terceiros)a.terceiros += r.venda_terceiros|| 0;
+    if (r.desc_pct_total) { a.dSum += r.desc_pct_total; a.dCnt++; }
+    if (r.data_abertura && r.data_faturamento) {
+      const d = (r.data_faturamento - r.data_abertura) / 86400000;
+      if (d >= 0 && d < 365) { a.leadSum += d; a.leadCnt++; }
+    }
+    if (r.data_faturamento) { const k = ym(r.data_faturamento); a.byMonth.set(k, (a.byMonth.get(k)||0) + rev); }
+  }
+
+  // Ordena por faturamento desc (Mecânica/Retífica aparecem como as maiores)
+  const list = [...agg.values()].sort((x,y) => y.rev - x.rev);
+  const grandRev = list.reduce((s,a) => s + a.rev, 0);
+  const grandOss = list.reduce((s,a) => s + a.oss, 0);
+  const pct = v => grandRev > 0 ? (v / grandRev * 100) : 0;
+  const ticket = a => a.oss ? a.rev / a.oss : 0;
+
+  // ---- KPIs (um por negócio) ----
+  const palette = CHART_PALETTE;
+  document.getElementById('negCmpKpis').innerHTML = (list.length ? list : [{neg:'—',rev:0,oss:0,clientes:new Set()}]).map((a, i) => `
+    <div class="kpi">
+      <div class="label"><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${palette[i % palette.length]};margin-right:6px"></span>${escapeHtml(a.neg)}</div>
+      <div class="value" style="font-size:18px;line-height:1.2">${FORMATTERS.brl.format(a.rev)}</div>
+      <div class="sub">${pct(a.rev).toFixed(1)}% · ${FORMATTERS.int.format(a.oss)} OSs · ticket ${FORMATTERS.brl.format(ticket(a))}</div>
+    </div>`).join('');
+
+  // ---- Gráfico: faturamento mensal por negócio (linhas) ----
+  const allMonths = [...new Set(list.flatMap(a => [...a.byMonth.keys()]))].sort();
+  const mLabels = allMonths.map(k => { const [y,m] = k.split('-'); return `${MONTH_NAMES_PT[+m-1]}/${y.slice(-2)}`; });
+  const datasets = list.map((a, i) => ({
+    label: a.neg,
+    data: allMonths.map(k => a.byMonth.get(k) || 0),
+    borderColor: palette[i % palette.length],
+    backgroundColor: palette[i % palette.length],
+    tension: 0.25, pointRadius: 2, borderWidth: 2, fill: false,
+  }));
+  destroy('negCmp');
+  state.charts.negCmp = new Chart(document.getElementById('negCmpChart'), {
+    type: allMonths.length <= 2 ? 'bar' : 'line',
+    data: { labels: mLabels, datasets },
+    options: baseOptions({ plugins: {
+      legend: { labels: { color: CHART_TXT, font:{size:11, family:'Inter, system-ui, sans-serif'}, boxWidth:10, boxHeight:10, padding:14, usePointStyle:true } },
+      tooltip: { backgroundColor:'#111827', titleColor:'#fff', bodyColor:'#f3f4f6', padding:10, cornerRadius:6,
+        callbacks: { label: ctx => `${ctx.dataset.label}: ${FORMATTERS.brl.format(ctx.parsed.y||0)}` } }
+    }})
+  });
+
+  // ---- Tabela de indicadores (linhas) × negócios (colunas) ----
+  const col = a => a; // alias
+  const fmtPctShare = v => pct(v).toFixed(1) + '%';
+  const indicators = [
+    { lab:'Faturamento',          fmt: a => FORMATTERS.brl.format(a.rev) },
+    { lab:'Participação',         fmt: a => fmtPctShare(a.rev) },
+    { lab:'Nº de OSs',            fmt: a => FORMATTERS.int.format(a.oss) },
+    { lab:'Clientes distintos',   fmt: a => FORMATTERS.int.format(a.clientes.size) },
+    { lab:'Ticket médio',         fmt: a => FORMATTERS.brl.format(ticket(a)) },
+    { lab:'Peças',                fmt: a => FORMATTERS.brl.format(a.pecas) },
+    { lab:'Serviços',             fmt: a => FORMATTERS.brl.format(a.servicos) },
+    { lab:'Terceiros',            fmt: a => FORMATTERS.brl.format(a.terceiros) },
+    { lab:'Desconto médio',       fmt: a => (a.dCnt ? a.dSum/a.dCnt : 0).toFixed(2) + '%' },
+    { lab:'Lead time médio',      fmt: a => (a.leadCnt ? a.leadSum/a.leadCnt : 0).toFixed(1) + ' d' },
+  ];
+  const totalCol = {
+    neg:'Total', rev:grandRev, oss:grandOss,
+    clientes: new Set(list.flatMap(a => [...a.clientes])),
+    pecas:    list.reduce((s,a)=>s+a.pecas,0),
+    servicos: list.reduce((s,a)=>s+a.servicos,0),
+    terceiros:list.reduce((s,a)=>s+a.terceiros,0),
+    dSum:     list.reduce((s,a)=>s+a.dSum,0),  dCnt: list.reduce((s,a)=>s+a.dCnt,0),
+    leadSum:  list.reduce((s,a)=>s+a.leadSum,0),leadCnt: list.reduce((s,a)=>s+a.leadCnt,0),
+  };
+  document.getElementById('negCmpTable').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>Indicador</th>
+        ${list.map((a,i) => `<th class="num"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${palette[i % palette.length]};margin-right:4px"></span>${escapeHtml(a.neg)}</th>`).join('')}
+        <th class="num">Total</th>
+      </tr></thead>
+      <tbody>
+        ${indicators.map(ind => `
+          <tr>
+            <td>${ind.lab}</td>
+            ${list.map(a => `<td class="num">${ind.fmt(a)}</td>`).join('')}
+            <td class="num">${ind.lab==='Participação' ? '100%' : ind.fmt(totalCol)}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+
+  // ---- Nota interpretativa ----
+  const note = document.getElementById('negCmpNote');
+  const activeNeg = selectedValues(filterEls.negocio);
+  if (!list.length || grandRev === 0) {
+    note.innerHTML = 'Sem faturamento no filtro atual.';
+  } else {
+    const lead = list[0], runner = list[1];
+    let txt = `<b>${escapeHtml(lead.neg)}</b> lidera com <b>${pct(lead.rev).toFixed(1)}%</b> do faturamento`;
+    if (runner) txt += ` (ticket ${FORMATTERS.brl.format(ticket(lead))} vs ${FORMATTERS.brl.format(ticket(runner))} de ${escapeHtml(runner.neg)})`;
+    txt += '.';
+    if (activeNeg.length) txt += ` <span class="pill warn">Obs.</span> O filtro lateral de Negócio (${activeNeg.map(escapeHtml).join(', ')}) <b>não afeta este card</b> — ele sempre compara todos os negócios.`;
+    note.innerHTML = txt;
+  }
+}
+
 // Evolução do faturamento por tipo (Peças / Serviços / Terceiros) ao longo do tempo.
 // Granularidade: mês / trimestre / semestre / ano. Cada tipo é uma linha; legenda
 // do Chart.js permite ocultar/mostrar individualmente. Respeita o checkbox de Tipo.
@@ -3234,6 +4073,7 @@ document.getElementById('cmpApply').addEventListener('click', renderComparativo)
 document.getElementById('cmpGranularity').addEventListener('change', renderComparativo);
 document.getElementById('periodGran').addEventListener('change', renderPeriodChart);
 document.getElementById('tipoEvolGran').addEventListener('change', renderTipoEvolutionChart);
+document.getElementById('billCohortMode').addEventListener('change', renderBillingCohortChart);
 
 // ---------- sugestões ----------
 function renderSuggestions() {
@@ -5717,7 +6557,12 @@ function renderPersonTypeReport() {
 
   // ---- Nota interpretativa ----
   const note = document.getElementById('personTypeNote');
-  if (totalCli === 0) {
+  if (state.hasDocColumn === false) {
+    // A base carregada (provavelmente a fonte remota antiga) não tem a coluna.
+    note.innerHTML = '<span class="pill bad">Atenção</span> A base carregada <b>não contém a coluna CNPJ/CPF</b>. '
+      + 'Atualize o arquivo <code>Faturamento_Geral_V2.xlsx</code> na fonte (GitHub/OneDrive) com as colunas <b>CodC</b> e <b>CNPJ / CPF</b> e clique em <b>Recarregar</b>. '
+      + 'Enquanto isso, todos os clientes aparecem como "Não identificado".';
+  } else if (totalCli === 0) {
     note.innerHTML = 'Sem clientes no filtro atual.';
   } else {
     const dom = g.PJ.rev >= g.PF.rev ? 'PJ' : 'PF';
@@ -8014,6 +8859,8 @@ function renderAll() {
   renderMonthlyChart();
   renderPeriodChart();
   renderOSChart();
+  renderBillingCohortChart();
+  renderBusinessComparison();
   renderTipoEvolutionChart();
   renderCityChart();
   renderSellerChart();
@@ -8025,7 +8872,1646 @@ function renderAll() {
   renderOSLookup();
   if (currentView === 'sellers') renderSellersView();
   if (currentView === 'clients') renderClientsView();
+  if (currentView === 'abertas') renderAbertasView();
+  if (currentView === 'crm')     renderCrmView();
 }
+
+// =====================================================================
+//  OSs ABERTAS — Aprovação e projeção de faturamento
+//
+//  Arquivo: Abertas.XLS (BIFF/legado) com duas abas por negócio (MECANICA,
+//  RETIFICA). Cada linha do relatório vem em uma única coluna de texto
+//  (formato de export tipo listagem impressa). Parseamos com regex + slice
+//  posicional para extrair: OS, Cliente, Modelo, Veículo, Placa, datas e
+//  valores (Peças / Serviços / Serv.Terc / Total).
+//
+//  Metadados de aprovação por OS (Aprovado?, Data Aprovação, Previsão de
+//  Faturamento) são persistidos em localStorage sob a chave por
+//  `${business}|${os}` — sobrevive a reloads e re-uploads do Abertas.XLS
+//  desde que os números de OS sejam mantidos.
+//
+//  KPI "Faturado + Aprovado Mês Corrente" combina:
+//    - Faturado = soma de total_os em state.rows com data_faturamento no mês
+//    - Aprovado = soma de total dos abertos marcados Aprovado + previsao=mesCorrente
+// =====================================================================
+
+const ABERTAS_META_KEY  = 'fat-v2-abertas-meta';
+const ABERTAS_CACHE_KEY = 'fat-v2-abertas-cache';
+
+// Estado em memória — recarregado do cache ao boot se disponível.
+state.abertas = null;   // { fileName, loadedAt, rows: [...] }
+
+function abertasKey(row) { return `${row.business}|${row.os}`; }
+
+function abertasLoadMeta() {
+  try { return JSON.parse(localStorage.getItem(ABERTAS_META_KEY)) || {}; }
+  catch { return {}; }
+}
+function abertasSaveMeta(meta) {
+  localStorage.setItem(ABERTAS_META_KEY, JSON.stringify(meta));
+}
+function abertasGetMeta(row) {
+  const all = abertasLoadMeta();
+  return all[abertasKey(row)] || {};
+}
+function abertasSetMeta(row, patch) {
+  const all = abertasLoadMeta();
+  const cur = all[abertasKey(row)] || {};
+  all[abertasKey(row)] = { ...cur, ...patch };
+  abertasSaveMeta(all);
+}
+
+function abertasParseDate(s) {
+  // Formato: "DD/MM/YY". Retorna Date UTC ou null.
+  if (!s) return null;
+  const m = /^(\d{2})\/(\d{2})\/(\d{2})$/.exec(s);
+  if (!m) return null;
+  const yy = parseInt(m[3], 10);
+  const year = yy >= 50 ? 1900 + yy : 2000 + yy;
+  return new Date(Date.UTC(year, parseInt(m[2],10) - 1, parseInt(m[1],10)));
+}
+
+// Parser de uma linha do Abertas.XLS.
+// Regras:
+//   - Deve começar com 6 dígitos (OS) após espaços iniciais.
+//   - Cliente ocupa colunas 9-38 (30 chars, padded).
+//   - Modelo (10), Veículo (9), Placa (7) — extraídos por slice posicional.
+//   - Valores currency BR (\d[\d.]*,\d{2}) — os 4 últimos = Peças, Serviços,
+//     Serv.Terc, Total.
+//   - Datas DD/MM/YY são coletadas em ordem: Recepção, Orçamento,
+//     Conf.Produção, Fech.Produção, Fech.Financeiro, Fat.Peças, Fat.Serviços.
+function parseAbertasLine(rawLine) {
+  const line = (rawLine || '').toString();
+  const mOS = /^\s*(\d{6})\b/.exec(line);
+  if (!mOS) return null;
+  // Rejeita linhas de subtotal ("TOTAL OPERAÇÃO") caso escapem
+  if (/TOTAL OPERAÇÃO/i.test(line)) return null;
+
+  const os      = mOS[1];
+  const cliente = (line.slice(8, 38) || '').trim();
+  const modelo  = (line.slice(38, 49) || '').trim();
+  const veiculo = (line.slice(49, 59) || '').trim();
+  const placa   = (line.slice(60, 67) || '').trim();
+
+  // Valores currency BR — os 4 últimos são Peças/Serv/Terc/Total
+  const currencyRegex = /(\d[\d.]*,\d{2})/g;
+  const nums = [...line.matchAll(currencyRegex)]
+    .map(m => parseFloat(m[1].replace(/\./g,'').replace(',','.')));
+  const total = nums.length ? nums[nums.length - 1] : 0;
+  const terc  = nums.length >= 2 ? nums[nums.length - 2] : 0;
+  const serv  = nums.length >= 3 ? nums[nums.length - 3] : 0;
+  const pecas = nums.length >= 4 ? nums[nums.length - 4] : 0;
+
+  // Datas
+  const dateMatches = [...line.matchAll(/(\d{2}\/\d{2}\/\d{2})/g)];
+  const dates = dateMatches.map(m => abertasParseDate(m[1]));
+  return {
+    os, cliente, modelo, veiculo, placa,
+    recepcao:       dates[0] || null,
+    orcamento:      dates[1] || null,
+    conferencia:    dates[2] || null,
+    fechProducao:   dates[3] || null,
+    fechFinanceiro: dates[4] || null,
+    fatPecas:       dates[5] || null,
+    fatServicos:    dates[6] || null,
+    valPecas: pecas, valServicos: serv, valTerceiros: terc, total,
+  };
+}
+
+// Detecta cabeçalho "OPERAÇÃO: XXXX descrição"
+function parseAbertasOperation(line) {
+  const m = /^\s*OPERAÇÃO:\s*(\d+)\s*(.*)$/i.exec((line||'').toString());
+  return m ? { operacao: m[1], operacaoDesc: (m[2]||'').trim() } : null;
+}
+
+// Percorre a workbook e retorna array plano de OSs (com business + operacao).
+function parseAbertasWorkbook(wb) {
+  const out = [];
+  const sheets = [
+    { name: 'MECANICA', label: 'Mecânica' },
+    { name: 'RETIFICA', label: 'Retífica' },
+  ];
+  for (const s of sheets) {
+    const sh = wb.Sheets[s.name] || wb.Sheets[s.name.toLowerCase()];
+    if (!sh) continue;
+    const json = XLSX.utils.sheet_to_json(sh, { header: 1, blankrows: false, defval: '' });
+    let curOp = null, curOpDesc = null;
+    for (const row of json) {
+      // A linha pode estar dispersa em várias colunas — junta tudo.
+      const text = row.map(c => (c == null ? '' : String(c))).join(' ').replace(/\s+/g,' ').trimEnd();
+      const rawFirstCell = (row[0] == null ? '' : String(row[0]));
+      const wholeLine    = rawFirstCell || text;   // prefere a coluna 1 se tiver conteúdo
+      const op = parseAbertasOperation(wholeLine);
+      if (op) { curOp = op.operacao; curOpDesc = op.operacaoDesc; continue; }
+      if (/TOTAL OPERAÇÃO/i.test(wholeLine)) continue;
+      const parsed = parseAbertasLine(wholeLine);
+      if (parsed) {
+        out.push({
+          ...parsed,
+          business: s.name,
+          businessLabel: s.label,
+          operacao: curOp || '',
+          operacaoDesc: curOpDesc || '',
+        });
+      }
+    }
+  }
+  return out;
+}
+
+function abertasCacheSave(fileName, rows) {
+  try {
+    // Serializa datas como ISO
+    const serial = rows.map(r => {
+      const o = { ...r };
+      ['recepcao','orcamento','conferencia','fechProducao','fechFinanceiro','fatPecas','fatServicos']
+        .forEach(k => { o[k] = o[k] ? o[k].toISOString() : null; });
+      return o;
+    });
+    localStorage.setItem(ABERTAS_CACHE_KEY, JSON.stringify({
+      fileName, loadedAt: new Date().toISOString(), rows: serial,
+    }));
+  } catch (e) { /* localStorage cheio — ignora */ }
+}
+function abertasCacheLoad() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(ABERTAS_CACHE_KEY));
+    if (!raw || !raw.rows) return null;
+    // Reidrata datas
+    const rows = raw.rows.map(r => {
+      const o = { ...r };
+      ['recepcao','orcamento','conferencia','fechProducao','fechFinanceiro','fatPecas','fatServicos']
+        .forEach(k => { o[k] = o[k] ? new Date(o[k]) : null; });
+      return o;
+    });
+    return {
+      fileName: raw.fileName,
+      loadedAt: raw.loadedAt ? new Date(raw.loadedAt) : new Date(),
+      rows,
+    };
+  } catch { return null; }
+}
+
+function loadAbertasFromFile(file) {
+  const rd = new FileReader();
+  rd.onload = () => {
+    try {
+      const data = new Uint8Array(rd.result);
+      const wb   = XLSX.read(data, { type:'array', cellDates:true });
+      const rows = parseAbertasWorkbook(wb);
+      if (!rows.length) throw new Error('Nenhuma OS foi extraída — verifique se as abas MECANICA/RETIFICA estão no arquivo.');
+      state.abertas = { fileName: file.name, loadedAt: new Date(), rows };
+      abertasCacheSave(file.name, rows);
+      renderAbertasView();
+    } catch (err) {
+      alert('Erro ao processar Abertas.XLS:\n' + err.message);
+      console.error(err);
+    }
+  };
+  rd.readAsArrayBuffer(file);
+}
+
+// ---------- rendering ----------
+
+// Data de referência para "Mês Corrente" — mesma lógica dos presets:
+// último mês com faturamento em state.rows (ou hoje se base vazia).
+function abertasRefDate() {
+  const dates = state.rows.map(r => r.data_faturamento).filter(Boolean);
+  return dates.length ? new Date(Math.max(...dates)) : new Date();
+}
+function abertasMonthLabel(d) {
+  const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  return `${meses[d.getUTCMonth()]}/${String(d.getUTCFullYear()).slice(2)}`;
+}
+
+function abertasFmtDate(d) {
+  if (!d) return '—';
+  return `${String(d.getUTCDate()).padStart(2,'0')}/${String(d.getUTCMonth()+1).padStart(2,'0')}/${String(d.getUTCFullYear()).slice(2)}`;
+}
+
+function renderAbertasView() {
+  const empty  = !state.abertas || !state.abertas.rows.length;
+  const info   = document.getElementById('abertasFileInfo');
+  const badge  = document.getElementById('abertasCount');
+  const reload = document.getElementById('abertasReloadBtn');
+  const csvBtn = document.getElementById('abertasCsvBtn');
+  const clrBtn = document.getElementById('abertasClearBtn');
+
+  if (empty) {
+    badge.textContent = '';
+    info.innerHTML = 'Nenhum arquivo carregado. Clique em <b>Carregar Abertas.XLS</b> para começar. O arquivo deve conter duas abas: <b>MECANICA</b> e <b>RETIFICA</b>. As aprovações que você registrar ficam salvas no navegador e sobrevivem a novos carregamentos do mesmo arquivo.';
+    document.getElementById('abertasKpis').innerHTML =
+      '<div class="abertas-empty">Carregue o arquivo Abertas.XLS para ver os indicadores.</div>';
+    document.getElementById('abertasTable').innerHTML =
+      '<div class="abertas-empty">Nenhuma OS carregada.</div>';
+    document.getElementById('abertasListCount').textContent = '';
+    reload.disabled = true; csvBtn.disabled = true; clrBtn.disabled = true;
+    return;
+  }
+
+  const rows = state.abertas.rows;
+  badge.textContent = `${FORMATTERS.int.format(rows.length)} OSs`;
+  info.innerHTML = `<b>${escapeHtml(state.abertas.fileName)}</b> · ${FORMATTERS.int.format(rows.length)} OSs em aberto · carregado em ${state.abertas.loadedAt.toLocaleString('pt-BR')}. As aprovações são salvas no navegador.`;
+  reload.disabled = false; csvBtn.disabled = false; clrBtn.disabled = false;
+
+  // Popular filtro de operação
+  const opSelect = document.getElementById('abertasOperation');
+  const ops = [...new Set(rows.map(r => r.operacao).filter(Boolean))].sort();
+  const curOp = opSelect.value || 'all';
+  opSelect.innerHTML = `<option value="all">Todas</option>` +
+    ops.map(op => {
+      const desc = rows.find(r => r.operacao === op)?.operacaoDesc || '';
+      const label = desc ? `${op} — ${desc}` : op;
+      return `<option value="${escapeHtml(op)}"${op===curOp?' selected':''}>${escapeHtml(label)}</option>`;
+    }).join('');
+
+  renderAbertasKpis(rows);
+  renderAbertasTable(rows);
+}
+
+function abertasComputeKpis(rows) {
+  const ref = abertasRefDate();
+  const curStart  = startOfMonth(ref);
+  const curEnd    = endOfMonth(ref);
+  const nextRef   = addMonths(ref, 1);
+  const nextStart = startOfMonth(nextRef);
+  const nextEnd   = endOfMonth(nextRef);
+  const meta = abertasLoadMeta();
+
+  // Faturado Mês Corrente vem da BASE (Faturamento_Geral_V2).
+  // Considera todas as operações — o KPI é a projeção do NEGÓCIO completo.
+  let faturadoMes = 0, faturadoMesCount = 0;
+  for (const r of state.rows) {
+    if (r.data_faturamento && r.data_faturamento >= curStart && r.data_faturamento <= curEnd) {
+      faturadoMes += r.total_os || 0;
+      faturadoMesCount++;
+    }
+  }
+
+  let aprovadosMes = 0, aprovadosMesCount = 0;
+  let aprovadosProx = 0, aprovadosProxCount = 0;
+  let aprovadosSemPrev = 0, aprovadosSemPrevCount = 0;
+  let pendentes = 0, pendentesCount = 0;
+  let totalAberto = 0;
+  for (const r of rows) {
+    totalAberto += r.total || 0;
+    const m = meta[`${r.business}|${r.os}`] || {};
+    if (m.aprovado) {
+      if (m.previsao === 'mesCorrente') { aprovadosMes  += r.total; aprovadosMesCount++; }
+      else if (m.previsao === 'proxMes'){ aprovadosProx += r.total; aprovadosProxCount++; }
+      else                              { aprovadosSemPrev += r.total; aprovadosSemPrevCount++; }
+    } else {
+      pendentes += r.total; pendentesCount++;
+    }
+  }
+  return {
+    ref, curStart, curEnd, nextStart, nextEnd,
+    curLabel: abertasMonthLabel(ref),
+    nextLabel: abertasMonthLabel(nextRef),
+    faturadoMes, faturadoMesCount,
+    aprovadosMes, aprovadosMesCount,
+    aprovadosProx, aprovadosProxCount,
+    aprovadosSemPrev, aprovadosSemPrevCount,
+    pendentes, pendentesCount,
+    totalAberto,
+    projMes: faturadoMes + aprovadosMes,
+  };
+}
+
+function renderAbertasKpis(rows) {
+  const k = abertasComputeKpis(rows);
+  const kpis = [
+    { label:`Faturado — ${k.curLabel}`,
+      value: FORMATTERS.brl.format(k.faturadoMes),
+      sub: `${FORMATTERS.int.format(k.faturadoMesCount)} OSs faturadas · base Faturamento_Geral_V2` },
+    { label:`Aprovado — ${k.curLabel}`,
+      value: FORMATTERS.brl.format(k.aprovadosMes),
+      sub: `${FORMATTERS.int.format(k.aprovadosMesCount)} OSs abertas com previsão para este mês` },
+    { label:`✨ Faturado + Aprovado — ${k.curLabel}`,
+      value: FORMATTERS.brl.format(k.projMes),
+      sub: `projeção do mês (real + aprovado)`, highlight:true },
+    { label:`Aprovado — ${k.nextLabel}`,
+      value: FORMATTERS.brl.format(k.aprovadosProx),
+      sub: `${FORMATTERS.int.format(k.aprovadosProxCount)} OSs abertas com previsão para o próximo mês` },
+    { label:`Pendentes de aprovação`,
+      value: FORMATTERS.int.format(k.pendentesCount),
+      sub: `${FORMATTERS.brl.format(k.pendentes)} em OSs não aprovadas ainda` },
+    { label:`Total em aberto`,
+      value: FORMATTERS.brl.format(k.totalAberto),
+      sub: `${FORMATTERS.int.format(rows.length)} OSs · Mecânica + Retífica` },
+  ];
+  document.getElementById('abertasKpis').innerHTML = kpis.map(x => {
+    const style = x.highlight
+      ? ' style="border-color: var(--accent); background: var(--accent-soft)"'
+      : '';
+    return `<div class="kpi"${style}><div class="label">${escapeHtml(x.label)}</div>
+      <div class="value">${escapeHtml(x.value)}</div>
+      <div class="sub">${escapeHtml(x.sub || '')}</div></div>`;
+  }).join('');
+}
+
+function renderAbertasTable(rows) {
+  const search   = (document.getElementById('abertasSearch').value || '').toLowerCase().trim();
+  const business = document.getElementById('abertasBusiness').value;
+  const op       = document.getElementById('abertasOperation').value;
+  const status   = document.getElementById('abertasStatus').value;
+  const sortBy   = document.getElementById('abertasSort').value;
+  const meta     = abertasLoadMeta();
+
+  let list = rows.filter(r => {
+    if (business !== 'all' && r.business !== business) return false;
+    if (op !== 'all' && r.operacao !== op) return false;
+    if (search) {
+      const hay = `${r.os} ${r.cliente} ${r.modelo} ${r.veiculo} ${r.placa}`.toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    const m = meta[`${r.business}|${r.os}`] || {};
+    if (status === 'pendente' && m.aprovado) return false;
+    if (status === 'aprovado' && !m.aprovado) return false;
+    if (status === 'mesCorrente' && (!m.aprovado || m.previsao !== 'mesCorrente')) return false;
+    if (status === 'proxMes'     && (!m.aprovado || m.previsao !== 'proxMes'))     return false;
+    if (status === 'semPrevisao' && (!m.aprovado || m.previsao === 'mesCorrente' || m.previsao === 'proxMes')) return false;
+    return true;
+  });
+
+  switch (sortBy) {
+    case 'totalAsc':  list.sort((a,b) => (a.total||0) - (b.total||0)); break;
+    case 'recepcao':  list.sort((a,b) => (a.recepcao||0) - (b.recepcao||0)); break;
+    case 'os':        list.sort((a,b) => a.os.localeCompare(b.os)); break;
+    case 'cliente':   list.sort((a,b) => (a.cliente||'').localeCompare(b.cliente||'', 'pt-BR')); break;
+    case 'totalDesc':
+    default:          list.sort((a,b) => (b.total||0) - (a.total||0)); break;
+  }
+
+  const totalListValue = list.reduce((s,r) => s + (r.total||0), 0);
+  document.getElementById('abertasListCount').innerHTML =
+    `<b>${FORMATTERS.int.format(list.length)}</b> OSs · ${FORMATTERS.brl.format(totalListValue)}`;
+
+  if (!list.length) {
+    document.getElementById('abertasTable').innerHTML =
+      '<div class="abertas-empty">Nenhuma OS corresponde aos filtros selecionados.</div>';
+    return;
+  }
+
+  const todayISO = new Date().toISOString().slice(0,10);
+  const tRows = list.map(r => {
+    const m = meta[`${r.business}|${r.os}`] || {};
+    const isApr = !!m.aprovado;
+    const rowCls = isApr ? ' class="abertas-row-approved"' : '';
+    const previsao = m.previsao || '';
+    const dataApr  = m.dataAprovacao || (isApr ? todayISO : '');
+    return `<tr${rowCls} data-key="${escapeHtml(r.business+'|'+r.os)}">
+      <td style="text-align:center">
+        <input type="checkbox" class="abertas-check abertas-toggle-aprovado" ${isApr ? 'checked' : ''}>
+      </td>
+      <td><b>${escapeHtml(r.os)}</b></td>
+      <td>${escapeHtml(r.businessLabel)}<br><span class="small" style="color:var(--muted)">${escapeHtml(r.operacao||'')}</span></td>
+      <td><b>${escapeHtml(r.cliente)}</b></td>
+      <td>${escapeHtml(r.modelo||'')}${r.placa ? '<br><span class="small" style="color:var(--muted)">'+escapeHtml(r.placa)+'</span>' : ''}</td>
+      <td>${abertasFmtDate(r.recepcao)}</td>
+      <td style="text-align:right">${FORMATTERS.brl.format(r.total)}</td>
+      <td>
+        <input type="date" class="abertas-inline-input abertas-input-data" value="${escapeHtml(dataApr)}" ${isApr ? '' : 'disabled'}>
+      </td>
+      <td>
+        <select class="abertas-inline-input abertas-input-prev" ${isApr ? '' : 'disabled'}>
+          <option value="">— sem previsão —</option>
+          <option value="mesCorrente"${previsao==='mesCorrente'?' selected':''}>Mês Corrente</option>
+          <option value="proxMes"${previsao==='proxMes'?' selected':''}>Próximo Mês</option>
+        </select>
+      </td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('abertasTable').innerHTML = `
+    <table>
+      <thead><tr>
+        <th style="width:38px; text-align:center" title="Aprovado?">✓</th>
+        <th>OS</th>
+        <th>Negócio / Op.</th>
+        <th>Cliente</th>
+        <th>Modelo / Placa</th>
+        <th>Recepção</th>
+        <th style="text-align:right">Total</th>
+        <th>Data Aprovação</th>
+        <th>Previsão de Faturamento</th>
+      </tr></thead>
+      <tbody>${tRows}</tbody>
+    </table>`;
+
+  // Wire dos inputs inline
+  document.querySelectorAll('#abertasTable tr[data-key]').forEach(tr => {
+    const [business, os] = tr.dataset.key.split('|');
+    const rowObj = state.abertas.rows.find(x => x.business === business && x.os === os);
+    if (!rowObj) return;
+    const chk  = tr.querySelector('.abertas-toggle-aprovado');
+    const inpD = tr.querySelector('.abertas-input-data');
+    const selP = tr.querySelector('.abertas-input-prev');
+
+    chk.addEventListener('change', () => {
+      const patch = { aprovado: chk.checked };
+      if (chk.checked) {
+        // Ao aprovar, se não há data preenchida, seta hoje. Se não há previsão,
+        // sugere "mesCorrente" (o mais comum).
+        const cur = abertasGetMeta(rowObj);
+        if (!cur.dataAprovacao) patch.dataAprovacao = todayISO;
+        if (!cur.previsao)       patch.previsao       = 'mesCorrente';
+      }
+      abertasSetMeta(rowObj, patch);
+      // Re-renderiza (KPIs + linha estilo) para refletir mudanças
+      renderAbertasKpis(state.abertas.rows);
+      renderAbertasTable(state.abertas.rows);
+    });
+    inpD.addEventListener('change', () => {
+      abertasSetMeta(rowObj, { dataAprovacao: inpD.value });
+    });
+    selP.addEventListener('change', () => {
+      abertasSetMeta(rowObj, { previsao: selP.value });
+      // Previsão muda KPIs — refresh KPIs
+      renderAbertasKpis(state.abertas.rows);
+    });
+  });
+}
+
+// ---------- exportação CSV ----------
+function abertasExportCsv() {
+  if (!state.abertas || !state.abertas.rows.length) return;
+  const meta = abertasLoadMeta();
+  const headers = ['Negócio','Operação','OperaçãoDesc','OS','Cliente','Modelo','Veículo','Placa',
+                   'Recepção','Total','Aprovado','DataAprovação','PrevisãoFaturamento'];
+  const rows = state.abertas.rows.map(r => {
+    const m = meta[`${r.business}|${r.os}`] || {};
+    return [
+      r.businessLabel, r.operacao, r.operacaoDesc, r.os, r.cliente, r.modelo,
+      r.veiculo, r.placa,
+      r.recepcao ? r.recepcao.toISOString().slice(0,10) : '',
+      (r.total||0).toFixed(2),
+      m.aprovado ? 'Sim' : 'Não',
+      m.dataAprovacao || '',
+      m.previsao === 'mesCorrente' ? 'Mês Corrente'
+        : m.previsao === 'proxMes' ? 'Próximo Mês' : '',
+    ];
+  });
+  const csv = [headers, ...rows].map(row =>
+    row.map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(';')
+  ).join('\n');
+  const blob = new Blob(['﻿'+csv], { type:'text/csv;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `abertas-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ---------- wiring ----------
+function wireAbertasView() {
+  const fileInput = document.getElementById('abertasFileInput');
+  document.getElementById('abertasLoadBtn').addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    if (f) loadAbertasFromFile(f);
+    fileInput.value = '';   // permite recarregar o mesmo arquivo depois
+  });
+  document.getElementById('abertasReloadBtn').addEventListener('click', () => fileInput.click());
+  document.getElementById('abertasCsvBtn').addEventListener('click', abertasExportCsv);
+  document.getElementById('abertasClearBtn').addEventListener('click', () => {
+    if (!confirm('Descartar os dados carregados do Abertas.XLS?\nAs aprovações registradas ficam salvas para o próximo carregamento.')) return;
+    state.abertas = null;
+    localStorage.removeItem(ABERTAS_CACHE_KEY);
+    renderAbertasView();
+  });
+  document.getElementById('abertasSearch').addEventListener('input',
+    debounce(() => { if (state.abertas) renderAbertasTable(state.abertas.rows); }, 200));
+  ['abertasBusiness','abertasOperation','abertasStatus','abertasSort'].forEach(id => {
+    document.getElementById(id).addEventListener('change', () => {
+      if (state.abertas) renderAbertasTable(state.abertas.rows);
+    });
+  });
+
+  // Restaura cache local se existir
+  const cached = abertasCacheLoad();
+  if (cached) state.abertas = cached;
+}
+
+wireAbertasView();
+
+// =====================================================================
+//  CRM COMERCIAL — Estágio no funil, temperatura, interações, agenda.
+//
+//  Estratégia:
+//  - Índice do CRM = CNPJ/CPF (se disponível) ou nome do cliente (fallback).
+//    Isso garante que o registro sobreviva a variações no nome do cliente
+//    conforme o CNPJ é a chave estável no dataset.
+//  - Persistência em localStorage sob a chave CRM_LS_KEY. Estrutura:
+//      { [clientKey]: { stage?, temp?, owner?, phone?, email?, contact?,
+//                       notes?, interactions: [ {id,date,type,outcome,
+//                       note,nextDate,nextDesc,createdAt} ] } }
+//  - Estágio e temperatura têm valores AUTOMÁTICOS derivados do histórico
+//    de compras (frequência × recência × valor). O usuário pode
+//    sobrescrever esses valores manualmente na ficha.
+//  - Respeita filtros laterais de Empresa/Operação/Negócio/Cidade (via
+//    carteiraBaseAllTime), mas ignora Período/Vendedor/Tipo — o CRM olha
+//    para o comportamento histórico consolidado da carteira.
+// =====================================================================
+
+const CRM_LS_KEY = 'fat-v2-crm-data';
+const CRM_INACTIVE_SELLERS_KEY = 'fat-v2-crm-inactive-sellers';
+// Bucket virtual para clientes cujo vendedor foi marcado como Inativo — mantém
+// o cliente visível no CRM para que o gestor possa reatribuir a um novo vendedor.
+const CRM_UNASSIGNED = 'Sem Vendedor';
+const CRM_UNASSIGNED_VALUE = '__crm_sem_vendedor__';   // valor sentinela usado em <option value>
+const CRM_STAGE_LABEL = {
+  chave:    'Chave (Key Account)',
+  ativo:    'Ativo',
+  atencao:  'Em atenção',
+  reativar: 'A reativar',
+  dormente: 'Dormente',
+  perdido:  'Perdido',
+  prospect: 'Prospect',
+};
+const CRM_STAGE_ORDER = ['chave','ativo','atencao','reativar','dormente','perdido','prospect'];
+const CRM_TEMP_LABEL  = { hot: '🔥 Quente', warm: '🌡 Morno', cold: '❄ Frio' };
+const CRM_TYPE_LABEL  = {
+  ligacao: '📞 Ligação', whatsapp: '💬 WhatsApp', email: '📧 E-mail',
+  visita: '🚗 Visita', reuniao: '🤝 Reunião', orcamento: '📄 Orçamento',
+  outro: '📌 Outro',
+};
+const CRM_OUTCOME_LABEL = {
+  positivo: '✅ Positivo', neutro: '⚪ Neutro',
+  negativo: '❌ Negativo', sem_resposta: '🔕 Sem resposta',
+};
+
+// Cliente key: prefere CNPJ/CPF (só dígitos, chave estável). Fallback = nome.
+function crmClientKey(row) {
+  if (!row) return '';
+  const doc = (row.cnpj_cpf || '').replace(/\D/g, '');
+  if (doc) return `doc:${doc}`;
+  return `n:${(row.cliente || '').trim().toUpperCase()}`;
+}
+function crmClientKeyFromAgg(a) {
+  const doc = (a.cnpj_cpf || '').replace(/\D/g, '');
+  if (doc) return `doc:${doc}`;
+  return `n:${(a.cliente || '').trim().toUpperCase()}`;
+}
+
+function crmLoad() {
+  try { return JSON.parse(localStorage.getItem(CRM_LS_KEY)) || {}; }
+  catch { return {}; }
+}
+function crmSave(data) {
+  localStorage.setItem(CRM_LS_KEY, JSON.stringify(data));
+}
+function crmGetRecord(key) {
+  const all = crmLoad();
+  return all[key] || { interactions: [] };
+}
+function crmSetRecord(key, patch) {
+  const all = crmLoad();
+  const cur = all[key] || { interactions: [] };
+  all[key] = { ...cur, ...patch };
+  crmSave(all);
+  return all[key];
+}
+function crmAddInteraction(key, interaction) {
+  const all = crmLoad();
+  const cur = all[key] || { interactions: [] };
+  cur.interactions = cur.interactions || [];
+  cur.interactions.push({
+    id: `${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
+    createdAt: new Date().toISOString(),
+    ...interaction,
+  });
+  all[key] = cur;
+  crmSave(all);
+  return cur;
+}
+function crmDeleteInteraction(key, id) {
+  const all = crmLoad();
+  const cur = all[key];
+  if (!cur || !cur.interactions) return;
+  cur.interactions = cur.interactions.filter(i => i.id !== id);
+  crmSave(all);
+}
+
+// Sugestão automática de estágio a partir do comportamento de compra.
+// Considera: recência (dias desde a última compra), quantidade de OSs,
+// faturamento anual estimado.
+function crmSuggestStage(agg, refDate) {
+  if (!agg.last) return 'prospect';
+  const daysSince = (refDate - agg.last) / 86400000;
+  if (daysSince > 540) return 'perdido';      // > 18 meses
+  if (daysSince > 365) return 'dormente';     // 12–18 meses
+  if (daysSince > 180) return 'reativar';     // 6–12 meses
+  if (daysSince > 90)  return 'atencao';      // 3–6 meses
+  // Ativo — Chave se estiver no top de faturamento (calibrado por caller)
+  return 'ativo';
+}
+// Temperatura sugerida: recente + faturamento alto → hot; frio se dormente/perdido.
+function crmSuggestTemp(agg, refDate, revenueThreshold) {
+  if (!agg.last) return 'cold';
+  const daysSince = (refDate - agg.last) / 86400000;
+  if (daysSince > 365) return 'cold';
+  if (daysSince <= 90 && agg.revenue12m >= revenueThreshold) return 'hot';
+  if (daysSince <= 180) return 'warm';
+  return 'cold';
+}
+
+// Constrói a base do CRM: para cada cliente distinto na carteira filtrada
+// (por Empresa/Operação/Negócio/Cidade), agrega histórico + faturamento 12m
+// e mescla com o registro persistido do CRM. Retorna um array de objetos
+// com todos os campos que a UI precisa para renderizar cards, tabela e ficha.
+function crmBuildClientData() {
+  const baseRows = carteiraBaseAllTime();
+  const aggs = aggregateClientPerformance(baseRows);
+  if (!aggs.length) return { list: [], refDate: new Date(), revenueThresholdKey: 0 };
+
+  // Data de referência = maior data_faturamento observada
+  const dates = state.rows.map(r => r.data_faturamento).filter(Boolean);
+  const refDate = dates.length ? new Date(Math.max(...dates)) : new Date();
+  const cutoff12m = new Date(refDate.getTime() - 365 * 86400000);
+
+  // Faturamento 12m e contagem 12m por cliente
+  const rev12 = new Map(), cnt12 = new Map();
+  const tt = billingTypes();
+  for (const r of baseRows) {
+    if (!r.data_faturamento || r.data_faturamento < cutoff12m) continue;
+    const k = r.cliente;
+    rev12.set(k, (rev12.get(k) || 0) + rowRevenue(r, tt));
+    cnt12.set(k, (cnt12.get(k) || 0) + 1);
+  }
+
+  // Enriquece agregados com 12m
+  const enriched = aggs.map(a => ({
+    ...a,
+    revenue12m: rev12.get(a.cliente) || 0,
+    count12m:   cnt12.get(a.cliente) || 0,
+    daysSinceLast: a.last ? Math.round((refDate - a.last) / 86400000) : null,
+  }));
+
+  // Threshold "chave" = top 20% em faturamento 12m
+  const sorted12 = [...enriched].map(x => x.revenue12m).sort((a,b) => b - a);
+  const idx20 = Math.max(0, Math.floor(sorted12.length * 0.2) - 1);
+  const revenueThresholdKey = sorted12[idx20] || 0;
+  const revenueThresholdHot = sorted12[Math.max(0, Math.floor(sorted12.length * 0.4) - 1)] || 0;
+
+  const crmStore = crmLoad();
+  const inactiveSellers = crmLoadInactiveSellers();
+  const isInactive = (name) => !!name && inactiveSellers.has(name);
+  const list = enriched.map(a => {
+    const key = crmClientKeyFromAgg(a);
+    const rec = crmStore[key] || { interactions: [] };
+    // Sugestões automáticas
+    let autoStage = crmSuggestStage(a, refDate);
+    if (autoStage === 'ativo' && revenueThresholdKey > 0 && a.revenue12m >= revenueThresholdKey) {
+      autoStage = 'chave';
+    }
+    const autoTemp = crmSuggestTemp(a, refDate, revenueThresholdHot);
+    const owner       = rec.owner || a.mainSeller || '';
+    const mainSeller  = a.mainSeller || '';
+    // "Sem Vendedor" quando o vendedor está vazio OU marcado como Inativo.
+    // Assim o cliente segue visível no CRM para reatribuição.
+    const effectiveSeller = (!mainSeller || isInactive(mainSeller)) ? CRM_UNASSIGNED : mainSeller;
+    const effectiveOwner  = (!owner      || isInactive(owner))      ? CRM_UNASSIGNED : owner;
+    return {
+      key,
+      cliente:      a.cliente,
+      codc:         a.codc || '',
+      cnpj_cpf:     a.cnpj_cpf || '',
+      docFmt:       a.docFmt || '',
+      personType:   a.personType || '',
+      mainSeller,
+      mainSellerInactive: isInactive(mainSeller),
+      effectiveSeller,
+      mainCity:     a.mainCity || '',
+      mainBrand:    a.mainBrand || '',
+      count:        a.count,
+      count12m:     a.count12m,
+      revenue:      a.revenue,
+      revenue12m:   a.revenue12m,
+      ticket:       a.ticket,
+      first:        a.first,
+      last:         a.last,
+      daysSinceLast:a.daysSinceLast,
+      descMedio:    a.descMedio,
+      // CRM state — usuário sobrescreve automatismo se preencher os campos
+      stage:        rec.stage || autoStage,
+      autoStage,
+      temp:         rec.temp  || autoTemp,
+      autoTemp,
+      owner,
+      ownerInactive: isInactive(owner),
+      effectiveOwner,
+      unassigned: effectiveSeller === CRM_UNASSIGNED || effectiveOwner === CRM_UNASSIGNED,
+      phone:        rec.phone   || '',
+      email:        rec.email   || '',
+      contact:      rec.contact || '',
+      notes:        rec.notes   || '',
+      interactions: rec.interactions || [],
+      // Próxima ação = maior nextDate futura nas interações
+      nextAction:   crmNextAction(rec.interactions),
+    };
+  });
+
+  return { list, refDate, revenueThresholdKey };
+}
+
+// Retorna a próxima ação pendente (nextDate mais próxima ainda não vencida
+// OU a vencida mais recente se todas estão no passado).
+function crmNextAction(interactions) {
+  if (!interactions || !interactions.length) return null;
+  const withNext = interactions.filter(i => i.nextDate && !i.nextDone);
+  if (!withNext.length) return null;
+  const now = new Date(); now.setHours(0,0,0,0);
+  const future = withNext.filter(i => new Date(i.nextDate + 'T00:00:00') >= now);
+  if (future.length) {
+    future.sort((a,b) => a.nextDate.localeCompare(b.nextDate));
+    return { date: future[0].nextDate, desc: future[0].nextDesc || '', overdue: false, id: future[0].id };
+  }
+  const past = [...withNext].sort((a,b) => b.nextDate.localeCompare(a.nextDate));
+  return { date: past[0].nextDate, desc: past[0].nextDesc || '', overdue: true, id: past[0].id };
+}
+
+// Estado da view CRM (guardado em memória — filtros / seleção atuais)
+const crmUiState = {
+  search: '',
+  stageFilter: 'all',
+  tempFilter: 'all',
+  ownerFilter: '',
+  sellerFilter: '',       // filtro global — mainSeller vindo da base
+  agendaFilter: 'week',
+  funnelSort: 'revenue',
+  funnelLimit: 10,
+  activeKey: null,
+};
+
+// =====================
+// Vendedores Inativos (persistência + helpers)
+// =====================
+// Lista de vendedores marcados como "Inativos" pelo usuário. Vendedores
+// inativos SOMEM dos dropdowns de filtro (Vendedor / Dono) e do datalist da
+// ficha, mas continuam existindo na base de faturamento — isso é apenas
+// uma visualização para manter os menus enxutos.
+function crmLoadInactiveSellers() {
+  try { return new Set(JSON.parse(localStorage.getItem(CRM_INACTIVE_SELLERS_KEY)) || []); }
+  catch { return new Set(); }
+}
+function crmSaveInactiveSellers(setOrArr) {
+  const arr = [...(setOrArr instanceof Set ? setOrArr : (setOrArr || []))];
+  localStorage.setItem(CRM_INACTIVE_SELLERS_KEY, JSON.stringify(arr));
+}
+function crmIsSellerInactive(name) {
+  return crmLoadInactiveSellers().has(name);
+}
+function crmToggleSellerInactive(name, makeInactive) {
+  const set = crmLoadInactiveSellers();
+  if (makeInactive) set.add(name); else set.delete(name);
+  crmSaveInactiveSellers(set);
+}
+
+// Formata o nome do vendedor para display — destaca visualmente o bucket
+// "Sem Vendedor" (pill em cor de alerta) para o gestor identificar rapidamente
+// contas pendentes de reatribuição.
+function crmSellerDisplay(name, opts = {}) {
+  const maxLen = opts.maxLen || 999;
+  if (name === CRM_UNASSIGNED) {
+    return `<span class="pill warn" title="Vendedor original marcado como Inativo — reatribua o Dono na ficha">🚫 ${CRM_UNASSIGNED}</span>`;
+  }
+  const shown = name || '—';
+  return escapeHtml(shown.length > maxLen ? shown.slice(0, maxLen) + '…' : shown);
+}
+
+function crmFmtDate(d) {
+  if (!d) return '—';
+  if (typeof d === 'string') {
+    // YYYY-MM-DD
+    const [y,m,dd] = d.split('-');
+    return `${dd}/${m}/${y}`;
+  }
+  return `${String(d.getUTCDate()).padStart(2,'0')}/${String(d.getUTCMonth()+1).padStart(2,'0')}/${d.getUTCFullYear()}`;
+}
+function crmFmtDaysAgo(days) {
+  if (days == null) return '—';
+  if (days === 0) return 'hoje';
+  if (days === 1) return 'ontem';
+  if (days < 30)  return `${days}d atrás`;
+  if (days < 365) return `${Math.round(days/30)}m atrás`;
+  return `${(days/365).toFixed(1)}a atrás`;
+}
+
+function renderCrmView() {
+  if (!state.rows.length) {
+    document.getElementById('crmKpis').innerHTML =
+      '<div class="crm-empty">Carregue o arquivo Excel para ativar o CRM.</div>';
+    document.getElementById('crmFunnelBoard').innerHTML = '';
+    document.getElementById('crmAgendaTable').innerHTML = '';
+    document.getElementById('crmList').innerHTML = '';
+    return;
+  }
+  const rawBuilt = crmBuildClientData();
+  // Aplica filtro global de Vendedor (effectiveSeller) — afeta KPIs, funil, agenda e lista.
+  // O sentinela CRM_UNASSIGNED_VALUE representa o bucket "Sem Vendedor".
+  const inactive = crmLoadInactiveSellers();
+  const sellerF = crmUiState.sellerFilter || '';
+  const built = {
+    ...rawBuilt,
+    list: rawBuilt.list.filter(c => {
+      if (!sellerF) return true;
+      if (sellerF === CRM_UNASSIGNED_VALUE) return c.effectiveSeller === CRM_UNASSIGNED;
+      return c.effectiveSeller === sellerF;
+    }),
+    _all: rawBuilt.list,   // guarda a lista completa para popular dropdowns
+    _inactiveSellers: inactive,
+  };
+  crmUiState._data = built;   // cache leve para handlers dos cards
+  renderCrmSellerFilter(built);
+  renderCrmKpis(built);
+  renderCrmFunnel(built);
+  renderCrmAgenda(built);
+  renderCrmList(built);
+  renderCrmOwnerFilter(built);
+}
+
+// Popula o dropdown global "Vendedor" com os vendedores ativos da base + a opção
+// virtual "Sem Vendedor" (contendo os clientes cujo vendedor original virou
+// Inativo — o gestor pode filtrar por essa opção e reatribuir na ficha).
+function renderCrmSellerFilter(built) {
+  const sel = document.getElementById('crmSellerFilter');
+  if (!sel) return;
+  const counts = new Map();
+  let unassignedCount = 0;
+  for (const c of built._all) {
+    if (c.effectiveSeller === CRM_UNASSIGNED) unassignedCount++;
+    else counts.set(c.effectiveSeller, (counts.get(c.effectiveSeller) || 0) + 1);
+  }
+  const sellers = [...counts.keys()].sort((a,b) => a.localeCompare(b, 'pt-BR'));
+  const cur = crmUiState.sellerFilter || '';
+  // Se o filtro atual não está mais disponível, reseta
+  const isValid = cur === CRM_UNASSIGNED_VALUE
+    ? unassignedCount > 0
+    : (!cur || sellers.includes(cur));
+  const resolved = isValid ? cur : '';
+  if (resolved !== cur) crmUiState.sellerFilter = '';
+
+  const unassignedOpt = unassignedCount > 0
+    ? `<option value="${CRM_UNASSIGNED_VALUE}"${resolved===CRM_UNASSIGNED_VALUE?' selected':''}>🚫 ${CRM_UNASSIGNED} (${unassignedCount})</option>`
+    : '';
+  sel.innerHTML = `<option value="">Todos os vendedores</option>` +
+    unassignedOpt +
+    sellers.map(s => `<option value="${escapeHtml(s)}"${s===resolved?' selected':''}>${escapeHtml(s)} (${counts.get(s)})</option>`).join('');
+}
+
+function renderCrmKpis(built) {
+  const list = built.list;
+  const byStage = new Map();
+  for (const s of CRM_STAGE_ORDER) byStage.set(s, 0);
+  for (const c of list) byStage.set(c.stage, (byStage.get(c.stage) || 0) + 1);
+  const hot   = list.filter(c => c.temp === 'hot').length;
+  const rev12 = list.reduce((s,c) => s + (c.revenue12m||0), 0);
+  const withNext = list.filter(c => c.nextAction).length;
+  const overdue  = list.filter(c => c.nextAction && c.nextAction.overdue).length;
+  // Clientes sem vendedor ativo — SEMPRE calcula sobre a lista COMPLETA da
+  // carteira (built._all), independente do filtro global, para o gestor não
+  // perder de vista o total pendente ao filtrar por outro vendedor.
+  const unassignedTotal = (built._all || list).filter(c => c.unassigned).length;
+  const unassignedRev12 = (built._all || list).filter(c => c.unassigned)
+    .reduce((s,c) => s + (c.revenue12m||0), 0);
+
+  const kpis = [
+    { label:'Carteira ativa',     value: FORMATTERS.int.format(byStage.get('ativo') + byStage.get('chave')),
+      sub:`${byStage.get('chave')} chave · ${byStage.get('ativo')} ativos` },
+    { label:'A recuperar',        value: FORMATTERS.int.format(byStage.get('atencao') + byStage.get('reativar')),
+      sub:`${byStage.get('atencao')} atenção · ${byStage.get('reativar')} reativar` },
+    { label:'Dormentes / perdidos', value: FORMATTERS.int.format(byStage.get('dormente') + byStage.get('perdido')),
+      sub:`${byStage.get('dormente')} dormentes · ${byStage.get('perdido')} perdidos` },
+    { label:'Contas quentes 🔥',  value: FORMATTERS.int.format(hot),
+      sub:`clientes com alta prioridade` },
+    { label:'Fat. 12m carteira',  value: FORMATTERS.brl.format(rev12),
+      sub:`base para meta comercial` },
+    { label:'Follow-ups',         value: FORMATTERS.int.format(withNext),
+      sub: overdue ? `${overdue} atrasado(s)` : 'em dia' },
+    { label:'🚫 Sem Vendedor',    value: FORMATTERS.int.format(unassignedTotal),
+      sub: unassignedTotal ? `${FORMATTERS.brl.format(unassignedRev12)} em 12m — reatribuir` : 'nenhum pendente' },
+  ];
+  document.getElementById('crmKpis').innerHTML = kpis.map(k => {
+    const isAlert = k.label === '🚫 Sem Vendedor' && unassignedTotal > 0;
+    const style = isAlert ? ' style="border-color: var(--warn-bd); background: var(--warn-soft)"' : '';
+    return `<div class="kpi"${style}><div class="label">${escapeHtml(k.label)}</div>
+     <div class="value">${escapeHtml(k.value)}</div>
+     <div class="sub">${escapeHtml(k.sub || '')}</div></div>`;
+  }).join('');
+}
+
+function crmSortList(list, mode) {
+  const arr = [...list];
+  switch(mode) {
+    case 'lastPurchase':
+      return arr.sort((a,b) => (b.last||0) - (a.last||0));
+    case 'nextAction':
+      return arr.sort((a,b) => {
+        const da = a.nextAction ? a.nextAction.date : '9999-12-31';
+        const db = b.nextAction ? b.nextAction.date : '9999-12-31';
+        return da.localeCompare(db);
+      });
+    case 'alpha':
+      return arr.sort((a,b) => (a.cliente||'').localeCompare(b.cliente||'', 'pt-BR'));
+    case 'revenue':
+    default:
+      return arr.sort((a,b) => (b.revenue12m||0) - (a.revenue12m||0));
+  }
+}
+
+function renderCrmFunnel(built) {
+  const board = document.getElementById('crmFunnelBoard');
+  const list = crmSortList(built.list, crmUiState.funnelSort);
+  const limit = crmUiState.funnelLimit;
+  const html = CRM_STAGE_ORDER.map(stage => {
+    const inStage = list.filter(c => c.stage === stage);
+    const shown = inStage.slice(0, limit);
+    const rest  = inStage.length - shown.length;
+    const cardsHtml = shown.map(c => crmCardHtml(c)).join('') ||
+      `<div class="small" style="color:var(--muted); text-align:center; padding:6px">—</div>`;
+    return `
+      <div class="crm-stage" data-stage="${stage}">
+        <div class="crm-stage-head">
+          <span class="crm-stage-title">${escapeHtml(CRM_STAGE_LABEL[stage])}</span>
+          <span class="crm-stage-count">${inStage.length}</span>
+        </div>
+        <div class="crm-stage-body">${cardsHtml}</div>
+        ${rest > 0 ? `<div class="crm-stage-more">+ ${rest} outros</div>` : ''}
+      </div>`;
+  }).join('');
+  board.innerHTML = html;
+  board.querySelectorAll('.crm-card').forEach(el => {
+    el.addEventListener('click', () => crmOpenModal(el.dataset.key));
+  });
+}
+
+function crmCardHtml(c) {
+  const nextCls = c.nextAction
+    ? (c.nextAction.overdue ? ' overdue' : (crmIsToday(c.nextAction.date) ? ' today' : ''))
+    : '';
+  const nextTxt = c.nextAction
+    ? `⏰ ${crmFmtDate(c.nextAction.date)}${c.nextAction.desc ? ' — '+escapeHtml(c.nextAction.desc.slice(0,40)) : ''}`
+    : '';
+  const sellerCell = c.effectiveOwner === CRM_UNASSIGNED
+    ? `<span style="color:var(--warn); font-weight:500" title="Sem vendedor ativo — reatribua na ficha">🚫 Sem Vendedor</span>`
+    : escapeHtml((c.effectiveOwner || '—').slice(0,14));
+  const unassignedCls = c.effectiveOwner === CRM_UNASSIGNED ? ' unassigned' : '';
+  return `
+    <div class="crm-card ${escapeHtml(c.temp||'')}${unassignedCls}" data-key="${escapeHtml(c.key)}" title="${escapeHtml(c.cliente)}">
+      <div class="name">${escapeHtml(c.cliente || '—')}</div>
+      <div class="meta">
+        <span>${FORMATTERS.brl.format(c.revenue12m)} <span style="color:var(--muted-2)">12m</span></span>
+        <span><b>${c.count12m}</b> OSs</span>
+      </div>
+      <div class="meta">
+        <span>Últ.: ${crmFmtDaysAgo(c.daysSinceLast)}</span>
+        <span>${sellerCell}</span>
+      </div>
+      ${nextTxt ? `<div class="next${nextCls}">${nextTxt}</div>` : ''}
+    </div>`;
+}
+
+function crmIsToday(dateStr) {
+  const now = new Date(); now.setHours(0,0,0,0);
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.getTime() === now.getTime();
+}
+
+function renderCrmAgenda(built) {
+  const filter = crmUiState.agendaFilter;
+  const now = new Date(); now.setHours(0,0,0,0);
+  const in7   = new Date(now.getTime() + 7  * 86400000);
+  const in30  = new Date(now.getTime() + 30 * 86400000);
+  const list = built.list.filter(c => c.nextAction).map(c => {
+    const d = new Date(c.nextAction.date + 'T00:00:00');
+    return { ...c, _nextDate: d };
+  });
+  const filtered = list.filter(c => {
+    const d = c._nextDate;
+    switch(filter) {
+      case 'today':   return d.getTime() === now.getTime();
+      case 'overdue': return d < now;
+      case 'week':    return d >= now && d <= in7;
+      case 'month':   return d >= now && d <= in30;
+      case 'all':
+      default:        return true;
+    }
+  }).sort((a,b) => a._nextDate - b._nextDate);
+
+  document.getElementById('crmAgendaBadge').textContent =
+    filtered.length ? `${filtered.length} item(ns)` : '';
+
+  if (!filtered.length) {
+    document.getElementById('crmAgendaTable').innerHTML =
+      `<div class="crm-empty">Nenhuma ação agendada para esta janela.</div>`;
+    return;
+  }
+  const rows = filtered.map(c => {
+    const dueTxt = c.nextAction.overdue ? '<span class="pill bad">Atrasado</span>'
+                : (crmIsToday(c.nextAction.date) ? '<span class="pill warn">Hoje</span>'
+                : '<span class="pill good">Agendado</span>');
+    return `<tr data-key="${escapeHtml(c.key)}" style="cursor:pointer">
+      <td>${crmFmtDate(c.nextAction.date)}</td>
+      <td>${dueTxt}</td>
+      <td><b>${escapeHtml(c.cliente)}</b><br><span class="small" style="color:var(--muted)">${escapeHtml(c.docFmt||'')}</span></td>
+      <td>${escapeHtml(c.nextAction.desc || '—')}</td>
+      <td><span class="crm-stage-badge ${c.stage}">${escapeHtml(CRM_STAGE_LABEL[c.stage] || c.stage)}</span></td>
+      <td>${crmSellerDisplay(c.effectiveOwner)}</td>
+      <td>${FORMATTERS.brl.format(c.revenue12m)}</td>
+      <td><button class="btn secondary crm-done-btn" data-id="${escapeHtml(c.nextAction.id)}" data-key="${escapeHtml(c.key)}" style="padding:3px 8px; font-size:11px">✓ Concluir</button></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('crmAgendaTable').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>Data</th><th>Status</th><th>Cliente</th><th>Próximo passo</th>
+        <th>Estágio</th><th>Dono</th><th>Fat. 12m</th><th></th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  document.querySelectorAll('#crmAgendaTable tbody tr').forEach(tr => {
+    tr.addEventListener('click', (e) => {
+      if (e.target.closest('.crm-done-btn')) return;
+      crmOpenModal(tr.dataset.key);
+    });
+  });
+  document.querySelectorAll('#crmAgendaTable .crm-done-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      crmMarkNextDone(btn.dataset.key, btn.dataset.id);
+      renderCrmView();
+    });
+  });
+}
+
+function crmMarkNextDone(key, interactionId) {
+  const all = crmLoad();
+  const rec = all[key];
+  if (!rec || !rec.interactions) return;
+  const it = rec.interactions.find(i => i.id === interactionId);
+  if (it) { it.nextDone = true; crmSave(all); }
+}
+
+function renderCrmOwnerFilter(built) {
+  const sel = document.getElementById('crmFilterOwner');
+  // Usa a lista completa e effectiveOwner (que agrupa dono inativo em "Sem Vendedor")
+  const counts = new Map();
+  let unassignedCount = 0;
+  for (const c of (built._all || built.list)) {
+    if (c.effectiveOwner === CRM_UNASSIGNED) unassignedCount++;
+    else counts.set(c.effectiveOwner, (counts.get(c.effectiveOwner) || 0) + 1);
+  }
+  const owners = [...counts.keys()].sort((a,b) => a.localeCompare(b, 'pt-BR'));
+  const cur = crmUiState.ownerFilter || '';
+  const isValid = cur === CRM_UNASSIGNED_VALUE ? unassignedCount > 0 : (!cur || owners.includes(cur));
+  const resolved = isValid ? cur : '';
+  if (resolved !== cur) crmUiState.ownerFilter = '';
+
+  const unassignedOpt = unassignedCount > 0
+    ? `<option value="${CRM_UNASSIGNED_VALUE}"${resolved===CRM_UNASSIGNED_VALUE?' selected':''}>🚫 ${CRM_UNASSIGNED} (${unassignedCount})</option>`
+    : '';
+  sel.innerHTML = `<option value="">Todos</option>` +
+    unassignedOpt +
+    owners.map(o => `<option value="${escapeHtml(o)}"${o===resolved?' selected':''}>${escapeHtml(o)}</option>`).join('');
+  // Datalist da ficha só sugere vendedores ativos (não sugere "Sem Vendedor")
+  const dl = document.getElementById('crmOwnerList');
+  if (dl) dl.innerHTML = owners.map(o => `<option value="${escapeHtml(o)}">`).join('');
+}
+
+function renderCrmList(built) {
+  const search = (crmUiState.search || '').toLowerCase().trim();
+  const digits = search.replace(/\D/g,'');
+  const list = built.list.filter(c => {
+    if (crmUiState.stageFilter !== 'all' && c.stage !== crmUiState.stageFilter) return false;
+    if (crmUiState.tempFilter  !== 'all' && c.temp  !== crmUiState.tempFilter)  return false;
+    if (crmUiState.ownerFilter) {
+      const want = crmUiState.ownerFilter === CRM_UNASSIGNED_VALUE ? CRM_UNASSIGNED : crmUiState.ownerFilter;
+      if (c.effectiveOwner !== want) return false;
+    }
+    if (search) {
+      const hay = `${c.cliente} ${c.codc} ${c.owner} ${c.effectiveOwner} ${c.docFmt} ${c.mainCity}`.toLowerCase();
+      const inTxt = hay.includes(search);
+      const inDoc = digits && (c.cnpj_cpf||'').replace(/\D/g,'').includes(digits);
+      if (!inTxt && !inDoc) return false;
+    }
+    return true;
+  }).sort((a,b) => (b.revenue12m||0) - (a.revenue12m||0));
+
+  document.getElementById('crmListCount').textContent =
+    `${list.length} cliente(s) na visão atual`;
+
+  const rows = list.slice(0, 300).map(c => {
+    const nextTxt = c.nextAction
+      ? `<span class="pill ${c.nextAction.overdue ? 'bad' : (crmIsToday(c.nextAction.date) ? 'warn' : 'good')}">${crmFmtDate(c.nextAction.date)}</span>`
+      : '<span class="small" style="color:var(--muted-2)">—</span>';
+    return `<tr data-key="${escapeHtml(c.key)}" style="cursor:pointer">
+      <td><b>${escapeHtml(c.cliente)}</b>${c.docFmt ? `<br><span class="small" style="color:var(--muted)">${escapeHtml(c.docFmt)}${c.codc?' · '+escapeHtml(c.codc):''}</span>` : ''}</td>
+      <td><span class="crm-stage-badge ${c.stage}">${escapeHtml(CRM_STAGE_LABEL[c.stage] || c.stage)}</span></td>
+      <td>${escapeHtml(CRM_TEMP_LABEL[c.temp] || '—')}</td>
+      <td>${crmSellerDisplay(c.effectiveOwner)}</td>
+      <td style="text-align:right">${FORMATTERS.brl.format(c.revenue12m)}</td>
+      <td style="text-align:right">${c.count12m}</td>
+      <td>${crmFmtDaysAgo(c.daysSinceLast)}</td>
+      <td>${nextTxt}</td>
+      <td>${(c.interactions || []).length}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('crmList').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>Cliente</th><th>Estágio</th><th>Temp.</th><th>Dono</th>
+        <th style="text-align:right">Fat. 12m</th><th style="text-align:right">OSs 12m</th>
+        <th>Última compra</th><th>Próx. ação</th><th>Interações</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  document.querySelectorAll('#crmList tbody tr').forEach(tr => {
+    tr.addEventListener('click', () => crmOpenModal(tr.dataset.key));
+  });
+}
+
+// =========================
+// Modal / ficha do cliente
+// =========================
+function crmOpenModal(key) {
+  const built = crmUiState._data;
+  if (!built) return;
+  const c = built.list.find(x => x.key === key);
+  if (!c) return;
+  crmUiState.activeKey = key;
+
+  document.getElementById('crmModalTitle').textContent = c.cliente || '—';
+  const parts = [];
+  if (c.docFmt)      parts.push(c.docFmt);
+  if (c.codc)        parts.push('Cód. ' + c.codc);
+  if (c.mainCity)    parts.push(c.mainCity);
+  if (c.mainBrand)   parts.push(c.mainBrand);
+  const subEl = document.getElementById('crmModalSub');
+  subEl.innerHTML = escapeHtml(parts.join(' · '));
+  // Aviso amarelo quando este cliente perdeu o vendedor original (inativado)
+  if (c.unassigned) {
+    const originalSeller = c.mainSellerInactive ? c.mainSeller
+                          : (c.ownerInactive     ? c.owner
+                                                 : '');
+    const orig = originalSeller ? ` (era: <b>${escapeHtml(originalSeller)}</b>)` : '';
+    subEl.innerHTML += `<br><span class="pill warn" style="margin-top:4px">🚫 Sem Vendedor${orig}</span> <span class="small" style="color:var(--muted)">— reatribua o Dono da conta abaixo</span>`;
+  }
+
+  // KPIs
+  const kpis = [
+    { label:'Fat. 12 meses',   value: FORMATTERS.brl.format(c.revenue12m), sub: `${c.count12m} OSs` },
+    { label:'Fat. histórico',  value: FORMATTERS.brl.format(c.revenue),    sub: `${c.count} OSs no total` },
+    { label:'Ticket médio',    value: FORMATTERS.brl.format(c.ticket),     sub: `desconto médio ${(c.descMedio||0).toFixed(1)}%` },
+    { label:'Última compra',   value: crmFmtDate(c.last),                  sub: crmFmtDaysAgo(c.daysSinceLast) },
+    { label:'Estágio sugerido',value: CRM_STAGE_LABEL[c.autoStage] || '—', sub: `Temp.: ${CRM_TEMP_LABEL[c.autoTemp] || '—'}` },
+  ];
+  document.getElementById('crmModalKpis').innerHTML = kpis.map(k =>
+    `<div class="kpi"><div class="label">${escapeHtml(k.label)}</div>
+     <div class="value">${escapeHtml(k.value)}</div>
+     <div class="sub">${escapeHtml(k.sub || '')}</div></div>`).join('');
+
+  // Painel comercial (usa VALOR persistido, não o resolved auto)
+  const rec = crmGetRecord(key);
+  document.getElementById('crmFieldStage').value  = rec.stage  || '';
+  document.getElementById('crmFieldTemp').value   = rec.temp   || '';
+  document.getElementById('crmFieldOwner').value  = rec.owner  || c.mainSeller || '';
+  document.getElementById('crmFieldPhone').value  = rec.phone  || '';
+  document.getElementById('crmFieldEmail').value  = rec.email  || '';
+  document.getElementById('crmFieldContact').value= rec.contact|| '';
+  document.getElementById('crmFieldNotes').value  = rec.notes  || '';
+
+  // Nova interação — defaults
+  const today = new Date();
+  document.getElementById('crmIntDate').value = today.toISOString().slice(0,10);
+  document.getElementById('crmIntType').value = 'ligacao';
+  document.getElementById('crmIntOutcome').value = 'positivo';
+  document.getElementById('crmIntNext').value = '';
+  document.getElementById('crmIntNextDesc').value = '';
+  document.getElementById('crmIntNote').value = '';
+
+  // Histórico
+  renderCrmInteractionsList(c);
+
+  // OSs do cliente
+  renderCrmClientOsList(c);
+
+  document.getElementById('crmClientModal').classList.add('open');
+}
+function crmCloseModal() {
+  document.getElementById('crmClientModal').classList.remove('open');
+  crmUiState.activeKey = null;
+}
+
+function renderCrmInteractionsList(c) {
+  const list = (c.interactions || []).slice().sort((a,b) =>
+    (b.date || '').localeCompare(a.date || ''));
+  document.getElementById('crmHistCount').textContent = list.length ? `${list.length}` : '';
+  if (!list.length) {
+    document.getElementById('crmInteractionsList').innerHTML =
+      `<div class="crm-empty">Nenhuma interação registrada. Registre a primeira acima.</div>`;
+    return;
+  }
+  document.getElementById('crmInteractionsList').innerHTML = list.map(i => {
+    const nextTxt = i.nextDate && !i.nextDone
+      ? `<div class="next">⏰ Próximo passo em <b>${crmFmtDate(i.nextDate)}</b>${i.nextDesc?' — '+escapeHtml(i.nextDesc):''}</div>`
+      : (i.nextDate && i.nextDone
+          ? `<div class="next" style="color:var(--good)">✓ Ação concluída (${crmFmtDate(i.nextDate)}${i.nextDesc?' — '+escapeHtml(i.nextDesc):''})</div>`
+          : '');
+    return `
+      <div class="crm-history-item ${escapeHtml(i.outcome||'')}">
+        <div class="head">
+          <span><b>${crmFmtDate(i.date)}</b> · ${escapeHtml(CRM_TYPE_LABEL[i.type] || i.type)} · ${escapeHtml(CRM_OUTCOME_LABEL[i.outcome] || i.outcome)}</span>
+          <button class="del" data-id="${escapeHtml(i.id)}" title="Excluir">🗑</button>
+        </div>
+        ${i.note ? `<div class="note">${escapeHtml(i.note)}</div>` : ''}
+        ${nextTxt}
+      </div>`;
+  }).join('');
+  document.querySelectorAll('#crmInteractionsList .del').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!confirm('Excluir esta interação?')) return;
+      crmDeleteInteraction(crmUiState.activeKey, btn.dataset.id);
+      // Rebuild + refresh
+      renderCrmView();
+      crmOpenModal(crmUiState.activeKey);
+    });
+  });
+}
+
+function renderCrmClientOsList(c) {
+  // Últimas 20 OSs do cliente. Usa state.rows completo (ignora filtros
+  // laterais) porque na ficha o usuário quer ver todo o histórico do cliente.
+  const rows = state.rows
+    .filter(r => r.cliente === c.cliente)
+    .sort((a,b) => (b.data_faturamento||0) - (a.data_faturamento||0))
+    .slice(0, 20);
+  if (!rows.length) {
+    document.getElementById('crmClientOsList').innerHTML =
+      `<div class="crm-empty">Nenhuma OS na base para este cliente.</div>`;
+    return;
+  }
+  const tt = billingTypes();
+  document.getElementById('crmClientOsList').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>Faturamento</th><th>OS</th><th>Op.</th><th>Vendedor</th>
+        <th>Marca/Modelo</th><th style="text-align:right">Valor</th>
+      </tr></thead>
+      <tbody>
+        ${rows.map(r => `<tr>
+          <td>${r.data_faturamento ? crmFmtDate(r.data_faturamento) : '—'}</td>
+          <td>${escapeHtml(r.os||'')}</td>
+          <td>${escapeHtml(r.operacao||'')}</td>
+          <td>${escapeHtml(r.vendedor||'')}</td>
+          <td>${escapeHtml((r.marca||'') + (r.modelo?' / '+r.modelo:''))}</td>
+          <td style="text-align:right">${FORMATTERS.brl.format(rowRevenue(r, tt))}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+// =====================
+// Wiring / event handlers do CRM
+// =====================
+function wireCrmView() {
+  // Filtro global de Vendedor + botão Gerenciar Vendedores
+  document.getElementById('crmSellerFilter').addEventListener('change', (e) => {
+    crmUiState.sellerFilter = e.target.value;
+    renderCrmView();
+  });
+  document.getElementById('crmManageSellers').addEventListener('click', crmOpenSellersModal);
+  document.getElementById('crmSellersModalClose').addEventListener('click', crmCloseSellersModal);
+  document.getElementById('crmSellersModal').addEventListener('click', (e) => {
+    if (e.target.id === 'crmSellersModal') crmCloseSellersModal();
+  });
+  document.getElementById('crmSellersSearch').addEventListener('input', debounce(renderCrmSellersModalList, 150));
+  document.getElementById('crmSellersActivateAll').addEventListener('click', () => {
+    if (!confirm('Reativar TODOS os vendedores? Todos voltarão a aparecer nos filtros do CRM.')) return;
+    crmSaveInactiveSellers([]);
+    renderCrmSellersModalList();
+    renderCrmView();
+  });
+
+  // Board sort / limit
+  document.getElementById('crmFunnelSort').addEventListener('change', (e) => {
+    crmUiState.funnelSort = e.target.value;
+    if (crmUiState._data) renderCrmFunnel(crmUiState._data);
+  });
+  document.getElementById('crmFunnelLimit').addEventListener('change', (e) => {
+    crmUiState.funnelLimit = parseInt(e.target.value, 10) || 10;
+    if (crmUiState._data) renderCrmFunnel(crmUiState._data);
+  });
+
+  // Agenda
+  document.getElementById('crmAgendaFilter').addEventListener('change', (e) => {
+    crmUiState.agendaFilter = e.target.value;
+    if (crmUiState._data) renderCrmAgenda(crmUiState._data);
+  });
+  document.getElementById('crmAgendaPrint').addEventListener('click', printCrmAgenda);
+
+  // List filters
+  document.getElementById('crmSearch').addEventListener('input', debounce((e) => {
+    crmUiState.search = e.target.value || '';
+    if (crmUiState._data) renderCrmList(crmUiState._data);
+  }, 200));
+  document.getElementById('crmFilterStage').addEventListener('change', (e) => {
+    crmUiState.stageFilter = e.target.value;
+    if (crmUiState._data) renderCrmList(crmUiState._data);
+  });
+  document.getElementById('crmFilterTemp').addEventListener('change', (e) => {
+    crmUiState.tempFilter = e.target.value;
+    if (crmUiState._data) renderCrmList(crmUiState._data);
+  });
+  document.getElementById('crmFilterOwner').addEventListener('change', (e) => {
+    crmUiState.ownerFilter = e.target.value;
+    if (crmUiState._data) renderCrmList(crmUiState._data);
+  });
+
+  // Modal actions
+  document.getElementById('crmModalClose').addEventListener('click', crmCloseModal);
+  document.getElementById('crmClientModal').addEventListener('click', (e) => {
+    // Click no backdrop fecha (mas não clique dentro do .modal)
+    if (e.target.id === 'crmClientModal') crmCloseModal();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.getElementById('crmClientModal').classList.contains('open')) {
+      crmCloseModal();
+    }
+  });
+
+  document.getElementById('crmSaveOnly').addEventListener('click', () => {
+    crmPersistFields(true);
+    const btn = document.getElementById('crmSaveOnly');
+    const original = btn.textContent;
+    btn.textContent = '✓ Salvo!';
+    setTimeout(() => { btn.textContent = original; }, 1200);
+  });
+  document.getElementById('crmSaveInteraction').addEventListener('click', () => {
+    if (!crmUiState.activeKey) return;
+    crmPersistFields(false); // persiste painel sem alert
+    const date = document.getElementById('crmIntDate').value || new Date().toISOString().slice(0,10);
+    const type = document.getElementById('crmIntType').value;
+    const outcome = document.getElementById('crmIntOutcome').value;
+    const nextDate = document.getElementById('crmIntNext').value || '';
+    const nextDesc = document.getElementById('crmIntNextDesc').value.trim();
+    const note = document.getElementById('crmIntNote').value.trim();
+    if (!note && !nextDate) {
+      if (!confirm('Registrar interação sem anotação e sem próxima ação?')) return;
+    }
+    crmAddInteraction(crmUiState.activeKey, {
+      date, type, outcome, nextDate, nextDesc, note,
+    });
+    // Rebuild
+    renderCrmView();
+    crmOpenModal(crmUiState.activeKey);
+  });
+
+  // Import / export / clear
+  document.getElementById('crmExportBtn').addEventListener('click', crmExportJson);
+  document.getElementById('crmImportBtn').addEventListener('click',
+    () => document.getElementById('crmImportInput').click());
+  document.getElementById('crmImportInput').addEventListener('change', crmImportJson);
+  document.getElementById('crmClearBtn').addEventListener('click', () => {
+    if (!confirm('Apagar TODAS as anotações e histórico do CRM neste navegador? Faça exportar primeiro.')) return;
+    localStorage.removeItem(CRM_LS_KEY);
+    renderCrmView();
+  });
+  document.getElementById('crmCsvBtn').addEventListener('click', crmExportCsv);
+}
+
+function crmPersistFields(showAlert) {
+  const key = crmUiState.activeKey;
+  if (!key) return;
+  const patch = {
+    stage:   document.getElementById('crmFieldStage').value  || '',
+    temp:    document.getElementById('crmFieldTemp').value   || '',
+    owner:   document.getElementById('crmFieldOwner').value.trim(),
+    phone:   document.getElementById('crmFieldPhone').value.trim(),
+    email:   document.getElementById('crmFieldEmail').value.trim(),
+    contact: document.getElementById('crmFieldContact').value.trim(),
+    notes:   document.getElementById('crmFieldNotes').value.trim(),
+  };
+  crmSetRecord(key, patch);
+  if (showAlert) {
+    // rebuild view atrás
+    renderCrmView();
+    crmOpenModal(key);
+  }
+}
+
+function crmExportJson() {
+  const data = crmLoad();
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `crm-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+function crmImportJson(e) {
+  const f = e.target.files[0];
+  if (!f) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    try {
+      const data = JSON.parse(rd.result);
+      if (typeof data !== 'object') throw new Error('JSON inválido');
+      if (!confirm('Substituir os dados atuais do CRM pelos do arquivo importado?')) return;
+      crmSave(data);
+      renderCrmView();
+      alert('CRM importado com sucesso.');
+    } catch (err) {
+      alert('Falha ao importar JSON: ' + err.message);
+    }
+  };
+  rd.readAsText(f);
+  e.target.value = '';
+}
+function crmExportCsv() {
+  const built = crmUiState._data;
+  if (!built) return;
+  const headers = ['Cliente','CNPJ/CPF','CodC','Estágio','Temperatura','Vendedor Principal','Dono','Vendedor Efetivo','Fat. 12m',
+                   'OSs 12m','Fat. histórico','OSs total','Última compra','Dias sem comprar',
+                   'Próxima ação','Descrição','Telefone','E-mail','Contato'];
+  const rows = built.list.map(c => [
+    c.cliente, c.docFmt, c.codc,
+    CRM_STAGE_LABEL[c.stage] || c.stage,
+    CRM_TEMP_LABEL[c.temp] || '',
+    c.mainSeller + (c.mainSellerInactive ? ' [Inativo]' : ''),
+    c.owner      + (c.ownerInactive      ? ' [Inativo]' : ''),
+    c.effectiveOwner,
+    c.revenue12m.toFixed(2), c.count12m,
+    c.revenue.toFixed(2), c.count,
+    c.last ? c.last.toISOString().slice(0,10) : '',
+    c.daysSinceLast != null ? c.daysSinceLast : '',
+    c.nextAction ? c.nextAction.date : '',
+    c.nextAction ? (c.nextAction.desc || '') : '',
+    (crmGetRecord(c.key).phone || ''),
+    (crmGetRecord(c.key).email || ''),
+    (crmGetRecord(c.key).contact || ''),
+  ]);
+  const csv = [headers, ...rows].map(r =>
+    r.map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(';')
+  ).join('\n');
+  const blob = new Blob(['﻿'+csv], { type:'text/csv;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `crm-carteira-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function printCrmAgenda() {
+  const built = crmUiState._data;
+  if (!built) return;
+  const filter = crmUiState.agendaFilter;
+  const now = new Date(); now.setHours(0,0,0,0);
+  const in7  = new Date(now.getTime() + 7  * 86400000);
+  const in30 = new Date(now.getTime() + 30 * 86400000);
+  const list = built.list.filter(c => c.nextAction).filter(c => {
+    const d = new Date(c.nextAction.date + 'T00:00:00');
+    switch(filter) {
+      case 'today':   return d.getTime() === now.getTime();
+      case 'overdue': return d < now;
+      case 'week':    return d >= now && d <= in7;
+      case 'month':   return d >= now && d <= in30;
+      default:        return true;
+    }
+  }).sort((a,b) => a.nextAction.date.localeCompare(b.nextAction.date));
+
+  const rows = list.map(c => `<tr>
+    <td>${crmFmtDate(c.nextAction.date)}</td>
+    <td>${escapeHtml(c.cliente)}</td>
+    <td>${escapeHtml(c.docFmt || '')}</td>
+    <td>${escapeHtml(c.nextAction.desc || '')}</td>
+    <td>${escapeHtml(CRM_STAGE_LABEL[c.stage] || '')}</td>
+    <td>${c.effectiveOwner === CRM_UNASSIGNED
+        ? '<b style="color:#b45309">🚫 '+CRM_UNASSIGNED+'</b>'
+        : escapeHtml(c.effectiveOwner)}</td>
+    <td style="text-align:right">${FORMATTERS.brl.format(c.revenue12m)}</td>
+  </tr>`).join('');
+  const w = window.open('', '_blank');
+  const css = `
+    body{font-family: Inter, Arial, sans-serif; padding:24px; color:#111}
+    h1{font-size:18px; margin:0 0 6px}
+    p.sub{color:#666; margin:0 0 14px; font-size:12px}
+    table{width:100%; border-collapse:collapse; font-size:11pt}
+    th, td{border-bottom:1px solid #ddd; padding:6px 8px; text-align:left; vertical-align:top}
+    th{background:#f5f5f7}
+    .toolbar{position:fixed; top:12px; right:12px}
+    @media print { .toolbar{ display:none } }`;
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Agenda CRM</title><style>${css}</style></head>
+    <body>
+      <h1>Agenda Comercial — CRM</h1>
+      <p class="sub">Janela: ${filter} · ${list.length} follow-up(s) · Impresso em ${new Date().toLocaleString('pt-BR')}</p>
+      <table><thead><tr>
+        <th>Data</th><th>Cliente</th><th>CNPJ/CPF</th><th>Próximo passo</th><th>Estágio</th><th>Dono</th><th>Fat. 12m</th>
+      </tr></thead><tbody>${rows || '<tr><td colspan="7" style="text-align:center;color:#666">Nenhum item.</td></tr>'}</tbody></table>
+      <div class="toolbar"><button onclick="window.print()">Imprimir</button> <button onclick="window.close()">Fechar</button></div>
+    </body></html>`);
+}
+
+// =====================
+// Modal: Gerenciar Vendedores (marcar Ativo/Inativo)
+// =====================
+function crmOpenSellersModal() {
+  renderCrmSellersModalList();
+  document.getElementById('crmSellersModal').classList.add('open');
+}
+function crmCloseSellersModal() {
+  document.getElementById('crmSellersModal').classList.remove('open');
+}
+
+// Monta a lista com TODOS os vendedores da base (state.rows) — mesmo os
+// inativos aparecem, para que o usuário possa reativá-los. Mostra também
+// contagem de OSs e o faturamento total do vendedor para dar contexto.
+function renderCrmSellersModalList() {
+  if (!state.rows.length) {
+    document.getElementById('crmSellersList').innerHTML =
+      `<div class="crm-empty">Carregue o Excel para listar vendedores.</div>`;
+    return;
+  }
+  // Agrega por vendedor (usa state.rows completo — ignora filtros laterais aqui,
+  // porque queremos ver todos os vendedores possíveis). Também conta quantos
+  // clientes distintos cada vendedor tem como mainSeller — para o gestor ver
+  // o impacto de marcar alguém como Inativo (X clientes irão para "Sem Vendedor").
+  const agg = new Map();
+  const tt = billingTypes();
+  const clientsBySeller = new Map();   // vendedor → Set(cliente)
+  for (const r of state.rows) {
+    if (!r.vendedor) continue;
+    if (!agg.has(r.vendedor)) agg.set(r.vendedor, {
+      name: r.vendedor, count: 0, revenue: 0, last: null,
+    });
+    const a = agg.get(r.vendedor);
+    a.count++;
+    a.revenue += rowRevenue(r, tt);
+    if (r.data_faturamento && (!a.last || r.data_faturamento > a.last)) a.last = r.data_faturamento;
+    if (r.cliente) {
+      if (!clientsBySeller.has(r.vendedor)) clientsBySeller.set(r.vendedor, new Set());
+      clientsBySeller.get(r.vendedor).add(r.cliente);
+    }
+  }
+  const inactive = crmLoadInactiveSellers();
+  const search = (document.getElementById('crmSellersSearch').value || '').toLowerCase().trim();
+  const list = [...agg.values()]
+    .filter(v => !search || v.name.toLowerCase().includes(search))
+    .sort((a,b) => a.name.localeCompare(b.name, 'pt-BR'));
+
+  const total = agg.size;
+  const inactCount = [...inactive].filter(n => agg.has(n)).length;
+  document.getElementById('crmSellersCount').textContent =
+    `${list.length} exibido(s) · ${total - inactCount} ativo(s) / ${inactCount} inativo(s)`;
+
+  if (!list.length) {
+    document.getElementById('crmSellersList').innerHTML =
+      `<div class="crm-empty">Nenhum vendedor corresponde à busca.</div>`;
+    return;
+  }
+  document.getElementById('crmSellersList').innerHTML = list.map(v => {
+    const isInactive = inactive.has(v.name);
+    const lastTxt = v.last
+      ? `últ.: ${String(v.last.getUTCDate()).padStart(2,'0')}/${String(v.last.getUTCMonth()+1).padStart(2,'0')}/${v.last.getUTCFullYear()}`
+      : 'sem faturamento';
+    const nClients = (clientsBySeller.get(v.name) || new Set()).size;
+    const impactTxt = isInactive
+      ? ` · <b>${nClients}</b> cliente(s) em "Sem Vendedor"`
+      : ` · <b>${nClients}</b> cliente(s)`;
+    return `
+      <div class="crm-seller-row ${isInactive ? 'inactive' : ''}">
+        <div style="flex:1; min-width:0">
+          <div class="name">${escapeHtml(v.name)}</div>
+          <div class="stats">${FORMATTERS.int.format(v.count)} OSs · ${FORMATTERS.brl.format(v.revenue)} · ${lastTxt}${impactTxt}</div>
+        </div>
+        <label title="${isInactive ? 'Desmarque para reativar' : 'Marcar como Inativo — seus clientes vão para o bucket \'Sem Vendedor\''}">
+          <input type="checkbox" class="crm-seller-toggle" data-name="${escapeHtml(v.name)}" ${isInactive ? 'checked' : ''}>
+          Inativo
+        </label>
+      </div>`;
+  }).join('');
+  document.querySelectorAll('.crm-seller-toggle').forEach(cb => {
+    cb.addEventListener('change', () => {
+      crmToggleSellerInactive(cb.dataset.name, cb.checked);
+      renderCrmSellersModalList();
+      // Refresh CRM view (dropdowns podem mudar)
+      renderCrmView();
+    });
+  });
+}
+
+// Fecha o modal de vendedores com Esc (adicional ao já existente para o modal de cliente)
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && document.getElementById('crmSellersModal').classList.contains('open')) {
+    crmCloseSellersModal();
+  }
+});
+
+// Wiring inicial — chamado uma vez no boot
+wireCrmView();
 
 </script>
 </body>

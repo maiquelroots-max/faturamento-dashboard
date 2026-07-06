@@ -1641,7 +1641,9 @@
             </div>
           </div>
           <p class="small" style="margin:0" id="abertasFileInfo">
-            Nenhum arquivo carregado. O arquivo <b>Abertas.XLS</b> deve conter duas abas: <b>MECANICA</b> (OSs do Negócio Mecânica) e <b>RETIFICA</b> (OSs do Negócio Retífica). Para cada OS aberta você pode marcar <b>Aprovado?</b>, informar <b>Data de Aprovação</b> e sinalizar <b>Previsão de Faturamento</b> (Mês Corrente / Próximo Mês). O KPI <b>Faturado + Aprovado Mês Corrente</b> soma o já faturado da base <code>Faturamento_Geral_V2</code> com os aprovados marcados para este mês — é sua projeção do mês.
+            <b>Duas formas de carregar as OSs abertas:</b><br>
+            <b>(1) Automático — recomendado:</b> crie no seu <code>Faturamento_Geral_V2.xlsx</code> duas abas chamadas <b>Abertas_MECANICA</b> e <b>Abertas_RETIFICA</b> (ou uma única aba <b>Abertas</b> com coluna <code>NEGOCIO</code>). Cabeçalho aceito: <code>OS · Cliente · Modelo · Veiculo · Placa · Recepcao · Operacao · Pecas · Servicos · Terceiros · Total</code> (nomes flexíveis, sem acento/case). O dashboard lê tudo no mesmo carregamento — sem upload separado.<br>
+            <b>(2) Manual — legado:</b> clique em <b>Carregar Abertas.XLS</b> para subir o arquivo separado (formato de relatório impresso). As aprovações que você registrar ficam salvas no navegador em qualquer um dos formatos.
           </p>
         </div>
 
@@ -2803,6 +2805,9 @@ async function loadWorkbookFromBuffer(buf, sourceName, opts = {}) {
     // if present. This unifies the data source — one file in OneDrive/GitHub,
     // historical data on the first sheet and current month on "Mes_corrente".
     tryAutoLoadMonthFromWorkbook(wb);
+    // Auto-load OSs Abertas de abas Abertas_MECANICA / Abertas_RETIFICA (ou
+    // Abertas com coluna NEGOCIO) — evita upload separado.
+    tryAutoLoadAbertasFromWorkbook(wb);
   } catch (err) {
     console.error(err);
     document.getElementById('fileInfo').textContent = `Erro: ${err.message}`;
@@ -9223,7 +9228,134 @@ function parseAbertasOperation(line) {
 }
 
 // Percorre a workbook e retorna array plano de OSs (com business + operacao).
+// Mapa fuzzy de colunas para o formato TABULAR (aba com header row).
+// A ordem em cada array é do "mais preferido" para o "fallback" — a primeira
+// coluna cujo header normalizado (uppercase + sem acento + sem pontuação)
+// bater é usada.
+const ABERTAS_COL_ALIASES = {
+  os:          ['OS','O.S.','O.S','OSNRO','NROOS','NUMERO','NRO','ORDEMSERVICO'],
+  cliente:     ['CLIENTE','NOMECLIENTE','RAZAOSOCIAL','CLI','RAZAO'],
+  modelo:      ['MODELO','MODEL'],
+  veiculo:     ['VEICULO','VEHICLE','VEIC'],
+  placa:       ['PLACA','PLATE'],
+  recepcao:    ['RECEPCAO','DATARECEPCAO','ABERTURA','DTABERTURA','DATAABERTURA','DATA'],
+  orcamento:   ['ORCAMENTO','DATAORCAMENTO','DTORCAMENTO'],
+  operacao:    ['OPERACAO','OP','CODOP','CODIGOOP','CODOPERACAO'],
+  operacaoDesc:['OPERACAODESC','OPDESC','DESCOP','DESCRICAO'],
+  valPecas:    ['PECAS','VLRPECAS','VALORPECAS','VPECAS'],
+  valServicos: ['SERVICOS','VLRSERVICOS','VALORSERVICOS','VSERVICOS','SERVICO'],
+  valTerceiros:['TERCEIROS','SERVTERC','TERCEIRO','VLRTERCEIROS','VALORTERCEIROS'],
+  total:       ['TOTAL','VALORTOTAL','TOTALOS','VLRTOTAL','TOTALGERAL'],
+  negocio:     ['NEGOCIO','SETOR','TIPOSERVICO'],   // usado só na aba unificada
+};
+function normColName(s) {
+  return (s||'').toString().toUpperCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^A-Z0-9]/g,'');
+}
+function detectAbertasColumns(headerRow) {
+  const norm = headerRow.map(normColName);
+  const idx = {};
+  for (const [key, aliases] of Object.entries(ABERTAS_COL_ALIASES)) {
+    for (const alias of aliases) {
+      const i = norm.indexOf(alias);
+      if (i >= 0) { idx[key] = i; break; }
+    }
+  }
+  return idx;
+}
+
+// Converte um valor possivelmente Date/string/numérico do SheetJS em Date UTC.
+function abertasCellToDate(v) {
+  if (v == null || v === '') return null;
+  if (v instanceof Date && !isNaN(v)) return new Date(Date.UTC(v.getUTCFullYear(), v.getUTCMonth(), v.getUTCDate()));
+  const s = String(v).trim();
+  // Formatos aceitos: DD/MM/YYYY, DD/MM/YY, YYYY-MM-DD
+  let m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s);
+  if (m) return new Date(Date.UTC(+m[3], +m[2]-1, +m[1]));
+  m = /^(\d{2})\/(\d{2})\/(\d{2})$/.exec(s);
+  if (m) return new Date(Date.UTC(+m[3] >= 50 ? 1900+ +m[3] : 2000+ +m[3], +m[2]-1, +m[1]));
+  m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+  if (m) return new Date(Date.UTC(+m[1], +m[2]-1, +m[3]));
+  return null;
+}
+function abertasCellToNumber(v) {
+  if (v == null || v === '') return 0;
+  if (typeof v === 'number') return v;
+  const s = String(v).replace(/\./g,'').replace(',','.').replace(/[^\d.\-]/g,'');
+  const n = parseFloat(s);
+  return isFinite(n) ? n : 0;
+}
+
+// Parser de uma aba TABULAR (com header row). Retorna array de OSs.
+// business/businessLabel: se fornecidos, aplica a todas as linhas.
+//   Se null, tenta ler a coluna NEGOCIO de cada linha (aba unificada).
+function parseAbertasTabularSheet(sh, business, businessLabel) {
+  const json = XLSX.utils.sheet_to_json(sh, { header: 1, blankrows: false, defval: '', raw: false });
+  if (!json.length) return [];
+  const header = json[0];
+  const col = detectAbertasColumns(header);
+  if (col.os == null) return [];   // sem coluna OS reconhecível → não é aba tabular
+  const out = [];
+  for (let i = 1; i < json.length; i++) {
+    const row = json[i];
+    const os = String(row[col.os] || '').trim();
+    if (!os || !/^\d+$/.test(os.replace(/\D/g,''))) continue;
+    // Business: se coluna NEGOCIO existe, usa dela; caso contrário do argumento
+    let biz = business, bizLabel = businessLabel;
+    if (!biz && col.negocio != null) {
+      const raw = String(row[col.negocio]||'').trim();
+      const nn = normalizeNegocio(raw);
+      if (nn === 'MECANICA') { biz = 'MECANICA'; bizLabel = 'Mecânica'; }
+      else if (nn === 'RETIFICA') { biz = 'RETIFICA'; bizLabel = 'Retífica'; }
+      else continue;   // sem negócio identificável — pula
+    }
+    if (!biz) continue;
+    const valPecas     = col.valPecas     != null ? abertasCellToNumber(row[col.valPecas])     : 0;
+    const valServicos  = col.valServicos  != null ? abertasCellToNumber(row[col.valServicos])  : 0;
+    const valTerceiros = col.valTerceiros != null ? abertasCellToNumber(row[col.valTerceiros]) : 0;
+    const totalFromCol = col.total        != null ? abertasCellToNumber(row[col.total])        : 0;
+    const total = totalFromCol || (valPecas + valServicos + valTerceiros);
+    out.push({
+      os: os.replace(/\D/g,''),
+      cliente: String(row[col.cliente]||'').trim(),
+      modelo:  col.modelo  != null ? String(row[col.modelo]||'').trim()  : '',
+      veiculo: col.veiculo != null ? String(row[col.veiculo]||'').trim() : '',
+      placa:   col.placa   != null ? String(row[col.placa]||'').trim()   : '',
+      recepcao:  col.recepcao  != null ? abertasCellToDate(row[col.recepcao])  : null,
+      orcamento: col.orcamento != null ? abertasCellToDate(row[col.orcamento]) : null,
+      conferencia: null, fechProducao: null, fechFinanceiro: null,
+      fatPecas: null, fatServicos: null,
+      valPecas, valServicos, valTerceiros, total,
+      business: biz,
+      businessLabel: bizLabel,
+      operacao:     col.operacao     != null ? String(row[col.operacao]||'').trim() : '',
+      operacaoDesc: col.operacaoDesc != null ? String(row[col.operacaoDesc]||'').trim() : '',
+    });
+  }
+  return out;
+}
+
 function parseAbertasWorkbook(wb) {
+  // --- Formato 1 (RECOMENDADO): Abas tabulares dedicadas ---
+  // Aceita variações: Abertas_MECANICA, ABERTAS_MECANICA, Abertas Mecanica, etc.
+  const findSheet = (patterns) => {
+    for (const nm of Object.keys(wb.Sheets || {})) {
+      const n = normColName(nm);
+      if (patterns.some(p => n === p)) return wb.Sheets[nm];
+    }
+    return null;
+  };
+  const shMec  = findSheet(['ABERTASMECANICA','ABERTAS_MECANICA','ABERTASMEC']);
+  const shRet  = findSheet(['ABERTASRETIFICA','ABERTAS_RETIFICA','ABERTASRET']);
+  const shAll  = findSheet(['ABERTAS','ABERTASGERAL']);
+  const tab = [];
+  if (shMec) tab.push(...parseAbertasTabularSheet(shMec, 'MECANICA', 'Mecânica'));
+  if (shRet) tab.push(...parseAbertasTabularSheet(shRet, 'RETIFICA', 'Retífica'));
+  if (!tab.length && shAll) tab.push(...parseAbertasTabularSheet(shAll, null, null));
+  if (tab.length) return tab;
+
+  // --- Formato 2 (LEGADO): Abas MECANICA / RETIFICA no formato fixed-width ---
   const out = [];
   const sheets = [
     { name: 'MECANICA', label: 'Mecânica' },
@@ -9235,10 +9367,9 @@ function parseAbertasWorkbook(wb) {
     const json = XLSX.utils.sheet_to_json(sh, { header: 1, blankrows: false, defval: '' });
     let curOp = null, curOpDesc = null;
     for (const row of json) {
-      // A linha pode estar dispersa em várias colunas — junta tudo.
       const text = row.map(c => (c == null ? '' : String(c))).join(' ').replace(/\s+/g,' ').trimEnd();
       const rawFirstCell = (row[0] == null ? '' : String(row[0]));
-      const wholeLine    = rawFirstCell || text;   // prefere a coluna 1 se tiver conteúdo
+      const wholeLine    = rawFirstCell || text;
       const op = parseAbertasOperation(wholeLine);
       if (op) { curOp = op.operacao; curOpDesc = op.operacaoDesc; continue; }
       if (/TOTAL OPERAÇÃO/i.test(wholeLine)) continue;
@@ -9255,6 +9386,25 @@ function parseAbertasWorkbook(wb) {
     }
   }
   return out;
+}
+
+// Auto-load: chamado após o workbook principal ser carregado. Detecta abas
+// Abertas dentro do MESMO arquivo e popula state.abertas se encontrar.
+function tryAutoLoadAbertasFromWorkbook(wb) {
+  try {
+    const rows = parseAbertasWorkbook(wb);
+    if (!rows.length) return;   // nada nas abas — mantém o cache manual se existir
+    const fromWorkbook = state.fileName || 'Faturamento_Geral_V2.xlsx';
+    state.abertas = {
+      fileName: `${fromWorkbook} (abas Abertas)`,
+      loadedAt: new Date(),
+      rows,
+    };
+    abertasCacheSave(state.abertas.fileName, rows);
+    if (currentView === 'abertas') renderAbertasView();
+  } catch (err) {
+    console.warn('[tryAutoLoadAbertasFromWorkbook]', err);
+  }
 }
 
 function abertasCacheSave(fileName, rows) {
@@ -9365,6 +9515,73 @@ function abertasEnrichRows(rows) {
   });
 }
 
+// Normaliza um valor de "negócio" para comparação robusta entre a base
+// (Faturamento_Geral_V2, campo `negocio`) e o Abertas.XLS (business vem do
+// nome da aba). Elimina diferença de caixa e acentuação — assim "Mecânica",
+// "MECANICA" e "mecanica" batem entre si.
+function normalizeNegocio(s) {
+  return (s || '').toString().toUpperCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+}
+
+// Lê o "escopo primário" — filtros que se aplicam a TODAS as seções (KPIs,
+// Alertas, Analytics, Tabela). Combina:
+//   1) Filtros da BARRA LATERAL (Negócio, Empresa, Operação) — globais do dashboard.
+//   2) Filtros INTERNOS do módulo (Negócio/Operação/Busca no topo do view-abertas).
+// A interseção dos dois é aplicada — o usuário pode usar qualquer combinação.
+// Os sub-filtros (Tipo Demanda, Prazo, Status, Alerta) são aplicados somente
+// na tabela (drill-down).
+function getAbertasScope() {
+  const sidebarNegs    = selectedValues(filterEls.negocio);
+  const sidebarEmps    = selectedValues(filterEls.empresa);
+  const sidebarOps     = selectedValues(filterEls.operacao);
+  return {
+    business: document.getElementById('abertasBusiness')?.value  || 'all',
+    op:       document.getElementById('abertasOperation')?.value || 'all',
+    search:   (document.getElementById('abertasSearch')?.value || '').toLowerCase().trim(),
+    sidebarNegs,     // array de strings
+    sidebarEmps,
+    sidebarOps,
+    sidebarNegNorm: new Set(sidebarNegs.map(normalizeNegocio)),
+  };
+}
+
+function applyAbertasScope(rows, scope) {
+  const intBizNorm = scope.business !== 'all' ? normalizeNegocio(scope.business) : null;
+  return rows.filter(r => {
+    const rBiz = normalizeNegocio(r.business);
+    // Filtro interno de Negócio
+    if (intBizNorm && rBiz !== intBizNorm) return false;
+    // Filtro do SIDEBAR de Negócio
+    if (scope.sidebarNegNorm.size && !scope.sidebarNegNorm.has(rBiz)) return false;
+    // Operação — interno e sidebar
+    if (scope.op !== 'all' && r.operacao !== scope.op) return false;
+    if (scope.sidebarOps.length && !scope.sidebarOps.includes(r.operacao)) return false;
+    if (scope.search) {
+      const hay = `${r.os} ${r.cliente} ${r.modelo} ${r.veiculo} ${r.placa} ${r.meta?.tipoDemanda||''} ${r.meta?.situacao||''}`.toLowerCase();
+      if (!hay.includes(scope.search)) return false;
+    }
+    return true;
+  });
+}
+
+// Aplica o escopo (Negócio, Empresa, Operação) à base de faturamento
+// (state.rows) para que o KPI "Faturado Mês Corrente" seja coerente com a
+// seleção do usuário. Usa normalizeNegocio para casar "MECANICA" ↔ "Mecânica" etc.
+function applyAbertasScopeToBase(scope) {
+  const intBizNorm = scope.business !== 'all' ? normalizeNegocio(scope.business) : null;
+  const sidebarEmpSet = new Set(scope.sidebarEmps);
+  return state.rows.filter(r => {
+    const rNeg = normalizeNegocio(r.negocio);
+    if (intBizNorm && rNeg !== intBizNorm) return false;
+    if (scope.sidebarNegNorm.size && !scope.sidebarNegNorm.has(rNeg)) return false;
+    if (sidebarEmpSet.size && !sidebarEmpSet.has(r.empresa)) return false;
+    if (scope.op !== 'all' && r.operacao !== scope.op) return false;
+    if (scope.sidebarOps.length && !scope.sidebarOps.includes(r.operacao)) return false;
+    return true;
+  });
+}
+
 function renderAbertasView() {
   const empty  = !state.abertas || !state.abertas.rows.length;
   const info   = document.getElementById('abertasFileInfo');
@@ -9375,7 +9592,7 @@ function renderAbertasView() {
 
   if (empty) {
     badge.textContent = '';
-    info.innerHTML = 'Nenhum arquivo carregado. Clique em <b>Carregar Abertas.XLS</b> para começar. O arquivo deve conter duas abas: <b>MECANICA</b> e <b>RETIFICA</b>. As aprovações que você registrar ficam salvas no navegador e sobrevivem a novos carregamentos do mesmo arquivo.';
+    info.innerHTML = 'Nenhuma OS aberta carregada. <b>Opção recomendada:</b> adicione abas <b>Abertas_MECANICA</b> e <b>Abertas_RETIFICA</b> ao <code>Faturamento_Geral_V2.xlsx</code> — o dashboard lê automaticamente da nuvem. <b>Alternativa:</b> clique em <b>Carregar Abertas.XLS</b> para subir o arquivo separado. Colunas aceitas: <code>OS · Cliente · Modelo · Placa · Recepcao · Operacao · Total</code> (nomes flexíveis).';
     document.getElementById('abertasKpis').innerHTML =
       '<div class="abertas-empty">Carregue o arquivo Abertas.XLS para ver os indicadores.</div>';
     document.getElementById('abertasAlerts').innerHTML =
@@ -9400,23 +9617,29 @@ function renderAbertasView() {
   info.innerHTML = `<b>${escapeHtml(state.abertas.fileName)}</b> · ${FORMATTERS.int.format(rows.length)} OSs em aberto · carregado em ${state.abertas.loadedAt.toLocaleString('pt-BR')}. As aprovações são salvas no navegador.`;
   reload.disabled = false; csvBtn.disabled = false; clrBtn.disabled = false;
 
-  // Popular filtro de operação
+  // Popular filtro de operação — mostra apenas ops presentes no negócio corrente
   const opSelect = document.getElementById('abertasOperation');
-  const ops = [...new Set(rows.map(r => r.operacao).filter(Boolean))].sort();
   const curOp = opSelect.value || 'all';
-  opSelect.innerHTML = `<option value="all">Todas</option>` +
-    ops.map(op => {
+  const curBusiness = document.getElementById('abertasBusiness').value;
+  const opsInScope = [...new Set(
+    rows.filter(r => curBusiness === 'all' || r.business === curBusiness)
+        .map(r => r.operacao).filter(Boolean)
+  )].sort();
+  const opStillValid = curOp === 'all' || opsInScope.includes(curOp);
+  const selectedOp = opStillValid ? curOp : 'all';
+  if (!opStillValid) opSelect.value = 'all';
+  opSelect.innerHTML = `<option value="all"${selectedOp==='all'?' selected':''}>Todas</option>` +
+    opsInScope.map(op => {
       const desc = rows.find(r => r.operacao === op)?.operacaoDesc || '';
       const label = desc ? `${op} — ${desc}` : op;
-      return `<option value="${escapeHtml(op)}"${op===curOp?' selected':''}>${escapeHtml(label)}</option>`;
+      return `<option value="${escapeHtml(op)}"${op===selectedOp?' selected':''}>${escapeHtml(label)}</option>`;
     }).join('');
 
   // Popular filtro de Tipo de Demanda
   const demSelect = document.getElementById('abertasDemand');
   const curDem = demSelect.value || 'all';
-  const usedDemands = [...new Set(rows.map(r => r.meta.tipoDemanda).filter(Boolean))];
   const optRet = TIPO_DEMANDA_ALL.filter(d => TIPO_DEMANDA_MOTOR.has(d))
-    .map(d => `<option value="${escapeHtml(d)}"${d===curDem?' selected':''}>${escapeHtml(d)}${usedDemands.includes(d) ? '' : ''}</option>`).join('');
+    .map(d => `<option value="${escapeHtml(d)}"${d===curDem?' selected':''}>${escapeHtml(d)}</option>`).join('');
   const optMec = TIPO_DEMANDA_ALL.filter(d => TIPO_DEMANDA_MEC.has(d))
     .map(d => `<option value="${escapeHtml(d)}"${d===curDem?' selected':''}>${escapeHtml(d)}</option>`).join('');
   demSelect.innerHTML = `
@@ -9425,25 +9648,48 @@ function renderAbertasView() {
     <optgroup label="Retífica / Motor">${optRet}</optgroup>
     <optgroup label="Mecânica">${optMec}</optgroup>`;
 
-  renderAbertasKpis(rows);
-  renderAbertasAlerts(rows);
-  renderAbertasAnalytics(rows);
-  renderAbertasTable(rows);
+  // ==== Aplica escopo primário e propaga a TODAS as seções ====
+  const scope = getAbertasScope();
+  const scoped     = applyAbertasScope(rows, scope);
+  const scopedBase = applyAbertasScopeToBase(scope);
+  state.abertas._scoped = scoped;
+
+  // Label do escopo (para exibir nos KPIs e no header do Analytics).
+  // Combina filtros internos com os do sidebar — se ambos existem, mostra os dois.
+  const scopeLabel = (() => {
+    const parts = [];
+    // Negócio — internal tem prioridade se ambos, caso contrário sidebar
+    if (scope.business !== 'all') parts.push(scope.business === 'MECANICA' ? 'Mecânica' : (scope.business === 'RETIFICA' ? 'Retífica' : scope.business));
+    else if (scope.sidebarNegs.length) parts.push(scope.sidebarNegs.join(', '));
+    // Empresa (só sidebar)
+    if (scope.sidebarEmps.length) parts.push('Emp. ' + scope.sidebarEmps.join(','));
+    // Operação (interno ou sidebar)
+    if (scope.op !== 'all') parts.push(`Op. ${scope.op}`);
+    else if (scope.sidebarOps.length) parts.push('Op. ' + scope.sidebarOps.join(','));
+    if (scope.search) parts.push(`busca: "${scope.search}"`);
+    return parts.length ? parts.join(' · ') : 'todas as OSs em aberto';
+  })();
+  document.getElementById('abertasAnalyticsScope').textContent = scopeLabel;
+
+  renderAbertasKpis(scoped, scopedBase, scopeLabel);
+  renderAbertasAlerts(scoped);
+  renderAbertasAnalytics(scoped);
+  renderAbertasTable(scoped);
 }
 
-function abertasComputeKpis(rows) {
+function abertasComputeKpis(rows, baseRows) {
   const ref = abertasRefDate();
   const curStart  = startOfMonth(ref);
   const curEnd    = endOfMonth(ref);
   const nextRef   = addMonths(ref, 1);
   const nextStart = startOfMonth(nextRef);
   const nextEnd   = endOfMonth(nextRef);
-  const meta = abertasLoadMeta();
 
-  // Faturado Mês Corrente vem da BASE (Faturamento_Geral_V2).
-  // Considera todas as operações — o KPI é a projeção do NEGÓCIO completo.
+  // Faturado Mês Corrente vem da BASE (Faturamento_Geral_V2), JÁ FILTRADA pelo
+  // escopo (Negócio / Operação) — para que o KPI reflita a seleção do usuário.
+  const baseFat = baseRows || state.rows;
   let faturadoMes = 0, faturadoMesCount = 0;
-  for (const r of state.rows) {
+  for (const r of baseFat) {
     if (r.data_faturamento && r.data_faturamento >= curStart && r.data_faturamento <= curEnd) {
       faturadoMes += r.total_os || 0;
       faturadoMesCount++;
@@ -9457,7 +9703,7 @@ function abertasComputeKpis(rows) {
   let totalAberto = 0;
   for (const r of rows) {
     totalAberto += r.total || 0;
-    const m = meta[`${r.business}|${r.os}`] || {};
+    const m = r.meta || {};
     if (m.aprovado) {
       if (m.previsao === 'mesCorrente') { aprovadosMes  += r.total; aprovadosMesCount++; }
       else if (m.previsao === 'proxMes'){ aprovadosProx += r.total; aprovadosProxCount++; }
@@ -9480,18 +9726,19 @@ function abertasComputeKpis(rows) {
   };
 }
 
-function renderAbertasKpis(rows) {
-  const k = abertasComputeKpis(rows);
+function renderAbertasKpis(rows, baseRows, scopeLabel) {
+  const k = abertasComputeKpis(rows, baseRows);
+  const scopeSuffix = scopeLabel && scopeLabel !== 'todas as OSs em aberto' ? ` · ${scopeLabel}` : '';
   const kpis = [
     { label:`Faturado — ${k.curLabel}`,
       value: FORMATTERS.brl.format(k.faturadoMes),
-      sub: `${FORMATTERS.int.format(k.faturadoMesCount)} OSs faturadas · base Faturamento_Geral_V2` },
+      sub: `${FORMATTERS.int.format(k.faturadoMesCount)} OSs faturadas · base Faturamento_Geral_V2${scopeSuffix}` },
     { label:`Aprovado — ${k.curLabel}`,
       value: FORMATTERS.brl.format(k.aprovadosMes),
       sub: `${FORMATTERS.int.format(k.aprovadosMesCount)} OSs abertas com previsão para este mês` },
     { label:`✨ Faturado + Aprovado — ${k.curLabel}`,
       value: FORMATTERS.brl.format(k.projMes),
-      sub: `projeção do mês (real + aprovado)`, highlight:true },
+      sub: `projeção do mês (real + aprovado)${scopeSuffix}`, highlight:true },
     { label:`Aprovado — ${k.nextLabel}`,
       value: FORMATTERS.brl.format(k.aprovadosProx),
       sub: `${FORMATTERS.int.format(k.aprovadosProxCount)} OSs abertas com previsão para o próximo mês` },
@@ -9500,7 +9747,7 @@ function renderAbertasKpis(rows) {
       sub: `${FORMATTERS.brl.format(k.pendentes)} em OSs não aprovadas ainda` },
     { label:`Total em aberto`,
       value: FORMATTERS.brl.format(k.totalAberto),
-      sub: `${FORMATTERS.int.format(rows.length)} OSs · Mecânica + Retífica` },
+      sub: `${FORMATTERS.int.format(rows.length)} OSs${scopeSuffix ? ' ·' + scopeSuffix : ' · Mecânica + Retífica'}` },
   ];
   document.getElementById('abertasKpis').innerHTML = kpis.map(x => {
     const style = x.highlight
@@ -9588,14 +9835,16 @@ function renderAbertasAlerts(rows) {
   document.getElementById('abertasClearAlertFilter').style.display =
     activeKey ? 'inline-flex' : 'none';
 
-  // Wire cards
+  // Wire cards — alerta apenas re-renderiza sobre o SCOPE (rows já filtradas por
+  // Negócio/Op/Busca). Alerta em si é um sub-filtro de tabela — não muda escopo.
   document.querySelectorAll('.abertas-alert').forEach(el => {
     el.addEventListener('click', () => {
       if (el.classList.contains('zero')) return;
       const k = el.dataset.alert;
       state.abertasUi.alertKey = state.abertasUi.alertKey === k ? null : k;
-      renderAbertasAlerts(state.abertas._enriched);
-      renderAbertasTable(state.abertas._enriched);
+      const scoped = state.abertas._scoped || rows;
+      renderAbertasAlerts(scoped);
+      renderAbertasTable(scoped);
     });
   });
 }
@@ -9704,10 +9953,9 @@ function renderAbertasAnalytics(rows) {
 }
 
 // ---------- TABELA principal ----------
+// Recebe rows JÁ com escopo aplicado (Negócio/Operação/Busca). Só re-filtra por
+// sub-filtros de drill-down: Tipo Demanda, Prazo, Status, Alerta ativo.
 function renderAbertasTable(rows) {
-  const search   = (document.getElementById('abertasSearch').value || '').toLowerCase().trim();
-  const business = document.getElementById('abertasBusiness').value;
-  const op       = document.getElementById('abertasOperation').value;
   const status   = document.getElementById('abertasStatus').value;
   const demand   = document.getElementById('abertasDemand').value;
   const prazoF   = document.getElementById('abertasPrazo').value;
@@ -9716,17 +9964,11 @@ function renderAbertasTable(rows) {
   const alertObj = alertKey ? ABERTAS_ALERTS.find(a => a.key === alertKey) : null;
 
   let list = rows.filter(r => {
-    if (business !== 'all' && r.business !== business) return false;
-    if (op !== 'all' && r.operacao !== op) return false;
     if (demand !== 'all') {
       if (demand === '__vazio__' && r.meta.tipoDemanda) return false;
       else if (demand !== '__vazio__' && r.meta.tipoDemanda !== demand) return false;
     }
     if (prazoF !== 'all' && r.prazoStatus !== prazoF) return false;
-    if (search) {
-      const hay = `${r.os} ${r.cliente} ${r.modelo} ${r.veiculo} ${r.placa} ${r.meta.tipoDemanda||''} ${r.meta.situacao||''}`.toLowerCase();
-      if (!hay.includes(search)) return false;
-    }
     const m = r.meta;
     if (status === 'pendente' && m.aprovado) return false;
     if (status === 'aprovado' && !m.aprovado) return false;
@@ -9996,20 +10238,25 @@ function wireAbertasView() {
     localStorage.removeItem(ABERTAS_CACHE_KEY);
     renderAbertasView();
   });
+  // Escopo primário (afeta KPIs, Alertas, Analytics e Tabela) → renderAbertasView
   document.getElementById('abertasSearch').addEventListener('input',
-    debounce(() => {
-      if (state.abertas) renderAbertasTable(state.abertas._enriched || abertasEnrichRows(state.abertas.rows));
-    }, 200));
-  ['abertasBusiness','abertasOperation','abertasDemand','abertasPrazo','abertasStatus','abertasSort'].forEach(id => {
+    debounce(() => { if (state.abertas) renderAbertasView(); }, 200));
+  ['abertasBusiness','abertasOperation'].forEach(id => {
     document.getElementById(id).addEventListener('change', () => {
-      if (state.abertas) renderAbertasTable(state.abertas._enriched || abertasEnrichRows(state.abertas.rows));
+      if (state.abertas) renderAbertasView();
+    });
+  });
+  // Sub-filtros (drill-down da tabela apenas) → renderAbertasTable
+  ['abertasDemand','abertasPrazo','abertasStatus','abertasSort'].forEach(id => {
+    document.getElementById(id).addEventListener('change', () => {
+      if (state.abertas && state.abertas._scoped) renderAbertasTable(state.abertas._scoped);
     });
   });
   document.getElementById('abertasClearAlertFilter').addEventListener('click', () => {
     state.abertasUi.alertKey = null;
-    if (state.abertas) {
-      renderAbertasAlerts(state.abertas._enriched);
-      renderAbertasTable(state.abertas._enriched);
+    if (state.abertas && state.abertas._scoped) {
+      renderAbertasAlerts(state.abertas._scoped);
+      renderAbertasTable(state.abertas._scoped);
     }
   });
 

@@ -874,6 +874,68 @@
   .abertas-op-hdr td { padding: 6px 8px !important; border-bottom: 1px solid var(--border-soft); }
   .abertas-empty { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 13px; }
 
+  /* Alertas */
+  .abertas-alerts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 10px;
+  }
+  .abertas-alert {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--muted-2);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: all .12s ease;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .abertas-alert:hover { border-color: var(--accent); box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+  .abertas-alert.active { background: var(--accent-soft); border-color: var(--accent); }
+  .abertas-alert .head { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+  .abertas-alert .title { font-size: 12px; font-weight: 600; color: var(--text-2); }
+  .abertas-alert .count { font-size: 22px; font-weight: 600; color: var(--text); line-height: 1; }
+  .abertas-alert .sub { font-size: 11px; color: var(--muted); }
+  .abertas-alert .value { font-size: 11.5px; color: var(--text-2); margin-top: 2px; }
+  .abertas-alert.critical  { border-left-color: var(--bad); background: var(--bad-soft); }
+  .abertas-alert.attention { border-left-color: var(--warn); background: var(--warn-soft); }
+  .abertas-alert.time      { border-left-color: #7c3aed; background: #f5f3ff; }
+  .abertas-alert.info      { border-left-color: var(--accent); background: var(--accent-soft); }
+  .abertas-alert.ok        { border-left-color: var(--good); background: var(--good-soft); }
+  .abertas-alert.zero      { opacity: .55; cursor: default; }
+  .abertas-alert.zero:hover{ border-color: var(--border); box-shadow: none; transform: none; background: var(--surface); }
+
+  /* Tipo Demanda badges */
+  .abertas-demand-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 500;
+    border: 1px solid;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+  .abertas-demand-badge.motor { background:#eef2ff; border-color:#c7d2fe; color:#4338ca; }
+  .abertas-demand-badge.mec   { background:#f0fdf4; border-color:#bbf7d0; color:#166534; }
+  .abertas-demand-badge.none  { background:#f9fafb; border-color:#e5e7eb; color:#6b7280; font-style:italic; }
+
+  /* Prazo pills */
+  .abertas-prazo-pill { padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 500; border: 1px solid; display: inline-block; }
+  .abertas-prazo-pill.vencido  { background: var(--bad-soft);  border-color: var(--bad-bd);  color: var(--bad); }
+  .abertas-prazo-pill.proximo  { background: var(--warn-soft); border-color: var(--warn-bd); color: var(--warn); }
+  .abertas-prazo-pill.emDia    { background: var(--good-soft); border-color: var(--good-bd); color: var(--good); }
+  .abertas-prazo-pill.semPrazo { background: var(--surface-3); border-color: var(--border);  color: var(--muted); }
+
+  .abertas-detail-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--text-2);
+    padding: 3px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;
+  }
+  .abertas-detail-btn:hover { background: var(--surface-3); border-color: var(--accent); color: var(--accent); }
+
 </style>
 </head>
 <body>
@@ -1586,12 +1648,52 @@
         <!-- KPIs do cabeçalho -->
         <div class="kpis" id="abertasKpis"></div>
 
-        <!-- Filtros + tabela -->
+        <!-- ==================================================================
+             ALERTAS OPERACIONAIS — cartões clicáveis que filtram a tabela
+        ================================================================== -->
+        <div class="card">
+          <div class="toolbar-flex">
+            <h3>Alertas Operacionais <span class="badge" id="abertasAlertsTotal"></span></h3>
+            <div class="controls">
+              <button class="btn secondary" id="abertasClearAlertFilter" style="display:none">✕ Limpar filtro de alerta</button>
+            </div>
+          </div>
+          <p class="small" style="margin:0 0 10px">Clique em um alerta para filtrar a tabela abaixo. Prioridades: 🔴 crítico · 🟡 atenção · ⏳ tempo · 📄 pendências.</p>
+          <div id="abertasAlerts" class="abertas-alerts"></div>
+        </div>
+
+        <!-- ==================================================================
+             ANÁLISES — Distribuição por Tipo de Demanda + Aging + Lead Times
+        ================================================================== -->
+        <div class="card">
+          <div class="toolbar-flex">
+            <h3>Análises</h3>
+            <div class="controls">
+              <span class="small" style="color:var(--muted)">Sobre <b id="abertasAnalyticsScope">todas as OSs</b> filtradas</span>
+            </div>
+          </div>
+          <!-- Lead Times médios -->
+          <div class="kpis" id="abertasLeadTimeKpis" style="margin-bottom:14px"></div>
+          <div class="grid two">
+            <div class="card" style="box-shadow:none;border:1px solid #e5e7eb">
+              <h4 style="margin:0 0 6px">Distribuição por Tipo de Demanda</h4>
+              <div class="chart-wrap" style="height:320px"><canvas id="abertasDemandChart"></canvas></div>
+            </div>
+            <div class="card" style="box-shadow:none;border:1px solid #e5e7eb">
+              <h4 style="margin:0 0 6px">Envelhecimento (dias desde a Recepção)</h4>
+              <div class="chart-wrap" style="height:320px"><canvas id="abertasAgingChart"></canvas></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================================================================
+             FILTROS + TABELA principal
+        ================================================================== -->
         <div class="card">
           <div class="toolbar-flex">
             <h3>Ordens de Serviço em Aberto</h3>
             <div class="controls">
-              <input type="text" id="abertasSearch" class="search" placeholder="Buscar OS, cliente, modelo, placa…" style="min-width:260px">
+              <input type="text" id="abertasSearch" class="search" placeholder="Buscar OS, cliente, modelo, placa…" style="min-width:220px">
               <label class="small">Negócio</label>
               <select id="abertasBusiness">
                 <option value="all" selected>Todos</option>
@@ -1601,6 +1703,19 @@
               <label class="small">Operação</label>
               <select id="abertasOperation">
                 <option value="all" selected>Todas</option>
+              </select>
+              <label class="small">Tipo Demanda</label>
+              <select id="abertasDemand">
+                <option value="all" selected>Todos</option>
+                <option value="__vazio__">— sem classificação —</option>
+              </select>
+              <label class="small">Prazo</label>
+              <select id="abertasPrazo">
+                <option value="all" selected>Todos</option>
+                <option value="vencido">🔴 Vencido</option>
+                <option value="proximo">🟡 Próximo (7d)</option>
+                <option value="emDia">🟢 Em dia</option>
+                <option value="semPrazo">Sem prazo</option>
               </select>
               <label class="small">Status</label>
               <select id="abertasStatus">
@@ -1615,6 +1730,8 @@
               <select id="abertasSort">
                 <option value="totalDesc" selected>Valor ↓</option>
                 <option value="totalAsc">Valor ↑</option>
+                <option value="diasDesc">Dias abertos ↓</option>
+                <option value="prazoAsc">Prazo (mais próximo)</option>
                 <option value="recepcao">Data Recepção</option>
                 <option value="os">OS</option>
                 <option value="cliente">Cliente</option>
@@ -1623,6 +1740,98 @@
           </div>
           <p class="small" style="margin:8px 0 0" id="abertasListCount"></p>
           <div id="abertasTable" class="scroll-x lookup-table-wrap" style="margin-top:8px"></div>
+        </div>
+
+        <!-- ==================================================================
+             MODAL — Detalhes / edição completa de uma OS
+        ================================================================== -->
+        <div id="abertasDetailModal" class="modal-overlay" role="dialog" aria-modal="true">
+          <div class="modal crm-modal">
+            <div class="crm-modal-head">
+              <div>
+                <h3 id="abertasDetailTitle" style="margin:0"></h3>
+                <p class="small" id="abertasDetailSub" style="margin:2px 0 0"></p>
+              </div>
+              <button class="btn secondary" id="abertasDetailClose" title="Fechar (Esc)">✕</button>
+            </div>
+
+            <div class="kpis" id="abertasDetailKpis" style="margin:14px 0"></div>
+
+            <div class="grid two" style="gap:14px">
+              <div>
+                <h4 style="margin:0 0 8px">Aprovação para Faturamento</h4>
+                <div class="crm-fields">
+                  <label class="small" style="grid-column:1/-1">
+                    <span style="display:inline-flex; align-items:center; gap:8px">
+                      <input type="checkbox" id="abertasDetAprovado" style="transform:scale(1.2)">
+                      <b>OS Aprovada para faturar</b>
+                    </span>
+                  </label>
+                  <label class="small">Data de Aprovação (interna)
+                    <input type="date" id="abertasDetDataApr">
+                  </label>
+                  <label class="small">Previsão de Faturamento
+                    <select id="abertasDetPrevisao">
+                      <option value="">— sem previsão —</option>
+                      <option value="mesCorrente">Mês Corrente</option>
+                      <option value="proxMes">Próximo Mês</option>
+                    </select>
+                  </label>
+                </div>
+
+                <h4 style="margin:14px 0 8px">Situação / Observação</h4>
+                <textarea id="abertasDetSituacao" rows="5" style="width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:var(--radius-sm); font-family:inherit; font-size:13px; resize:vertical" placeholder="Descreva a situação atual da OS, pendências, contatos, etc."></textarea>
+              </div>
+              <div>
+                <h4 style="margin:0 0 8px">Classificação e Prazos</h4>
+                <div class="crm-fields">
+                  <label class="small" style="grid-column:1/-1">Tipo de Demanda
+                    <select id="abertasDetTipo">
+                      <option value="">— não classificado —</option>
+                      <optgroup label="Retífica / Motor">
+                        <option value="CABEÇOTE">CABEÇOTE</option>
+                        <option value="MOTOR MONTADO">MOTOR MONTADO</option>
+                        <option value="MOTOR AJUSTADO">MOTOR AJUSTADO</option>
+                        <option value="RETIFICA/USINAGEM">RETIFICA/USINAGEM</option>
+                      </optgroup>
+                      <optgroup label="Mecânica">
+                        <option value="ALIMENTACAO/COMBUSTIVEL">ALIMENTAÇÃO/COMBUSTÍVEL</option>
+                        <option value="AR CONDICIONADO">AR CONDICIONADO</option>
+                        <option value="ARLA">ARLA</option>
+                        <option value="ARREFECIMENTO">ARREFECIMENTO</option>
+                        <option value="CAMBIO/TRANSMISSAO">CÂMBIO/TRANSMISSÃO</option>
+                        <option value="CARDA/ARVORE DE TRANSMISSAO">CARDÃ/ÁRVORE DE TRANSMISSÃO</option>
+                        <option value="DIFERENCIAL/EIXO TRASEIRO">DIFERENCIAL/EIXO TRASEIRO</option>
+                        <option value="DIRECAO">DIREÇÃO</option>
+                        <option value="ELETRICO">ELÉTRICO</option>
+                        <option value="EMBREAGEM">EMBREAGEM</option>
+                        <option value="FREIOS">FREIOS</option>
+                        <option value="LUBRIFICACAO">LUBRIFICAÇÃO</option>
+                        <option value="MECANICA GERAL/PREVENTIVA">MECÂNICA GERAL/PREVENTIVA</option>
+                        <option value="RODAS/PNEUS/CUBOS">RODAS/PNEUS/CUBOS</option>
+                        <option value="SISTEMA PNEUMATICO">SISTEMA PNEUMÁTICO</option>
+                        <option value="SUSPENSAO">SUSPENSÃO</option>
+                      </optgroup>
+                    </select>
+                  </label>
+                  <label class="small">Conclusão do Diagnóstico
+                    <input type="date" id="abertasDetDataDiag">
+                  </label>
+                  <label class="small">Aprovação do Orçamento
+                    <input type="date" id="abertasDetDataAprOrc">
+                  </label>
+                  <label class="small" style="grid-column:1/-1">Prazo de Entrega
+                    <input type="date" id="abertasDetPrazoEntrega">
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex; gap:8px; margin-top:18px; justify-content:flex-end">
+              <button class="btn secondary" id="abertasDetClear" title="Apagar todas as anotações desta OS">🗑 Limpar dados desta OS</button>
+              <button class="btn" id="abertasDetSave">💾 Salvar</button>
+            </div>
+          </div>
         </div>
 
       </div><!-- /view-abertas -->
@@ -3293,7 +3502,8 @@ function renderBillingCohortChart() {
   const mode = modeEl ? modeEl.value : 'value';
 
   const byMonth = new Map();          // billKey -> { same, prior, indef }
-  const aging   = new Array(8).fill(0);
+  const aging       = new Array(8).fill(0);
+  const agingCount  = new Array(8).fill(0);   // nº de OSs por bucket de defasagem
   let tSame = 0, tPrior = 0, tIndef = 0, diffWsum = 0, diffWrev = 0;
   const ensure = k => { if (!byMonth.has(k)) byMonth.set(k, { same:0, prior:0, indef:0 }); return byMonth.get(k); };
 
@@ -3303,7 +3513,7 @@ function renderBillingCohortChart() {
     if (rev <= 0) continue;
     const slot = ensure(ym(r.data_faturamento));
     if (!r.data_abertura) {
-      slot.indef += rev; tIndef += rev; aging[7] += rev; continue;
+      slot.indef += rev; tIndef += rev; aging[7] += rev; agingCount[7] += 1; continue;
     }
     const md = (r.data_faturamento.getUTCFullYear()*12 + r.data_faturamento.getUTCMonth())
              - (r.data_abertura.getUTCFullYear()*12   + r.data_abertura.getUTCMonth());
@@ -3311,7 +3521,9 @@ function renderBillingCohortChart() {
     if (diff === 0) { slot.same  += rev; tSame  += rev; }
     else            { slot.prior += rev; tPrior += rev; }
     diffWsum += diff * rev; diffWrev += rev;
-    aging[agingBucket(diff)] += rev;
+    const bucket = agingBucket(diff);
+    aging[bucket]      += rev;
+    agingCount[bucket] += 1;
   }
 
   const total = tSame + tPrior + tIndef;
@@ -3379,13 +3591,15 @@ function renderBillingCohortChart() {
   });
 
   // ---- Tabela de envelhecimento (defasagem abertura → faturamento) ----
-  const agingRows = AGING_LABELS.map((lab, i) => ({ lab, rev: aging[i], i }))
+  const agingRows = AGING_LABELS.map((lab, i) => ({ lab, rev: aging[i], count: agingCount[i], i }))
     .filter(x => x.rev > 0);
+  const totalCount = agingCount.reduce((s,v) => s + v, 0);
   document.getElementById('billCohortAging').innerHTML = `
     <table>
       <thead><tr>
         <th>Defasagem (abertura → faturamento)</th>
         <th class="num">Faturamento</th>
+        <th class="num">Qtd de OSs</th>
         <th class="num">% do total</th>
       </tr></thead>
       <tbody>
@@ -3393,11 +3607,13 @@ function renderBillingCohortChart() {
           <tr>
             <td>${x.i === 0 ? '<b>'+x.lab+'</b>' : x.lab}</td>
             <td class="num">${FORMATTERS.brl.format(x.rev)}</td>
+            <td class="num">${FORMATTERS.int.format(x.count)}</td>
             <td class="num">${pct(x.rev).toFixed(1)}%</td>
           </tr>`).join('')}
         <tr style="font-weight:600;border-top:2px solid #e5e7eb">
           <td>Total</td>
           <td class="num">${FORMATTERS.brl.format(total)}</td>
+          <td class="num">${FORMATTERS.int.format(totalCount)}</td>
           <td class="num">100%</td>
         </tr>
       </tbody>
@@ -8898,8 +9114,24 @@ function renderAll() {
 const ABERTAS_META_KEY  = 'fat-v2-abertas-meta';
 const ABERTAS_CACHE_KEY = 'fat-v2-abertas-cache';
 
+// Tipos de demanda — agrupados para categorização automática (motor/mecânica)
+const TIPO_DEMANDA_MOTOR = new Set([
+  'CABEÇOTE','MOTOR MONTADO','MOTOR AJUSTADO','RETIFICA/USINAGEM',
+]);
+const TIPO_DEMANDA_MEC = new Set([
+  'ALIMENTACAO/COMBUSTIVEL','AR CONDICIONADO','ARLA','ARREFECIMENTO',
+  'CAMBIO/TRANSMISSAO','CARDA/ARVORE DE TRANSMISSAO','DIFERENCIAL/EIXO TRASEIRO',
+  'DIRECAO','ELETRICO','EMBREAGEM','FREIOS','LUBRIFICACAO',
+  'MECANICA GERAL/PREVENTIVA','RODAS/PNEUS/CUBOS','SISTEMA PNEUMATICO','SUSPENSAO',
+]);
+const TIPO_DEMANDA_ALL = [...TIPO_DEMANDA_MOTOR, ...TIPO_DEMANDA_MEC];
+
 // Estado em memória — recarregado do cache ao boot se disponível.
 state.abertas = null;   // { fileName, loadedAt, rows: [...] }
+
+// UI state do módulo (filtros de alerta selecionado, chart instances)
+state.abertasUi = { alertKey: null, activeDetailKey: null };
+state.abertasCharts = {};
 
 function abertasKey(row) { return `${row.business}|${row.os}`; }
 
@@ -8942,16 +9174,22 @@ function abertasParseDate(s) {
 //     Conf.Produção, Fech.Produção, Fech.Financeiro, Fat.Peças, Fat.Serviços.
 function parseAbertasLine(rawLine) {
   const line = (rawLine || '').toString();
-  const mOS = /^\s*(\d{6})\b/.exec(line);
+  // Captura leading whitespace + 6 dígitos da OS (algumas linhas do export
+  // vêm com um espaço extra no início, outras não — precisamos ancorar os
+  // slices de cliente/modelo/veículo/placa relativos à posição REAL da OS).
+  const mOS = /^(\s*)(\d{6})(?!\d)/.exec(line);
   if (!mOS) return null;
   // Rejeita linhas de subtotal ("TOTAL OPERAÇÃO") caso escapem
   if (/TOTAL OPERAÇÃO/i.test(line)) return null;
 
-  const os      = mOS[1];
-  const cliente = (line.slice(8, 38) || '').trim();
-  const modelo  = (line.slice(38, 49) || '').trim();
-  const veiculo = (line.slice(49, 59) || '').trim();
-  const placa   = (line.slice(60, 67) || '').trim();
+  const os = mOS[2];
+  // Início do campo Cliente = fim de "\s*\d{6}" + 1 espaço separador.
+  // Layout fixo do relatório: Cliente(30) Modelo(10) [space] Veiculo(9) [space] Placa(7).
+  const c0 = mOS[0].length + 1;
+  const cliente = line.slice(c0,       c0 + 30).trim();   // 30 chars
+  const modelo  = line.slice(c0 + 30,  c0 + 40).trim();   // 10 chars, sem gap
+  const veiculo = line.slice(c0 + 41,  c0 + 50).trim();   //  9 chars, gap de 1
+  const placa   = line.slice(c0 + 51,  c0 + 58).trim();   //  7 chars, gap de 1
 
   // Valores currency BR — os 4 últimos são Peças/Serv/Terc/Total
   const currencyRegex = /(\d[\d.]*,\d{2})/g;
@@ -9089,6 +9327,44 @@ function abertasFmtDate(d) {
   return `${String(d.getUTCDate()).padStart(2,'0')}/${String(d.getUTCMonth()+1).padStart(2,'0')}/${String(d.getUTCFullYear()).slice(2)}`;
 }
 
+// Enriquece cada OS com metadados computados (aging, prazoStatus, etc.) para
+// consumo consistente pelas rotinas de tabela, alertas e analytics.
+function abertasEnrichRows(rows) {
+  const meta = abertasLoadMeta();
+  const now = new Date(); now.setHours(0,0,0,0);
+  return rows.map(r => {
+    const m = meta[`${r.business}|${r.os}`] || {};
+    const diasAbertos = r.recepcao
+      ? Math.floor((now - r.recepcao) / 86400000)
+      : null;
+    const prazoDate = m.prazoEntrega ? new Date(m.prazoEntrega + 'T00:00:00') : null;
+    let prazoStatus = 'semPrazo', diasParaPrazo = null;
+    if (prazoDate) {
+      diasParaPrazo = Math.floor((prazoDate - now) / 86400000);
+      if (diasParaPrazo < 0)      prazoStatus = 'vencido';
+      else if (diasParaPrazo <= 7) prazoStatus = 'proximo';
+      else                          prazoStatus = 'emDia';
+    }
+    const diagDate = m.dataDiagnostico ? new Date(m.dataDiagnostico + 'T00:00:00') : null;
+    const orcDate  = m.dataAprovOrcamento ? new Date(m.dataAprovOrcamento + 'T00:00:00') : null;
+    const leadDiag = (r.recepcao && diagDate) ? Math.floor((diagDate - r.recepcao) / 86400000) : null;
+    const leadDiag2Orc = (diagDate && orcDate) ? Math.floor((orcDate - diagDate) / 86400000) : null;
+    return {
+      ...r,
+      meta: m,
+      diasAbertos,
+      prazoDate, prazoStatus, diasParaPrazo,
+      diagDate, orcDate,
+      leadDiag, leadDiag2Orc,
+      // categoria do tipo de demanda para colorir o badge
+      demandCategory: m.tipoDemanda
+        ? (TIPO_DEMANDA_MOTOR.has(m.tipoDemanda) ? 'motor'
+           : TIPO_DEMANDA_MEC.has(m.tipoDemanda) ? 'mec' : 'none')
+        : 'none',
+    };
+  });
+}
+
 function renderAbertasView() {
   const empty  = !state.abertas || !state.abertas.rows.length;
   const info   = document.getElementById('abertasFileInfo');
@@ -9102,14 +9378,24 @@ function renderAbertasView() {
     info.innerHTML = 'Nenhum arquivo carregado. Clique em <b>Carregar Abertas.XLS</b> para começar. O arquivo deve conter duas abas: <b>MECANICA</b> e <b>RETIFICA</b>. As aprovações que você registrar ficam salvas no navegador e sobrevivem a novos carregamentos do mesmo arquivo.';
     document.getElementById('abertasKpis').innerHTML =
       '<div class="abertas-empty">Carregue o arquivo Abertas.XLS para ver os indicadores.</div>';
+    document.getElementById('abertasAlerts').innerHTML =
+      '<div class="abertas-empty">Alertas aparecem após o carregamento.</div>';
+    document.getElementById('abertasLeadTimeKpis').innerHTML = '';
     document.getElementById('abertasTable').innerHTML =
       '<div class="abertas-empty">Nenhuma OS carregada.</div>';
     document.getElementById('abertasListCount').textContent = '';
     reload.disabled = true; csvBtn.disabled = true; clrBtn.disabled = true;
+    // Destroi charts se existirem
+    ['demand','aging'].forEach(k => {
+      if (state.abertasCharts[k]) { state.abertasCharts[k].destroy(); delete state.abertasCharts[k]; }
+    });
     return;
   }
 
-  const rows = state.abertas.rows;
+  const rowsRaw = state.abertas.rows;
+  const rows = abertasEnrichRows(rowsRaw);
+  state.abertas._enriched = rows;   // cache p/ handlers do modal
+
   badge.textContent = `${FORMATTERS.int.format(rows.length)} OSs`;
   info.innerHTML = `<b>${escapeHtml(state.abertas.fileName)}</b> · ${FORMATTERS.int.format(rows.length)} OSs em aberto · carregado em ${state.abertas.loadedAt.toLocaleString('pt-BR')}. As aprovações são salvas no navegador.`;
   reload.disabled = false; csvBtn.disabled = false; clrBtn.disabled = false;
@@ -9125,7 +9411,23 @@ function renderAbertasView() {
       return `<option value="${escapeHtml(op)}"${op===curOp?' selected':''}>${escapeHtml(label)}</option>`;
     }).join('');
 
+  // Popular filtro de Tipo de Demanda
+  const demSelect = document.getElementById('abertasDemand');
+  const curDem = demSelect.value || 'all';
+  const usedDemands = [...new Set(rows.map(r => r.meta.tipoDemanda).filter(Boolean))];
+  const optRet = TIPO_DEMANDA_ALL.filter(d => TIPO_DEMANDA_MOTOR.has(d))
+    .map(d => `<option value="${escapeHtml(d)}"${d===curDem?' selected':''}>${escapeHtml(d)}${usedDemands.includes(d) ? '' : ''}</option>`).join('');
+  const optMec = TIPO_DEMANDA_ALL.filter(d => TIPO_DEMANDA_MEC.has(d))
+    .map(d => `<option value="${escapeHtml(d)}"${d===curDem?' selected':''}>${escapeHtml(d)}</option>`).join('');
+  demSelect.innerHTML = `
+    <option value="all">Todos</option>
+    <option value="__vazio__"${curDem==='__vazio__'?' selected':''}>— sem classificação —</option>
+    <optgroup label="Retífica / Motor">${optRet}</optgroup>
+    <optgroup label="Mecânica">${optMec}</optgroup>`;
+
   renderAbertasKpis(rows);
+  renderAbertasAlerts(rows);
+  renderAbertasAnalytics(rows);
   renderAbertasTable(rows);
 }
 
@@ -9210,32 +9512,239 @@ function renderAbertasKpis(rows) {
   }).join('');
 }
 
+// ---------- ALERTAS ----------
+// Cada alerta é uma função que filtra as OSs enriquecidas. O gestor clica no
+// card e a tabela abaixo filtra exatamente para aquele grupo, tornando o
+// alerta uma "porta de entrada" para ação.
+const ABERTAS_ALERTS = [
+  {
+    key:'prazoVencido', kind:'critical', icon:'🔴', title:'Prazo Vencido',
+    desc:'OSs com prazo de entrega no passado',
+    filter: r => r.prazoStatus === 'vencido',
+  },
+  {
+    key:'prazoProximo', kind:'attention', icon:'🟡', title:'Prazo em 7 dias',
+    desc:'Prazo de entrega dentro de uma semana',
+    filter: r => r.prazoStatus === 'proximo',
+  },
+  {
+    key:'semDiag30', kind:'time', icon:'⏳', title:'Sem Diagnóstico +30d',
+    desc:'Abertas há mais de 30 dias sem conclusão de diagnóstico',
+    filter: r => r.diasAbertos !== null && r.diasAbertos > 30 && !r.diagDate,
+  },
+  {
+    key:'diagSemOrc14', kind:'attention', icon:'📄', title:'Diagnóstico sem Orçamento',
+    desc:'Diagnóstico concluído há +14d sem aprovação de orçamento',
+    filter: r => {
+      if (!r.diagDate || r.orcDate) return false;
+      const now = new Date(); now.setHours(0,0,0,0);
+      return Math.floor((now - r.diagDate) / 86400000) > 14;
+    },
+  },
+  {
+    key:'orcSemPrev', kind:'info', icon:'💰', title:'Orçamento Aprovado sem Previsão',
+    desc:'Orçamento aprovado pelo cliente mas sem previsão de faturamento',
+    filter: r => r.orcDate && (!r.meta.previsao || r.meta.previsao === ''),
+  },
+  {
+    key:'idade90', kind:'time', icon:'🕐', title:'Aberta há +90 dias',
+    desc:'OS antiga — revisar necessidade de manutenção do cadastro',
+    filter: r => r.diasAbertos !== null && r.diasAbertos > 90,
+  },
+  {
+    key:'semTipo', kind:'info', icon:'❔', title:'Sem Tipo de Demanda',
+    desc:'OSs ainda não classificadas por Tipo de Demanda',
+    filter: r => !r.meta.tipoDemanda,
+  },
+  {
+    key:'sinergiaMesCorrente', kind:'ok', icon:'✨', title:'Aprovadas Mês Corrente',
+    desc:'Contribuindo agora para a projeção do mês',
+    filter: r => r.meta.aprovado && r.meta.previsao === 'mesCorrente',
+  },
+];
+
+function renderAbertasAlerts(rows) {
+  const activeKey = state.abertasUi.alertKey;
+  const cards = ABERTAS_ALERTS.map(a => {
+    const hits = rows.filter(a.filter);
+    const value = hits.reduce((s,r) => s + (r.total || 0), 0);
+    const zero = hits.length === 0;
+    const active = activeKey === a.key ? ' active' : '';
+    const zeroCls = zero ? ' zero' : '';
+    return `<div class="abertas-alert ${a.kind}${active}${zeroCls}" data-alert="${escapeHtml(a.key)}">
+      <div class="head">
+        <span class="title">${a.icon} ${escapeHtml(a.title)}</span>
+        <span class="count">${FORMATTERS.int.format(hits.length)}</span>
+      </div>
+      <div class="value">${FORMATTERS.brl.format(value)}</div>
+      <div class="sub">${escapeHtml(a.desc)}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('abertasAlerts').innerHTML = cards;
+  const totalHits = ABERTAS_ALERTS.filter(a => a.kind === 'critical' || a.kind === 'attention')
+    .reduce((s,a) => s + rows.filter(a.filter).length, 0);
+  document.getElementById('abertasAlertsTotal').textContent =
+    totalHits ? `${FORMATTERS.int.format(totalHits)} priorit.` : '';
+  document.getElementById('abertasClearAlertFilter').style.display =
+    activeKey ? 'inline-flex' : 'none';
+
+  // Wire cards
+  document.querySelectorAll('.abertas-alert').forEach(el => {
+    el.addEventListener('click', () => {
+      if (el.classList.contains('zero')) return;
+      const k = el.dataset.alert;
+      state.abertasUi.alertKey = state.abertasUi.alertKey === k ? null : k;
+      renderAbertasAlerts(state.abertas._enriched);
+      renderAbertasTable(state.abertas._enriched);
+    });
+  });
+}
+
+// ---------- ANALYTICS ----------
+function renderAbertasAnalytics(rows) {
+  // Escopo indica se estamos usando todas as OSs (ignora filtros da tabela por design —
+  // analytics deve dar o macro-panorama, não o filtro pontual).
+  document.getElementById('abertasAnalyticsScope').textContent = 'todas as OSs em aberto';
+
+  // Lead times médios
+  const withLeadDiag = rows.filter(r => r.leadDiag !== null);
+  const withLead2Orc = rows.filter(r => r.leadDiag2Orc !== null);
+  const avgLeadDiag = withLeadDiag.length
+    ? withLeadDiag.reduce((s,r) => s + r.leadDiag, 0) / withLeadDiag.length : null;
+  const avgLead2Orc = withLead2Orc.length
+    ? withLead2Orc.reduce((s,r) => s + r.leadDiag2Orc, 0) / withLead2Orc.length : null;
+  const withAge = rows.filter(r => r.diasAbertos !== null);
+  const avgAge = withAge.length
+    ? withAge.reduce((s,r) => s + r.diasAbertos, 0) / withAge.length : null;
+  const oldestAge = withAge.length ? Math.max(...withAge.map(r => r.diasAbertos)) : null;
+
+  const leadKpis = [
+    { label:'Idade média',           value: avgAge != null ? `${avgAge.toFixed(1)} d` : '—',
+      sub:`OS mais antiga: ${oldestAge != null ? oldestAge + ' dias' : '—'}` },
+    { label:'Recepção → Diagnóstico', value: avgLeadDiag != null ? `${avgLeadDiag.toFixed(1)} d` : '—',
+      sub:`${withLeadDiag.length} OSs com data de diagnóstico` },
+    { label:'Diagnóstico → Aprov.Orçamento', value: avgLead2Orc != null ? `${avgLead2Orc.toFixed(1)} d` : '—',
+      sub:`${withLead2Orc.length} OSs com orçamento aprovado` },
+    { label:'Classificação (Tipo Demanda)',
+      value: `${FORMATTERS.int.format(rows.filter(r => r.meta.tipoDemanda).length)} / ${FORMATTERS.int.format(rows.length)}`,
+      sub:`${rows.filter(r => !r.meta.tipoDemanda).length} sem classificar` },
+  ];
+  document.getElementById('abertasLeadTimeKpis').innerHTML = leadKpis.map(k =>
+    `<div class="kpi"><div class="label">${escapeHtml(k.label)}</div>
+      <div class="value" style="font-size:20px">${escapeHtml(k.value)}</div>
+      <div class="sub">${escapeHtml(k.sub || '')}</div></div>`).join('');
+
+  // --- Chart 1: Distribuição por Tipo de Demanda (donut) ---
+  const demandCount = new Map();
+  for (const r of rows) {
+    const t = r.meta.tipoDemanda || '(sem classificação)';
+    if (!demandCount.has(t)) demandCount.set(t, { count: 0, value: 0 });
+    const entry = demandCount.get(t);
+    entry.count += 1; entry.value += r.total || 0;
+  }
+  const demandEntries = [...demandCount.entries()].sort((a,b) => b[1].count - a[1].count);
+  const demandLabels = demandEntries.map(e => e[0]);
+  const demandData   = demandEntries.map(e => e[1].count);
+  const demandValues = demandEntries.map(e => e[1].value);
+  const palette = ['#4f46e5','#059669','#dc2626','#b45309','#7c3aed','#0891b2','#db2777','#4b5563',
+                   '#65a30d','#c2410c','#0e7490','#9333ea','#e11d48','#0d9488','#65a30d','#a16207','#94a3b8','#f97316','#6366f1'];
+  const demandColors = demandLabels.map((_, i) => palette[i % palette.length]);
+  if (state.abertasCharts.demand) state.abertasCharts.demand.destroy();
+  state.abertasCharts.demand = new Chart(document.getElementById('abertasDemandChart'), {
+    type: 'doughnut',
+    data: { labels: demandLabels, datasets: [{ data: demandData, backgroundColor: demandColors, borderColor:'#fff', borderWidth:1 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position:'right', labels:{ font:{size:10}, boxWidth:10, boxHeight:10, padding:6 } },
+        tooltip: { callbacks: { label: ctx => {
+          const i = ctx.dataIndex; const c = demandData[i]; const v = demandValues[i];
+          return `${ctx.label}: ${c} OS · ${FORMATTERS.brl.format(v)}`;
+        } } },
+      },
+    },
+  });
+
+  // --- Chart 2: Aging (dias desde a Recepção) — bar chart ---
+  const AGING_BUCKETS = [
+    { label:'0-15 dias',   min: 0,   max: 15  },
+    { label:'16-30 dias',  min: 16,  max: 30  },
+    { label:'31-60 dias',  min: 31,  max: 60  },
+    { label:'61-90 dias',  min: 61,  max: 90  },
+    { label:'+90 dias',    min: 91,  max: Infinity },
+  ];
+  const agingCount = AGING_BUCKETS.map(() => 0);
+  const agingValue = AGING_BUCKETS.map(() => 0);
+  for (const r of rows) {
+    if (r.diasAbertos == null) continue;
+    const idx = AGING_BUCKETS.findIndex(b => r.diasAbertos >= b.min && r.diasAbertos <= b.max);
+    if (idx >= 0) { agingCount[idx] += 1; agingValue[idx] += r.total || 0; }
+  }
+  const agingColors = ['#059669','#65a30d','#b45309','#dc2626','#7c1d1d'];
+  if (state.abertasCharts.aging) state.abertasCharts.aging.destroy();
+  state.abertasCharts.aging = new Chart(document.getElementById('abertasAgingChart'), {
+    type: 'bar',
+    data: { labels: AGING_BUCKETS.map(b => b.label),
+      datasets: [{ label:'OSs', data: agingCount, backgroundColor: agingColors, borderRadius:4 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { grid:{ color:'transparent' }, ticks:{ font:{size:11} } },
+        y: { beginAtZero:true, grid:{ color:'#f0f1f3' }, ticks:{ font:{size:11}, precision:0 } },
+      },
+      plugins: {
+        legend: { display:false },
+        tooltip: { callbacks: { label: ctx => {
+          const i = ctx.dataIndex;
+          return `${ctx.parsed.y} OS · ${FORMATTERS.brl.format(agingValue[i])}`;
+        } } },
+      },
+    },
+  });
+}
+
+// ---------- TABELA principal ----------
 function renderAbertasTable(rows) {
   const search   = (document.getElementById('abertasSearch').value || '').toLowerCase().trim();
   const business = document.getElementById('abertasBusiness').value;
   const op       = document.getElementById('abertasOperation').value;
   const status   = document.getElementById('abertasStatus').value;
+  const demand   = document.getElementById('abertasDemand').value;
+  const prazoF   = document.getElementById('abertasPrazo').value;
   const sortBy   = document.getElementById('abertasSort').value;
-  const meta     = abertasLoadMeta();
+  const alertKey = state.abertasUi.alertKey;
+  const alertObj = alertKey ? ABERTAS_ALERTS.find(a => a.key === alertKey) : null;
 
   let list = rows.filter(r => {
     if (business !== 'all' && r.business !== business) return false;
     if (op !== 'all' && r.operacao !== op) return false;
+    if (demand !== 'all') {
+      if (demand === '__vazio__' && r.meta.tipoDemanda) return false;
+      else if (demand !== '__vazio__' && r.meta.tipoDemanda !== demand) return false;
+    }
+    if (prazoF !== 'all' && r.prazoStatus !== prazoF) return false;
     if (search) {
-      const hay = `${r.os} ${r.cliente} ${r.modelo} ${r.veiculo} ${r.placa}`.toLowerCase();
+      const hay = `${r.os} ${r.cliente} ${r.modelo} ${r.veiculo} ${r.placa} ${r.meta.tipoDemanda||''} ${r.meta.situacao||''}`.toLowerCase();
       if (!hay.includes(search)) return false;
     }
-    const m = meta[`${r.business}|${r.os}`] || {};
+    const m = r.meta;
     if (status === 'pendente' && m.aprovado) return false;
     if (status === 'aprovado' && !m.aprovado) return false;
     if (status === 'mesCorrente' && (!m.aprovado || m.previsao !== 'mesCorrente')) return false;
     if (status === 'proxMes'     && (!m.aprovado || m.previsao !== 'proxMes'))     return false;
     if (status === 'semPrevisao' && (!m.aprovado || m.previsao === 'mesCorrente' || m.previsao === 'proxMes')) return false;
+    if (alertObj && !alertObj.filter(r)) return false;
     return true;
   });
 
   switch (sortBy) {
     case 'totalAsc':  list.sort((a,b) => (a.total||0) - (b.total||0)); break;
+    case 'diasDesc':  list.sort((a,b) => (b.diasAbertos||-1) - (a.diasAbertos||-1)); break;
+    case 'prazoAsc':  list.sort((a,b) => {
+      const av = a.prazoDate ? a.prazoDate.getTime() : Infinity;
+      const bv = b.prazoDate ? b.prazoDate.getTime() : Infinity;
+      return av - bv;
+    }); break;
     case 'recepcao':  list.sort((a,b) => (a.recepcao||0) - (b.recepcao||0)); break;
     case 'os':        list.sort((a,b) => a.os.localeCompare(b.os)); break;
     case 'cliente':   list.sort((a,b) => (a.cliente||'').localeCompare(b.cliente||'', 'pt-BR')); break;
@@ -9244,8 +9753,9 @@ function renderAbertasTable(rows) {
   }
 
   const totalListValue = list.reduce((s,r) => s + (r.total||0), 0);
+  const alertLabel = alertObj ? ` · filtro ativo: <b>${alertObj.icon} ${alertObj.title}</b>` : '';
   document.getElementById('abertasListCount').innerHTML =
-    `<b>${FORMATTERS.int.format(list.length)}</b> OSs · ${FORMATTERS.brl.format(totalListValue)}`;
+    `<b>${FORMATTERS.int.format(list.length)}</b> OSs · ${FORMATTERS.brl.format(totalListValue)}${alertLabel}`;
 
   if (!list.length) {
     document.getElementById('abertasTable').innerHTML =
@@ -9255,11 +9765,21 @@ function renderAbertasTable(rows) {
 
   const todayISO = new Date().toISOString().slice(0,10);
   const tRows = list.map(r => {
-    const m = meta[`${r.business}|${r.os}`] || {};
+    const m = r.meta;
     const isApr = !!m.aprovado;
     const rowCls = isApr ? ' class="abertas-row-approved"' : '';
     const previsao = m.previsao || '';
-    const dataApr  = m.dataAprovacao || (isApr ? todayISO : '');
+    // Tipo Demanda badge
+    const demandCell = m.tipoDemanda
+      ? `<span class="abertas-demand-badge ${r.demandCategory}" title="${escapeHtml(m.tipoDemanda)}">${escapeHtml(m.tipoDemanda)}</span>`
+      : '<span class="abertas-demand-badge none">—</span>';
+    // Prazo pill
+    const prazoCell = r.prazoDate
+      ? `<span class="abertas-prazo-pill ${r.prazoStatus}" title="${r.diasParaPrazo >= 0 ? 'em '+r.diasParaPrazo+' dias' : (-r.diasParaPrazo)+' dias vencido'}">${abertasFmtDate(r.prazoDate)}</span>`
+      : '<span class="abertas-prazo-pill semPrazo">—</span>';
+    const diasCell = r.diasAbertos != null
+      ? `<b>${r.diasAbertos}</b><br><span class="small" style="color:var(--muted)">${abertasFmtDate(r.recepcao)}</span>`
+      : abertasFmtDate(r.recepcao);
     return `<tr${rowCls} data-key="${escapeHtml(r.business+'|'+r.os)}">
       <td style="text-align:center">
         <input type="checkbox" class="abertas-check abertas-toggle-aprovado" ${isApr ? 'checked' : ''}>
@@ -9268,11 +9788,10 @@ function renderAbertasTable(rows) {
       <td>${escapeHtml(r.businessLabel)}<br><span class="small" style="color:var(--muted)">${escapeHtml(r.operacao||'')}</span></td>
       <td><b>${escapeHtml(r.cliente)}</b></td>
       <td>${escapeHtml(r.modelo||'')}${r.placa ? '<br><span class="small" style="color:var(--muted)">'+escapeHtml(r.placa)+'</span>' : ''}</td>
-      <td>${abertasFmtDate(r.recepcao)}</td>
+      <td>${demandCell}</td>
+      <td>${diasCell}</td>
       <td style="text-align:right">${FORMATTERS.brl.format(r.total)}</td>
-      <td>
-        <input type="date" class="abertas-inline-input abertas-input-data" value="${escapeHtml(dataApr)}" ${isApr ? '' : 'disabled'}>
-      </td>
+      <td>${prazoCell}</td>
       <td>
         <select class="abertas-inline-input abertas-input-prev" ${isApr ? '' : 'disabled'}>
           <option value="">— sem previsão —</option>
@@ -9280,6 +9799,7 @@ function renderAbertasTable(rows) {
           <option value="proxMes"${previsao==='proxMes'?' selected':''}>Próximo Mês</option>
         </select>
       </td>
+      <td style="text-align:center"><button class="abertas-detail-btn abertas-open-detail" title="Editar todos os campos">📝</button></td>
     </tr>`;
   }).join('');
 
@@ -9291,10 +9811,12 @@ function renderAbertasTable(rows) {
         <th>Negócio / Op.</th>
         <th>Cliente</th>
         <th>Modelo / Placa</th>
-        <th>Recepção</th>
+        <th>Tipo Demanda</th>
+        <th>Dias · Recepção</th>
         <th style="text-align:right">Total</th>
-        <th>Data Aprovação</th>
+        <th>Prazo</th>
         <th>Previsão de Faturamento</th>
+        <th style="width:42px"></th>
       </tr></thead>
       <tbody>${tRows}</tbody>
     </table>`;
@@ -9305,32 +9827,107 @@ function renderAbertasTable(rows) {
     const rowObj = state.abertas.rows.find(x => x.business === business && x.os === os);
     if (!rowObj) return;
     const chk  = tr.querySelector('.abertas-toggle-aprovado');
-    const inpD = tr.querySelector('.abertas-input-data');
     const selP = tr.querySelector('.abertas-input-prev');
+    const btnD = tr.querySelector('.abertas-open-detail');
 
     chk.addEventListener('change', () => {
       const patch = { aprovado: chk.checked };
       if (chk.checked) {
-        // Ao aprovar, se não há data preenchida, seta hoje. Se não há previsão,
-        // sugere "mesCorrente" (o mais comum).
         const cur = abertasGetMeta(rowObj);
         if (!cur.dataAprovacao) patch.dataAprovacao = todayISO;
         if (!cur.previsao)       patch.previsao       = 'mesCorrente';
       }
       abertasSetMeta(rowObj, patch);
-      // Re-renderiza (KPIs + linha estilo) para refletir mudanças
-      renderAbertasKpis(state.abertas.rows);
-      renderAbertasTable(state.abertas.rows);
-    });
-    inpD.addEventListener('change', () => {
-      abertasSetMeta(rowObj, { dataAprovacao: inpD.value });
+      renderAbertasView();
     });
     selP.addEventListener('change', () => {
       abertasSetMeta(rowObj, { previsao: selP.value });
-      // Previsão muda KPIs — refresh KPIs
-      renderAbertasKpis(state.abertas.rows);
+      renderAbertasView();
     });
+    btnD.addEventListener('click', () => abertasOpenDetail(rowObj.business + '|' + rowObj.os));
   });
+}
+
+// ---------- MODAL de detalhes ----------
+function abertasOpenDetail(key) {
+  const enriched = state.abertas._enriched || abertasEnrichRows(state.abertas.rows);
+  const r = enriched.find(x => `${x.business}|${x.os}` === key);
+  if (!r) return;
+  state.abertasUi.activeDetailKey = key;
+  document.getElementById('abertasDetailTitle').textContent = `OS ${r.os} — ${r.cliente}`;
+  const sub = [];
+  sub.push(`${r.businessLabel} · Operação ${r.operacao || '—'}`);
+  if (r.modelo) sub.push(r.modelo);
+  if (r.placa)  sub.push(r.placa);
+  if (r.veiculo) sub.push(r.veiculo);
+  document.getElementById('abertasDetailSub').textContent = sub.join(' · ');
+
+  // KPIs de contexto
+  const kpis = [
+    { label:'Valor total', value: FORMATTERS.brl.format(r.total) },
+    { label:'Recepção',    value: abertasFmtDate(r.recepcao),
+      sub: r.diasAbertos != null ? `há ${r.diasAbertos} dias` : '' },
+    { label:'Diagnóstico', value: r.diagDate ? abertasFmtDate(r.diagDate) : '—',
+      sub: r.leadDiag != null ? `${r.leadDiag}d após recepção` : '' },
+    { label:'Aprov. Orçamento', value: r.orcDate ? abertasFmtDate(r.orcDate) : '—',
+      sub: r.leadDiag2Orc != null ? `${r.leadDiag2Orc}d após diagnóstico` : '' },
+    { label:'Prazo de Entrega', value: r.prazoDate ? abertasFmtDate(r.prazoDate) : '—',
+      sub: r.prazoStatus !== 'semPrazo'
+           ? (r.prazoStatus === 'vencido' ? `⚠ vencido há ${-r.diasParaPrazo}d`
+              : (r.prazoStatus === 'proximo' ? `em ${r.diasParaPrazo}d` : `em ${r.diasParaPrazo}d`))
+           : '' },
+  ];
+  document.getElementById('abertasDetailKpis').innerHTML = kpis.map(k =>
+    `<div class="kpi"><div class="label">${escapeHtml(k.label)}</div>
+     <div class="value" style="font-size:16px">${escapeHtml(k.value)}</div>
+     <div class="sub">${escapeHtml(k.sub || '')}</div></div>`).join('');
+
+  // Popula campos com valores atuais
+  const m = r.meta;
+  document.getElementById('abertasDetAprovado').checked  = !!m.aprovado;
+  document.getElementById('abertasDetDataApr').value     = m.dataAprovacao || '';
+  document.getElementById('abertasDetPrevisao').value    = m.previsao || '';
+  document.getElementById('abertasDetTipo').value        = m.tipoDemanda || '';
+  document.getElementById('abertasDetSituacao').value    = m.situacao || '';
+  document.getElementById('abertasDetDataDiag').value    = m.dataDiagnostico || '';
+  document.getElementById('abertasDetDataAprOrc').value  = m.dataAprovOrcamento || '';
+  document.getElementById('abertasDetPrazoEntrega').value= m.prazoEntrega || '';
+
+  document.getElementById('abertasDetailModal').classList.add('open');
+}
+function abertasCloseDetail() {
+  document.getElementById('abertasDetailModal').classList.remove('open');
+  state.abertasUi.activeDetailKey = null;
+}
+function abertasSaveDetail() {
+  const key = state.abertasUi.activeDetailKey;
+  if (!key) return;
+  const [business, os] = key.split('|');
+  const rowObj = state.abertas.rows.find(x => x.business === business && x.os === os);
+  if (!rowObj) return;
+  const patch = {
+    aprovado:           document.getElementById('abertasDetAprovado').checked,
+    dataAprovacao:      document.getElementById('abertasDetDataApr').value || '',
+    previsao:           document.getElementById('abertasDetPrevisao').value || '',
+    tipoDemanda:        document.getElementById('abertasDetTipo').value || '',
+    situacao:           document.getElementById('abertasDetSituacao').value.trim(),
+    dataDiagnostico:    document.getElementById('abertasDetDataDiag').value || '',
+    dataAprovOrcamento: document.getElementById('abertasDetDataAprOrc').value || '',
+    prazoEntrega:       document.getElementById('abertasDetPrazoEntrega').value || '',
+  };
+  abertasSetMeta(rowObj, patch);
+  abertasCloseDetail();
+  renderAbertasView();
+}
+function abertasClearDetail() {
+  const key = state.abertasUi.activeDetailKey;
+  if (!key) return;
+  if (!confirm('Apagar TODAS as anotações desta OS? Esta ação não pode ser desfeita.')) return;
+  const all = abertasLoadMeta();
+  delete all[key];
+  localStorage.setItem(ABERTAS_META_KEY, JSON.stringify(all));
+  abertasCloseDetail();
+  renderAbertasView();
 }
 
 // ---------- exportação CSV ----------
@@ -9338,14 +9935,32 @@ function abertasExportCsv() {
   if (!state.abertas || !state.abertas.rows.length) return;
   const meta = abertasLoadMeta();
   const headers = ['Negócio','Operação','OperaçãoDesc','OS','Cliente','Modelo','Veículo','Placa',
-                   'Recepção','Total','Aprovado','DataAprovação','PrevisãoFaturamento'];
+                   'Recepção','DiasAbertos','Total',
+                   'TipoDemanda','Situação',
+                   'DataDiagnóstico','DataAprovOrçamento','PrazoEntrega','StatusPrazo',
+                   'Aprovado','DataAprovaçãoFat','PrevisãoFaturamento'];
+  const now = new Date(); now.setHours(0,0,0,0);
   const rows = state.abertas.rows.map(r => {
     const m = meta[`${r.business}|${r.os}`] || {};
+    const dias = r.recepcao ? Math.floor((now - r.recepcao) / 86400000) : '';
+    let statusPrazo = '';
+    if (m.prazoEntrega) {
+      const p = new Date(m.prazoEntrega + 'T00:00:00');
+      const d = Math.floor((p - now) / 86400000);
+      statusPrazo = d < 0 ? 'Vencido' : d <= 7 ? 'Próximo' : 'Em dia';
+    }
     return [
       r.businessLabel, r.operacao, r.operacaoDesc, r.os, r.cliente, r.modelo,
       r.veiculo, r.placa,
       r.recepcao ? r.recepcao.toISOString().slice(0,10) : '',
+      dias,
       (r.total||0).toFixed(2),
+      m.tipoDemanda || '',
+      m.situacao || '',
+      m.dataDiagnostico || '',
+      m.dataAprovOrcamento || '',
+      m.prazoEntrega || '',
+      statusPrazo,
       m.aprovado ? 'Sim' : 'Não',
       m.dataAprovacao || '',
       m.previsao === 'mesCorrente' ? 'Mês Corrente'
@@ -9382,11 +9997,42 @@ function wireAbertasView() {
     renderAbertasView();
   });
   document.getElementById('abertasSearch').addEventListener('input',
-    debounce(() => { if (state.abertas) renderAbertasTable(state.abertas.rows); }, 200));
-  ['abertasBusiness','abertasOperation','abertasStatus','abertasSort'].forEach(id => {
+    debounce(() => {
+      if (state.abertas) renderAbertasTable(state.abertas._enriched || abertasEnrichRows(state.abertas.rows));
+    }, 200));
+  ['abertasBusiness','abertasOperation','abertasDemand','abertasPrazo','abertasStatus','abertasSort'].forEach(id => {
     document.getElementById(id).addEventListener('change', () => {
-      if (state.abertas) renderAbertasTable(state.abertas.rows);
+      if (state.abertas) renderAbertasTable(state.abertas._enriched || abertasEnrichRows(state.abertas.rows));
     });
+  });
+  document.getElementById('abertasClearAlertFilter').addEventListener('click', () => {
+    state.abertasUi.alertKey = null;
+    if (state.abertas) {
+      renderAbertasAlerts(state.abertas._enriched);
+      renderAbertasTable(state.abertas._enriched);
+    }
+  });
+
+  // Modal de detalhes
+  document.getElementById('abertasDetailClose').addEventListener('click', abertasCloseDetail);
+  document.getElementById('abertasDetailModal').addEventListener('click', (e) => {
+    if (e.target.id === 'abertasDetailModal') abertasCloseDetail();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.getElementById('abertasDetailModal').classList.contains('open')) {
+      abertasCloseDetail();
+    }
+  });
+  document.getElementById('abertasDetSave').addEventListener('click', abertasSaveDetail);
+  document.getElementById('abertasDetClear').addEventListener('click', abertasClearDetail);
+  // Ao marcar Aprovado no modal, autopreenche data se estiver vazia
+  document.getElementById('abertasDetAprovado').addEventListener('change', (e) => {
+    if (e.target.checked) {
+      const inpD = document.getElementById('abertasDetDataApr');
+      const selP = document.getElementById('abertasDetPrevisao');
+      if (!inpD.value) inpD.value = new Date().toISOString().slice(0,10);
+      if (!selP.value) selP.value = 'mesCorrente';
+    }
   });
 
   // Restaura cache local se existir
